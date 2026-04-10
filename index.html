@@ -256,7 +256,8 @@ select {
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
 }
 
 .metric {
@@ -360,7 +361,7 @@ select {
     </section>
 
     <section id="resultsSection" class="results hidden">
-      <section class="card hidden">
+      <section class="card">
         <div class="card-header">
           <h2>Ringkasan Model</h2>
           <p class="hint">Koefisien kalibrasi forecast berdasarkan hubungan perubahan rata-rata TMAT dan rainfall mingguan.</p>
@@ -718,11 +719,25 @@ function handleProcess() {
 
 function getRainfallMapFromInputs() {
   const rainfallMap = {};
+  let totalWeeks = 0;
+  let emptyCount = 0;
+
   document.querySelectorAll(".rain-input").forEach((input) => {
     const week = input.dataset.week;
     const value = input.value.trim();
     rainfallMap[week] = value === "" ? NaN : Number(value);
+    totalWeeks++;
+    if (value === "") emptyCount++;
   });
+
+  const emptyPct = totalWeeks > 0 ? (emptyCount / totalWeeks) * 100 : 0;
+  if (emptyPct > 50) {
+    setStatus(
+      `⚠️ ${emptyCount} dari ${totalWeeks} minggu tidak memiliki data rainfall (${emptyPct.toFixed(0)}%). Model regresi mungkin tidak akurat.`,
+      "warn"
+    );
+  }
+
   return rainfallMap;
 }
 
@@ -911,57 +926,62 @@ function classifyTMAT(value) {
 }
 
 function fitRainResponse(weeklySummaryRecords) {
-  const lastN = weeklySummaryRecords.slice(-Math.max(3, 2));
+  // Gunakan SEMUA pasangan minggu berurutan yang memiliki data lengkap
   const fitRows = [];
 
-  for (let i = 1; i < lastN.length; i += 1) {
-    const prev = lastN[i - 1];
-    const curr = lastN[i];
+  for (let i = 1; i < weeklySummaryRecords.length; i += 1) {
+    const prev = weeklySummaryRecords[i - 1];
+    const curr = weeklySummaryRecords[i];
     if (!Number.isFinite(prev["Avg TMAT (cm)"]) || !Number.isFinite(curr["Avg TMAT (cm)"])) continue;
     if (!Number.isFinite(curr["Rain (mm)"])) continue;
-
     fitRows.push({
       x: curr["Rain (mm)"],
       y: curr["Avg TMAT (cm)"] - prev["Avg TMAT (cm)"],
     });
   }
 
-  let a;
-  let b;
+  let a, b, r2 = null;
   let method = "fit";
+  const n = fitRows.length;
 
-  if (fitRows.length >= 2 && hasVariance(fitRows.map((row) => row.x))) {
-    const n = fitRows.length;
-    const sumX = fitRows.reduce((sum, row) => sum + row.x, 0);
-    const sumY = fitRows.reduce((sum, row) => sum + row.y, 0);
-    const sumXY = fitRows.reduce((sum, row) => sum + row.x * row.y, 0);
-    const sumX2 = fitRows.reduce((sum, row) => sum + row.x * row.x, 0);
+  if (n >= 2 && hasVariance(fitRows.map((row) => row.x))) {
+    const sumX  = fitRows.reduce((s, r) => s + r.x, 0);
+    const sumY  = fitRows.reduce((s, r) => s + r.y, 0);
+    const sumXY = fitRows.reduce((s, r) => s + r.x * r.y, 0);
+    const sumX2 = fitRows.reduce((s, r) => s + r.x * r.x, 0);
     const denom = n * sumX2 - sumX * sumX;
 
     if (denom !== 0) {
       b = (n * sumXY - sumX * sumY) / denom;
       a = (sumY - b * sumX) / n;
+
+      // Hitung R²
+      const meanY = sumY / n;
+      const ssTot = fitRows.reduce((s, r) => s + (r.y - meanY) ** 2, 0);
+      const ssRes = fitRows.reduce((s, r) => s + (r.y - (a + b * r.x)) ** 2, 0);
+      r2 = ssTot > 0 ? 1 - ssRes / ssTot : 0;
     }
   }
 
   if (!Number.isFinite(a) || !Number.isFinite(b)) {
-    const lastTwo = weeklySummaryRecords.slice(-2);
-    const d = lastTwo.length === 2
-      ? (lastTwo[1]["Avg TMAT (cm)"] - lastTwo[0]["Avg TMAT (cm)"])
-      : 0;
-    a = Number.isFinite(d) ? d : 0;
+    // Fallback: estimasi a dari rata-rata perubahan TMAT historis
+    const validDeltas = [];
+    for (let i = 1; i < weeklySummaryRecords.length; i++) {
+      const prev = weeklySummaryRecords[i - 1]["Avg TMAT (cm)"];
+      const curr = weeklySummaryRecords[i]["Avg TMAT (cm)"];
+      if (Number.isFinite(prev) && Number.isFinite(curr)) validDeltas.push(curr - prev);
+    }
+    a = validDeltas.length ? validDeltas.reduce((s, v) => s + v, 0) / validDeltas.length : 2;
     b = -0.05;
-    method = "fallback";
+    r2 = null;
+    method = "default";
   }
 
+  // Pastikan b negatif (hujan semestinya menurunkan nilai TMAT)
+  if (b > 0) b = -b;
   b = Math.min(b, -0.001);
 
-  return {
-    a,
-    b,
-    fitRows,
-    method,
-  };
+  return { a, b, r2, nFit: n, fitRows, method };
 }
 
 function forecastCountsFromBaseline(counts, deltaAvgCm, baselineTotal) {
@@ -1043,17 +1063,41 @@ function summarizeCounts(counts) {
 
 function renderModelSummary(processed) {
   const baselineSummary = summarizeCounts(processed.baselineCounts);
+  const isDefault = processed.fit.method === "default";
+  const r2Label = (processed.fit.r2 !== null && Number.isFinite(processed.fit.r2))
+    ? formatNumber(processed.fit.r2, 3)
+    : "-";
+  const r2Warn = processed.fit.r2 !== null && Number.isFinite(processed.fit.r2) && processed.fit.r2 < 0.3;
+
   const cards = [
     ["Baseline Week", processed.baselineWeek],
-    ["Baseline Avg TMAT", formatNumber(processed.baselineAvgTMAT, 2)],
+    ["Baseline Avg TMAT (cm)", formatNumber(processed.baselineAvgTMAT, 2)],
     ["Baseline No Data", formatNumber(baselineSummary["No Data Count"], 0)],
     ["Baseline No Data %", formatNumber(baselineSummary["No Data %"], 1)],
     ["Koefisien a", formatNumber(processed.fit.a, 3)],
     ["Koefisien b", formatNumber(processed.fit.b, 4)],
-    ["Metode", processed.fit.method],
+    ["R² Goodness of Fit", r2Label],
+    ["N Data Fit", String(processed.fit.nFit)],
+    ["Metode Model", processed.fit.method],
   ];
 
-  modelSummaryEl.innerHTML = cards
+  let alertHtml = "";
+  if (isDefault) {
+    alertHtml = `<div style="grid-column:1/-1;padding:10px 14px;border-radius:10px;background:var(--warn-bg);color:var(--warn-text);font-size:13px;font-weight:500;">
+      ⚠️ Model menggunakan nilai <strong>default</strong> — data rainfall tidak cukup untuk regresi linier.
+      Isi minimal 3 minggu dengan nilai rainfall yang bervariasi agar model dapat dikalibrasi.
+    </div>`;
+  } else if (r2Warn) {
+    alertHtml = `<div style="grid-column:1/-1;padding:10px 14px;border-radius:10px;background:var(--warn-bg);color:var(--warn-text);font-size:13px;font-weight:500;">
+      ⚠️ R² = ${r2Label} — korelasi antara rainfall dan perubahan TMAT lemah (R² &lt; 0.3). Hasil forecast bersifat indikatif, bukan prediksi akurat.
+    </div>`;
+  } else if (processed.fit.r2 !== null) {
+    alertHtml = `<div style="grid-column:1/-1;padding:10px 14px;border-radius:10px;background:var(--success-bg);color:var(--success-text);font-size:13px;font-weight:500;">
+      ✅ Model terkalibrasi dari <strong>${processed.fit.nFit} pasang data</strong>. R² = ${r2Label}.
+    </div>`;
+  }
+
+  modelSummaryEl.innerHTML = alertHtml + cards
     .map(([label, value]) => `
       <div class="metric">
         <div class="metric-label">${escapeHtml(label)}</div>
