@@ -360,7 +360,7 @@ select {
     </section>
 
     <section id="resultsSection" class="results hidden">
-      <section class="card">
+      <section class="card hidden">
         <div class="card-header">
           <h2>Ringkasan Model</h2>
           <p class="hint">Koefisien kalibrasi forecast berdasarkan hubungan perubahan rata-rata TMAT dan rainfall mingguan.</p>
@@ -707,6 +707,7 @@ function handleProcess() {
     renderCharts(processed);
 
     resultsSectionEl.classList.remove("hidden");
+    
     exportExcelBtnEl.disabled = false;
     setStatus(`Process selesai. Baseline week: ${processed.baselineWeek}.`, "success");
   } catch (error) {
@@ -836,6 +837,7 @@ function processData(rawRows, detectedCols, rainfallMap, scenarios, baselineWeek
   });
 
   const baselineSummary = summarizeCounts(baselineCounts);
+
   const forecastSummaryRows = [
     { Metric: "No Data Count", Baseline: baselineSummary["No Data Count"] },
     { Metric: "No Data %", Baseline: baselineSummary["No Data %"] },
@@ -1025,7 +1027,7 @@ function forecastCountsFromBaseline(counts, deltaAvgCm, baselineTotal) {
 
 function summarizeCounts(counts) {
   const total = sumValues(counts);
-  const noData = counts["No Data"] || 0;
+  const noData = counts["No Data"];
   const basah = counts["Tergenang (0-40)"] + counts["A Tergenang (41-45)"];
   const kering60 = counts["A Kering (61-65)"] + counts["Kering (>65)"];
   return {
@@ -1044,7 +1046,7 @@ function renderModelSummary(processed) {
   const cards = [
     ["Baseline Week", processed.baselineWeek],
     ["Baseline Avg TMAT", formatNumber(processed.baselineAvgTMAT, 2)],
-    ["Baseline No Data", baselineSummary["No Data Count"]],
+    ["Baseline No Data", formatNumber(baselineSummary["No Data Count"], 0)],
     ["Baseline No Data %", formatNumber(baselineSummary["No Data %"], 1)],
     ["Koefisien a", formatNumber(processed.fit.a, 3)],
     ["Koefisien b", formatNumber(processed.fit.b, 4)],
@@ -1298,21 +1300,22 @@ function slugify(text) {
     .replace(/^_+|_+$/g, "");
 }
 
-function isNoDataToken(value) {
-  if (value === null || value === undefined) return true;
-  if (typeof value === "number") {
-    return !Number.isFinite(value) || value === 999 || value === -999;
-  }
-  const cleaned = String(value ?? "").replace(/,/g, "").trim().toLowerCase();
-  return cleaned === "" || ["null", "na", "n/a", "nan", "none", "-", "--", "999", "-999"].includes(cleaned);
-}
+const NO_DATA_NUMERIC_SENTINELS = new Set([999, -999]);
+const NO_DATA_TEXT_SENTINELS = new Set(["", "null", "na", "n/a", "nan", "none", "-", "--"]);
 
 function toNumber(value) {
-  if (isNoDataToken(value)) return NaN;
-  if (typeof value === "number") return value;
-  const cleaned = String(value ?? "").replace(/,/g, "").trim();
+  if (value === null || value === undefined) return NaN;
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) && !NO_DATA_NUMERIC_SENTINELS.has(value) ? value : NaN;
+  }
+
+  const cleaned = String(value).replace(/,/g, "").trim();
+  if (NO_DATA_TEXT_SENTINELS.has(cleaned.toLowerCase())) return NaN;
+
   const num = Number(cleaned);
-  return Number.isFinite(num) ? num : NaN;
+  if (!Number.isFinite(num)) return NaN;
+  return NO_DATA_NUMERIC_SENTINELS.has(num) ? NaN : num;
 }
 
 function mean(values) {
