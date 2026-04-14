@@ -28,14 +28,14 @@ const generateAiBtnEl = document.getElementById("generateAiBtn");
 const userContextEl = document.getElementById("userContext");
 const wmActionsEl = document.getElementById("wmActions");
 const aiOutputWrapEl = document.getElementById("aiOutputWrap");
-const aiOutputContentEl = document.getElementById("aiOutputContent");
+const aiOutputContentEl = document.getElementById("aiOutputContent") || document.getElementById("aiOutputWrap");
 
 // Translation Elements
 const translateModuleEl = document.getElementById("translateModule");
 const translateInputEl = document.getElementById("translateInput");
 const translateBtnEl = document.getElementById("translateBtn");
 const translateOutputWrapEl = document.getElementById("translateOutputWrap");
-const translateOutputContentEl = document.getElementById("translateOutputContent");
+const translateOutputContentEl = document.getElementById("translateOutputContent") || document.getElementById("translateOutputWrap");
 
 // External UI Elements
 const themeToggleBtn = document.getElementById("themeToggleBtn");
@@ -49,19 +49,23 @@ csvFileEl.addEventListener("change", handleFileUpload);
 processBtnEl.addEventListener("click", handleProcess);
 exportExcelBtnEl.addEventListener("click", handleExportExcel);
 downloadTemplateBtnEl.addEventListener("click", handleDownloadTemplate);
-generateAiBtnEl.addEventListener("click", handleGenerateAIReport);
-translateBtnEl.addEventListener("click", handleTranslateReport);
+generateAiBtnEl?.addEventListener("click", handleGenerateAIReport);
+translateBtnEl?.addEventListener("click", handleTranslateReport);
 
-themeToggleBtn.addEventListener("click", handleThemeToggle);
-copyAiBtn.addEventListener("click", () => handleCopy(aiOutputContentEl, copyAiBtn));
-copyTranslateBtn.addEventListener("click", () => handleCopy(translateOutputContentEl, copyTranslateBtn));
+themeToggleBtn?.addEventListener("click", handleThemeToggle);
+copyAiBtn?.addEventListener("click", () => handleCopy(aiOutputContentEl, copyAiBtn));
+copyTranslateBtn?.addEventListener("click", () => handleCopy(translateOutputContentEl, copyTranslateBtn));
 
 function handleThemeToggle() {
     const isDark = document.documentElement.classList.toggle('dark');
-    themeIconDark.classList.toggle('hidden', !isDark);
-    themeIconDark.classList.toggle('block', isDark);
-    themeIconLight.classList.toggle('hidden', isDark);
-    themeIconLight.classList.toggle('block', !isDark);
+    if (themeIconDark) {
+        themeIconDark.classList.toggle('hidden', !isDark);
+        themeIconDark.classList.toggle('block', isDark);
+    }
+    if (themeIconLight) {
+        themeIconLight.classList.toggle('hidden', isDark);
+        themeIconLight.classList.toggle('block', !isDark);
+    }
     localStorage.theme = isDark ? 'dark' : 'light';
 }
 
@@ -77,8 +81,8 @@ function handleCopy(contentEl, btnEl) {
 // Initial Theme Setup
 if (localStorage.theme === 'dark') {
     document.documentElement.classList.add('dark');
-    themeIconDark.classList.replace('hidden', 'block');
-    themeIconLight.classList.replace('block', 'hidden');
+    if (themeIconDark) themeIconDark.classList.replace('hidden', 'block');
+    if (themeIconLight) themeIconLight.classList.replace('block', 'hidden');
 } else {
     document.documentElement.classList.remove('dark');
 }
