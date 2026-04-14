@@ -439,11 +439,11 @@ async function handleGenerateAIReport() {
         if (!response.ok) throw new Error(data.error || "Terjadi kesalahan pada server backend.");
 
         // Tampilkan Hasil Utama
-        const hasilLaporan = data.text.replace(/\n/g, '<br>');
+        const hasilLaporan = data.text.replace(/\*\*/g, '').replace(/\n/g, '<br>');
         aiOutputContentEl.innerHTML = hasilLaporan;
 
         // Aktifkan modul translasi dan isi otomatis dengan laporan yang baru dibuat
-        translateInputEl.value = data.text;
+        translateInputEl.value = data.text.replace(/\*\*/g, '');
         translateModuleEl.classList.remove("hidden");
         translateOutputWrapEl.classList.add("hidden");
 
@@ -492,7 +492,7 @@ async function handleTranslateReport() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Terjadi kesalahan pada server backend.");
 
-        translateOutputContentEl.innerHTML = data.text.replace(/\n/g, '<br>');
+        translateOutputContentEl.innerHTML = data.text.replace(/\*\*/g, '').replace(/\n/g, '<br>');
 
     } catch (error) {
         console.error(error);
