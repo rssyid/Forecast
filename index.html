@@ -4,139 +4,224 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TMAT Forecast Web & AI Report</title>
+  <title>TMAT Forecast & AI Report</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            border: "hsl(var(--border))",
+            input: "hsl(var(--input))",
+            ring: "hsl(var(--ring))",
+            background: "hsl(var(--background))",
+            foreground: "hsl(var(--foreground))",
+            primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+            secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
+            destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
+            muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
+            card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+          },
+          borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 2px)", sm: "calc(var(--radius) - 4px)" }
+        }
+      }
+    }
+  </script>
   <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
-  <div class="container">
-    <header class="page-header">
+<body class="min-h-screen bg-slate-50 antialiased p-4 md:p-8">
+  <div class="mx-auto max-w-7xl space-y-6">
+
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <h1>TMAT Forecast & AI Report</h1>
-        <p class="subtitle">Upload CSV piezometer, proses data, dan buat laporan otomatis dengan AI.</p>
+        <h1 class="text-3xl font-bold tracking-tight">TMAT Forecast & AI Report</h1>
+        <p class="text-sm text-muted-foreground mt-1">Upload CSV piezometer, proses data, dan buat laporan otomatis
+          dengan AI.</p>
       </div>
-      <div class="header-actions">
-        <button id="downloadTemplateBtn" class="btn btn-secondary">Download CSV Header Guide</button>
-        <button id="exportExcelBtn" class="btn btn-primary" disabled>Export Excel</button>
+      <div class="flex items-center gap-2">
+        <button id="downloadTemplateBtn"
+          class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2">
+          Panduan CSV
+        </button>
+        <button id="exportExcelBtn" disabled
+          class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+          Export Excel
+        </button>
       </div>
     </header>
 
-    <section class="card controls-card">
-      <div class="grid grid-3">
-        <div class="field">
-          <label for="csvFile">CSV Piezometer</label>
-          <input id="csvFile" type="file" accept=".csv" />
-        </div>
-        <div class="field">
-          <label for="baselineWeek">Baseline Week</label>
-          <select id="baselineWeek" disabled></select>
-        </div>
-        <div class="field">
-          <label for="scenarioInput">Scenario Rainfall (mm)</label>
-          <input id="scenarioInput" type="text" value="0,50" placeholder="0,50" />
-        </div>
-      </div>
-
-      <div class="toolbar" style="margin-top: 16px;">
-        <div id="statusBox" class="status neutral">Belum ada file yang diproses.</div>
-        <button id="processBtn" class="btn btn-primary" disabled>Process</button>
-      </div>
-    </section>
-
-    <section class="card" id="mappingCard">
-      <div class="card-header">
-        <h2>Deteksi Kolom</h2>
-        <p class="hint">Cek hasil deteksi header dari CSV.</p>
-      </div>
-      <div id="mappingSummary" class="mapping-summary empty">Belum ada file.</div>
-    </section>
-
-    <section class="card" id="rainfallCard">
-      <div class="card-header">
-        <h2>Input Rainfall per Week Name</h2>
-        <p class="hint">Week Name diambil dari distinct value pada CSV upload.</p>
-      </div>
-      <div id="rainfallTableWrap" class="table-wrap empty-state">Upload CSV untuk menampilkan daftar minggu.</div>
-    </section>
-
-    <section id="resultsSection" class="results hidden">
-
-      <section class="card" id="aiReportCard" style="border: 2px solid var(--primary);">
-        <div class="card-header" style="margin-bottom: 16px;">
-          <h2>Laporan Analisis AI</h2>
-          <p class="hint">Tambahkan konteks lapangan untuk diolah oleh AI (API Key aman di server).</p>
-        </div>
-
-        <div class="grid grid-2">
-          <div class="field">
-            <label for="userContext">Konteks Curah Hujan (Real vs Forecast)</label>
-            <textarea id="userContext" rows="3"
-              placeholder="Contoh: Walaupun forecast 135 mm, realisasi hujan lapangan hanya 15-20 mm..."></textarea>
+    <section class="rounded-xl border bg-card text-card-foreground shadow-sm">
+      <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="space-y-2">
+            <label class="text-sm font-medium leading-none">CSV Piezometer</label>
+            <input id="csvFile" type="file" accept=".csv"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm cursor-pointer file:border-0 file:bg-transparent file:text-sm file:font-medium hover:bg-slate-50 transition-colors" />
           </div>
-          <div class="field">
-            <label for="wmActions">Aksi Water Management (WM)</label>
-            <textarea id="wmActions" rows="3"
-              placeholder="Contoh: the WM field team continues to manage TMAS in the mainflow canals through regular patrols..."></textarea>
+          <div class="space-y-2">
+            <label class="text-sm font-medium leading-none">Baseline Week</label>
+            <select id="baselineWeek" disabled
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"></select>
+          </div>
+          <div class="space-y-2">
+            <label class="text-sm font-medium leading-none">Scenario Rainfall (mm)</label>
+            <input id="scenarioInput" type="text" value="0,50" placeholder="0,50"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
           </div>
         </div>
 
-        <div style="margin-top: 16px;">
-          <button id="generateAiBtn" class="btn btn-primary">Generate Laporan AI</button>
+        <div class="mt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div id="statusBox"
+            class="text-sm px-4 py-2 rounded-md bg-muted text-muted-foreground w-full md:w-auto flex-1">Belum ada file
+            yang diproses.</div>
+          <button id="processBtn" disabled
+            class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-8 py-2 w-full md:w-auto">
+            Process Data
+          </button>
         </div>
-
-        <div id="aiOutputWrap" class="empty-state ai-output-box">
-          Laporan akan muncul di sini...
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card-header">
-          <h2>Ringkasan Model</h2>
-        </div>
-        <div id="modelSummary" class="metrics-grid"></div>
-      </section>
-
-      <section class="card">
-        <div class="card-header">
-          <h2>Charts</h2>
-        </div>
-        <div class="grid grid-2">
-          <div class="chart-card"><canvas id="trendChart"></canvas></div>
-          <div class="chart-card"><canvas id="distChart"></canvas></div>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card-header">
-          <h2>Weekly Summary</h2>
-        </div>
-        <div id="weeklySummaryWrap" class="table-wrap"></div>
-      </section>
-
-      <section class="card">
-        <div class="card-header">
-          <h2>Baseline Distribution</h2>
-        </div>
-        <div id="baselineWrap" class="table-wrap"></div>
-      </section>
-
-      <section class="card">
-        <div class="card-header">
-          <h2>Forecast Table</h2>
-        </div>
-        <div id="forecastWrap" class="table-wrap"></div>
-      </section>
-
-      <section class="card">
-        <div class="card-header">
-          <h2>Forecast Summary</h2>
-        </div>
-        <div id="forecastSummaryWrap" class="table-wrap"></div>
-      </section>
+      </div>
     </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section class="rounded-xl border bg-card text-card-foreground shadow-sm">
+        <div class="flex flex-col space-y-1.5 p-6 border-b">
+          <h3 class="text-lg font-semibold leading-none tracking-tight">Deteksi Kolom</h3>
+          <p class="text-sm text-muted-foreground">Cek hasil deteksi header dari CSV.</p>
+        </div>
+        <div class="p-6">
+          <div id="mappingSummary" class="text-sm text-muted-foreground italic">Belum ada file.</div>
+        </div>
+      </section>
+
+      <section class="rounded-xl border bg-card text-card-foreground shadow-sm">
+        <div class="flex flex-col space-y-1.5 p-6 border-b">
+          <h3 class="text-lg font-semibold leading-none tracking-tight">Input Rainfall per Week</h3>
+          <p class="text-sm text-muted-foreground">Week Name diambil otomatis dari CSV.</p>
+        </div>
+        <div class="p-0">
+          <div id="rainfallTableWrap" class="p-6 text-sm text-muted-foreground italic">Upload CSV untuk menampilkan
+            daftar minggu.</div>
+        </div>
+      </section>
+    </div>
+
+    <div id="resultsSection" class="hidden space-y-6">
+
+      <section class="rounded-xl border-2 border-primary bg-card text-card-foreground shadow-sm">
+        <div class="flex flex-col space-y-1.5 p-6 border-b bg-slate-50/50 rounded-t-xl">
+          <h3 class="text-xl font-semibold leading-none tracking-tight">Laporan Analisis AI</h3>
+          <p class="text-sm text-muted-foreground">Tambahkan konteks lapangan untuk diolah oleh AI (API Key aman di
+            server Vercel).</p>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="space-y-2">
+              <label class="text-sm font-medium leading-none">Konteks Curah Hujan</label>
+              <textarea id="userContext" rows="3"
+                placeholder="Contoh: Walaupun forecast 135 mm, realisasi hujan lapangan hanya 15-20 mm..."
+                class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"></textarea>
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-medium leading-none">Aksi Water Management (WM)</label>
+              <textarea id="wmActions" rows="3"
+                placeholder="Contoh: tim operasional WM terus memantau level air kanal melalui patroli rutin..."
+                class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"></textarea>
+            </div>
+          </div>
+
+          <button id="generateAiBtn"
+            class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+            Generate Laporan (Bahasa Indonesia)
+          </button>
+
+          <div id="aiOutputWrap"
+            class="mt-6 p-4 rounded-md border bg-slate-50 text-sm leading-relaxed text-slate-800 hidden">
+          </div>
+
+          <div id="translateModule" class="mt-8 pt-6 border-t border-slate-200 hidden">
+            <div class="space-y-2 mb-4">
+              <label class="text-sm font-semibold leading-none text-primary">Rewrite & Translate ke Bahasa
+                Inggris</label>
+              <p class="text-xs text-muted-foreground">AI akan memperbaiki grammar, mempersingkat pesan secara
+                profesional, dan mengubah istilah teknis (Tanggul -> Embankment, TMAS -> Water level, TMAT -> Ground
+                water).</p>
+              <textarea id="translateInput" rows="4"
+                placeholder="Tempel/edit teks laporan di sini untuk diterjemahkan..."
+                class="flex mt-2 min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"></textarea>
+            </div>
+            <button id="translateBtn"
+              class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                <path d="m5 8 6 6" />
+                <path d="m4 14 6-6 2-3" />
+                <path d="M2 5h12" />
+                <path d="M7 2h1" />
+                <path d="m22 22-5-10-5 10" />
+                <path d="M14 18h6" />
+              </svg>
+              Rewrite & Translate
+            </button>
+            <div id="translateOutputWrap"
+              class="mt-4 p-4 rounded-md border border-green-200 bg-green-50/50 text-sm leading-relaxed text-slate-800 hidden">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-xl border bg-card text-card-foreground shadow-sm">
+        <div class="flex flex-col space-y-1.5 p-6 border-b">
+          <h3 class="text-lg font-semibold leading-none tracking-tight">Ringkasan Model</h3>
+        </div>
+        <div class="p-6">
+          <div id="modelSummary" class="grid grid-cols-2 md:grid-cols-5 gap-4"></div>
+        </div>
+      </section>
+
+      <section class="rounded-xl border bg-card text-card-foreground shadow-sm">
+        <div class="flex flex-col space-y-1.5 p-6 border-b">
+          <h3 class="text-lg font-semibold leading-none tracking-tight">Visualisasi Data</h3>
+        </div>
+        <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="h-[360px] w-full"><canvas id="trendChart"></canvas></div>
+          <div class="h-[360px] w-full"><canvas id="distChart"></canvas></div>
+        </div>
+      </section>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col">
+          <div class="flex flex-col space-y-1.5 p-6 border-b">
+            <h3 class="text-lg font-semibold leading-none">Weekly Summary</h3>
+          </div>
+          <div id="weeklySummaryWrap" class="p-0 table-wrap overflow-auto"></div>
+        </section>
+        <section class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col">
+          <div class="flex flex-col space-y-1.5 p-6 border-b">
+            <h3 class="text-lg font-semibold leading-none">Baseline Distribution</h3>
+          </div>
+          <div id="baselineWrap" class="p-0 table-wrap overflow-auto"></div>
+        </section>
+      </div>
+
+      <section class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col">
+        <div class="flex flex-col space-y-1.5 p-6 border-b">
+          <h3 class="text-lg font-semibold leading-none">Forecast Table</h3>
+        </div>
+        <div id="forecastWrap" class="p-0 table-wrap overflow-auto"></div>
+      </section>
+
+      <section class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col">
+        <div class="flex flex-col space-y-1.5 p-6 border-b">
+          <h3 class="text-lg font-semibold leading-none">Forecast Summary</h3>
+        </div>
+        <div id="forecastSummaryWrap" class="p-0 table-wrap overflow-auto"></div>
+      </section>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
