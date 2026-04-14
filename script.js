@@ -44,6 +44,10 @@ const themeIconLight = document.getElementById("themeIconLight");
 const copyAiBtn = document.getElementById("copyAiBtn");
 const copyTranslateBtn = document.getElementById("copyTranslateBtn");
 
+// Tab Elements
+const tabBtns = ['dashboard', 'forecast', 'data'].map(id => document.getElementById(`tabBtn-${id}`));
+const tabPanes = ['dashboard', 'forecast', 'data'].map(id => document.getElementById(`tabPane-${id}`));
+
 // Event Listeners
 csvFileEl.addEventListener("change", handleFileUpload);
 processBtnEl.addEventListener("click", handleProcess);
@@ -55,6 +59,32 @@ translateBtnEl?.addEventListener("click", handleTranslateReport);
 themeToggleBtn?.addEventListener("click", handleThemeToggle);
 copyAiBtn?.addEventListener("click", () => handleCopy(aiOutputContentEl, copyAiBtn));
 copyTranslateBtn?.addEventListener("click", () => handleCopy(translateOutputContentEl, copyTranslateBtn));
+
+// Tab Functionality
+tabBtns.forEach((btn, index) => {
+    btn?.addEventListener("click", () => {
+        // Reset all buttons
+        tabBtns.forEach(b => {
+            if (!b) return;
+            b.classList.remove('font-semibold', 'border-primary', 'text-primary');
+            b.classList.add('font-medium', 'border-transparent', 'text-muted-foreground');
+        });
+        // Set active button
+        btn.classList.add('font-semibold', 'border-primary', 'text-primary');
+        btn.classList.remove('font-medium', 'border-transparent', 'text-muted-foreground');
+
+        // Toggle panes
+        tabPanes.forEach(p => {
+            if (!p) return;
+            p.classList.add('hidden');
+            p.classList.remove('block');
+        });
+        if (tabPanes[index]) {
+            tabPanes[index].classList.remove('hidden');
+            tabPanes[index].classList.add('block');
+        }
+    });
+});
 
 function handleThemeToggle() {
     const isDark = document.documentElement.classList.toggle('dark');
