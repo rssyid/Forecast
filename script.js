@@ -28,12 +28,21 @@ const generateAiBtnEl = document.getElementById("generateAiBtn");
 const userContextEl = document.getElementById("userContext");
 const wmActionsEl = document.getElementById("wmActions");
 const aiOutputWrapEl = document.getElementById("aiOutputWrap");
+const aiOutputContentEl = document.getElementById("aiOutputContent");
 
 // Translation Elements
 const translateModuleEl = document.getElementById("translateModule");
 const translateInputEl = document.getElementById("translateInput");
 const translateBtnEl = document.getElementById("translateBtn");
 const translateOutputWrapEl = document.getElementById("translateOutputWrap");
+const translateOutputContentEl = document.getElementById("translateOutputContent");
+
+// External UI Elements
+const themeToggleBtn = document.getElementById("themeToggleBtn");
+const themeIconDark = document.getElementById("themeIconDark");
+const themeIconLight = document.getElementById("themeIconLight");
+const copyAiBtn = document.getElementById("copyAiBtn");
+const copyTranslateBtn = document.getElementById("copyTranslateBtn");
 
 // Event Listeners
 csvFileEl.addEventListener("change", handleFileUpload);
@@ -42,6 +51,37 @@ exportExcelBtnEl.addEventListener("click", handleExportExcel);
 downloadTemplateBtnEl.addEventListener("click", handleDownloadTemplate);
 generateAiBtnEl.addEventListener("click", handleGenerateAIReport);
 translateBtnEl.addEventListener("click", handleTranslateReport);
+
+themeToggleBtn.addEventListener("click", handleThemeToggle);
+copyAiBtn.addEventListener("click", () => handleCopy(aiOutputContentEl, copyAiBtn));
+copyTranslateBtn.addEventListener("click", () => handleCopy(translateOutputContentEl, copyTranslateBtn));
+
+function handleThemeToggle() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    themeIconDark.classList.toggle('hidden', !isDark);
+    themeIconDark.classList.toggle('block', isDark);
+    themeIconLight.classList.toggle('hidden', isDark);
+    themeIconLight.classList.toggle('block', !isDark);
+    localStorage.theme = isDark ? 'dark' : 'light';
+}
+
+function handleCopy(contentEl, btnEl) {
+    if (!contentEl.innerText) return;
+    navigator.clipboard.writeText(contentEl.innerText).then(() => {
+        const originalHtml = btnEl.innerHTML;
+        btnEl.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" class="text-green-500" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+        setTimeout(() => btnEl.innerHTML = originalHtml, 2000);
+    });
+}
+
+// Initial Theme Setup
+if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+    themeIconDark.classList.replace('hidden', 'block');
+    themeIconLight.classList.replace('block', 'hidden');
+} else {
+    document.documentElement.classList.remove('dark');
+}
 
 // Utilities & Logic CSV (Frontend)
 function setStatus(message, type = "neutral") {
@@ -305,7 +345,7 @@ function handleDownloadTemplate() {
 async function handleGenerateAIReport() {
     if (!state.processed) return alert("Proses data CSV terlebih dahulu!");
 
-    aiOutputWrapEl.innerHTML = "<span class='animate-pulse'>Menganalisis kondisi dominan dan menghubungi server, mohon tunggu...</span>";
+    aiOutputContentEl.innerHTML = "<span class='animate-pulse'>Menganalisis kondisi dominan dan menghubungi server, mohon tunggu...</span>";
     aiOutputWrapEl.classList.remove("hidden");
     translateModuleEl.classList.add("hidden");
     generateAiBtnEl.disabled = true;
@@ -388,7 +428,7 @@ async function handleGenerateAIReport() {
 
         // Tampilkan Hasil Utama
         const hasilLaporan = data.text.replace(/\n/g, '<br>');
-        aiOutputWrapEl.innerHTML = hasilLaporan;
+        aiOutputContentEl.innerHTML = hasilLaporan;
 
         // Aktifkan modul translasi dan isi otomatis dengan laporan yang baru dibuat
         translateInputEl.value = data.text;
@@ -397,7 +437,7 @@ async function handleGenerateAIReport() {
 
     } catch (error) {
         console.error(error);
-        aiOutputWrapEl.innerHTML = `<span class="text-red-600 font-medium">Gagal membuat laporan AI: ${error.message}</span>`;
+        aiOutputContentEl.innerHTML = `<span class="text-red-600 font-medium">Gagal membuat laporan AI: ${error.message}</span>`;
     } finally {
         generateAiBtnEl.disabled = false;
     }
@@ -410,7 +450,7 @@ async function handleTranslateReport() {
     const textToTranslate = translateInputEl.value.trim();
     if (!textToTranslate) return alert("Silakan masukkan teks yang ingin ditranslate!");
 
-    translateOutputWrapEl.innerHTML = "<span class='animate-pulse text-green-700'>Memperbaiki grammar dan menerjemahkan, mohon tunggu...</span>";
+    translateOutputContentEl.innerHTML = "<span class='animate-pulse text-green-700'>Memperbaiki grammar dan menerjemahkan, mohon tunggu...</span>";
     translateOutputWrapEl.classList.remove("hidden");
     translateBtnEl.disabled = true;
 
@@ -440,11 +480,11 @@ async function handleTranslateReport() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Terjadi kesalahan pada server backend.");
 
-        translateOutputWrapEl.innerHTML = data.text.replace(/\n/g, '<br>');
+        translateOutputContentEl.innerHTML = data.text.replace(/\n/g, '<br>');
 
     } catch (error) {
         console.error(error);
-        translateOutputWrapEl.innerHTML = `<span class="text-red-600 font-medium">Gagal menerjemahkan: ${error.message}</span>`;
+        translateOutputContentEl.innerHTML = `<span class="text-red-600 font-medium">Gagal menerjemahkan: ${error.message}</span>`;
     } finally {
         translateBtnEl.disabled = false;
     }
