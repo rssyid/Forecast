@@ -148,9 +148,9 @@ function validateRequiredColumns(detectedCols) {
 function renderColumnMapping(detectedCols, headers) {
     const rows = [["Week", detectedCols.week], ["TMAT", detectedCols.tmat], ["Estate", detectedCols.estate], ["Piezo ID", detectedCols.id], ["Block", detectedCols.block], ["Date", detectedCols.date]];
     mappingSummaryEl.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">` + rows.map(([label, value]) => `
-      <div class="flex items-center justify-between p-3 border rounded-md bg-slate-50">
+      <div class="flex items-center justify-between p-3 border rounded-md bg-muted/50">
         <span class="text-sm font-semibold">${escapeHtml(label)}</span>
-        <span class="text-sm text-slate-600">${escapeHtml(value || "Tidak terdeteksi")}</span>
+        <span class="text-sm text-muted-foreground">${escapeHtml(value || "Tidak terdeteksi")}</span>
       </div>`).join("") + `</div>`;
 }
 
@@ -298,7 +298,7 @@ function toNumber(v) { if (v == null) return NaN; if (typeof v === "number") ret
 // Rendering UI Shadcn Tables
 function renderModelSummary(p) {
     modelSummaryEl.innerHTML = [["Baseline Week", p.baselineWeek], ["Baseline Avg TMAT", formatNumber(p.baselineAvgTMAT, 2)], ["Koefisien a", formatNumber(p.fit.a, 3)], ["Koefisien b", formatNumber(p.fit.b, 4)], ["Metode", p.fit.method]]
-        .map(([l, v]) => `<div class="flex flex-col gap-1 p-4 rounded-xl border bg-slate-50"><span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">${escapeHtml(l)}</span><span class="text-xl font-bold">${escapeHtml(String(v))}</span></div>`).join("");
+        .map(([l, v]) => `<div class="flex flex-col gap-1 p-4 rounded-xl border bg-muted/50"><span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">${escapeHtml(l)}</span><span class="text-xl font-bold">${escapeHtml(String(v))}</span></div>`).join("");
 }
 
 function renderTables(p) {
