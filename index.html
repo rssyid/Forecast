@@ -93,13 +93,36 @@
     <div id="resultsSection" class="hidden">
       <!-- Tabs Navigation -->
       <div class="flex space-x-1 border-b border-border bg-transparent w-full mb-6 overflow-x-auto pb-px">
-        <button id="tabBtn-dashboard" class="px-4 py-2 text-sm font-semibold border-b-2 border-primary text-primary transition-colors whitespace-nowrap">Dashboard & AI</button>
+        <button id="tabBtn-dashboard" class="px-4 py-2 text-sm font-semibold border-b-2 border-primary text-primary transition-colors whitespace-nowrap">Dashboard</button>
+        <button id="tabBtn-laporan" class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground hover:border-border transition-colors whitespace-nowrap">Laporan</button>
         <button id="tabBtn-forecast" class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground hover:border-border transition-colors whitespace-nowrap">Tabel Forecast</button>
         <button id="tabBtn-data" class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground hover:border-border transition-colors whitespace-nowrap">Data Raw & Baseline</button>
       </div>
 
-      <!-- Tab Content: Dashboard & AI -->
+      <!-- Tab Content: Dashboard -->
       <div id="tabPane-dashboard" class="space-y-6 block">
+        <section class="rounded-xl border bg-card text-card-foreground shadow-sm">
+          <div class="flex flex-col space-y-1.5 p-6 border-b">
+            <h3 class="text-lg font-semibold leading-none tracking-tight">Ringkasan Model</h3>
+          </div>
+          <div class="p-6">
+            <div id="modelSummary" class="grid grid-cols-2 md:grid-cols-5 gap-4"></div>
+          </div>
+        </section>
+
+        <section class="rounded-xl border bg-card text-card-foreground shadow-sm">
+          <div class="flex flex-col space-y-1.5 p-6 border-b">
+            <h3 class="text-lg font-semibold leading-none tracking-tight">Visualisasi Data</h3>
+          </div>
+          <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="h-[360px] w-full"><canvas id="trendChart"></canvas></div>
+            <div class="h-[360px] w-full"><canvas id="distChart"></canvas></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Tab Content: Laporan -->
+      <div id="tabPane-laporan" class="space-y-6 hidden">
         <section class="rounded-xl border-2 border-primary bg-card text-card-foreground shadow-sm">
         <div class="flex flex-col space-y-1.5 p-6 border-b bg-slate-50/50 rounded-t-xl">
           <h3 class="text-xl font-semibold leading-none tracking-tight">Laporan Analisis AI</h3>
@@ -147,25 +170,6 @@
               class="mt-4 p-4 rounded-md border border-green-200 bg-green-50/50 text-sm leading-relaxed text-slate-800 hidden">
             </div>
           </div>
-        </div>
-      </section>
-
-      <section class="rounded-xl border bg-card text-card-foreground shadow-sm">
-        <div class="flex flex-col space-y-1.5 p-6 border-b">
-          <h3 class="text-lg font-semibold leading-none tracking-tight">Ringkasan Model</h3>
-        </div>
-        <div class="p-6">
-          <div id="modelSummary" class="grid grid-cols-2 md:grid-cols-5 gap-4"></div>
-        </div>
-      </section>
-
-      <section class="rounded-xl border bg-card text-card-foreground shadow-sm">
-        <div class="flex flex-col space-y-1.5 p-6 border-b">
-          <h3 class="text-lg font-semibold leading-none tracking-tight">Visualisasi Data</h3>
-        </div>
-        <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div class="h-[360px] w-full"><canvas id="trendChart"></canvas></div>
-          <div class="h-[360px] w-full"><canvas id="distChart"></canvas></div>
         </div>
       </section>
 

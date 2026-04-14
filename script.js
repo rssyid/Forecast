@@ -45,8 +45,8 @@ const copyAiBtn = document.getElementById("copyAiBtn");
 const copyTranslateBtn = document.getElementById("copyTranslateBtn");
 
 // Tab Elements
-const tabBtns = ['dashboard', 'forecast', 'data'].map(id => document.getElementById(`tabBtn-${id}`));
-const tabPanes = ['dashboard', 'forecast', 'data'].map(id => document.getElementById(`tabPane-${id}`));
+const tabBtns = ['dashboard', 'laporan', 'forecast', 'data'].map(id => document.getElementById(`tabBtn-${id}`));
+const tabPanes = ['dashboard', 'laporan', 'forecast', 'data'].map(id => document.getElementById(`tabPane-${id}`));
 
 // Event Listeners
 csvFileEl.addEventListener("change", handleFileUpload);
@@ -363,7 +363,7 @@ function renderCharts(p) {
     const barBgColorHover = isDark ? "hsl(217.2 32.6% 17.5%)" : "hsl(210 40% 80%)";
     const barBgColor = isDark ? "hsla(217.2, 32.6%, 17.5%, 0.5)" : "hsl(210 40% 90%)";
 
-    state.charts.trend = new Chart(document.getElementById("trendChart"), { type: "bar", data: { labels: p.weeks, datasets: [{ type: "bar", label: "Rainfall (mm)", data: p.weeklySummaryRecords.map(r => Number.isFinite(r["Rain (mm)"]) ? r["Rain (mm)"] : null), yAxisID: "y1", backgroundColor: barBgColor, hoverBackgroundColor: barBgColorHover }, { type: "line", label: "Avg TMAT (cm)", data: p.weeklySummaryRecords.map(r => r["Avg TMAT (cm)"]), yAxisID: "y", tension: 0.3, borderColor: mainLineColor, backgroundColor: mainLineColor, pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { position: "top", labels: { usePointStyle: true, boxWidth: 8 } } }, scales: { y: { type: "linear", position: "left", title: { display: true, text: "Avg TMAT (cm)" } }, y1: { type: "linear", position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Rainfall (mm)" } } } } });
+    state.charts.trend = new Chart(document.getElementById("trendChart"), { type: "bar", data: { labels: p.weeks, datasets: [{ type: "bar", label: "Rainfall (mm)", order: 2, data: p.weeklySummaryRecords.map(r => Number.isFinite(r["Rain (mm)"]) ? r["Rain (mm)"] : null), yAxisID: "y1", backgroundColor: barBgColor, hoverBackgroundColor: barBgColorHover }, { type: "line", label: "Avg TMAT (cm)", order: 1, data: p.weeklySummaryRecords.map(r => r["Avg TMAT (cm)"]), yAxisID: "y", tension: 0.3, borderColor: mainLineColor, backgroundColor: mainLineColor, pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { position: "top", labels: { usePointStyle: true, boxWidth: 8 } } }, scales: { y: { type: "linear", position: "left", title: { display: true, text: "Avg TMAT (cm)" } }, y1: { type: "linear", position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Rainfall (mm)" } } } } });
     state.charts.dist = new Chart(document.getElementById("distChart"), { type: "bar", data: { labels: CLASS_ORDER, datasets: [{ label: "Baseline %", data: CLASS_ORDER.map(c => p.baselinePct[c]), backgroundColor: "hsl(215.4 16.3% 46.9%)" }, ...p.scenarioResults.map((r, i) => ({ label: `CH${r.scenarioMm} %`, data: CLASS_ORDER.map(c => r.pct[c]), backgroundColor: i === 0 ? mainLineColor : "hsl(221.2 83.2% 53.3%)" }))] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top", labels: { usePointStyle: true, boxWidth: 8 } } }, scales: { y: { beginAtZero: true, title: { display: true, text: "Percent (%)" } } } } });
 }
 
