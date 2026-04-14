@@ -44,9 +44,26 @@
           dengan AI.</p>
       </div>
       <div class="flex items-center gap-2">
-        <button id="themeToggleBtn" title="Toggle Theme" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-slate-100 h-10 w-10">
-          <svg id="themeIconLight" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="block"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-          <svg id="themeIconDark" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <button id="themeToggleBtn" title="Toggle Theme"
+          class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-slate-100 h-10 w-10">
+          <svg id="themeIconLight" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="block">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2" />
+            <path d="M12 20v2" />
+            <path d="m4.93 4.93 1.41 1.41" />
+            <path d="m17.66 17.66 1.41 1.41" />
+            <path d="M2 12h2" />
+            <path d="M20 12h2" />
+            <path d="m6.34 17.66-1.41 1.41" />
+            <path d="m19.07 4.93-1.41 1.41" />
+          </svg>
+          <svg id="themeIconDark" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="hidden">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+          </svg>
         </button>
         <button id="downloadTemplateBtn"
           class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2">
@@ -118,8 +135,9 @@
 
       <section class="rounded-xl border-2 border-primary bg-card text-card-foreground shadow-sm">
         <div class="flex flex-col space-y-1.5 p-6 border-b bg-slate-50/50 rounded-t-xl">
-          <h3 class="text-xl font-semibold leading-none tracking-tight">Laporan Analisis AI (Free Tier 15 req/min)</h3>
-          <p class="text-sm text-muted-foreground">Tambahkan konteks lapangan untuk diolah oleh AI.</p>
+          <h3 class="text-xl font-semibold leading-none tracking-tight">Laporan Analisis AI</h3>
+          <p class="text-sm text-muted-foreground">Tambahkan konteks lapangan untuk diolah oleh AI (API Key aman di
+            server Vercel).</p>
         </div>
         <div class="p-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -132,7 +150,7 @@
             <div class="space-y-2">
               <label class="text-sm font-medium leading-none">Aksi Water Management (WM)</label>
               <textarea id="wmActions" rows="3"
-                placeholder="Contoh: tim operasional WM terus memantau level air kanal melalui patroli rutin dan perbaikan bangunan air..."
+                placeholder="Contoh: tim operasional WM terus memantau level air kanal melalui patroli rutin..."
                 class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"></textarea>
             </div>
           </div>
@@ -143,20 +161,15 @@
           </button>
 
           <div id="aiOutputWrap"
-            class="mt-6 p-4 rounded-md border bg-slate-50 text-sm leading-relaxed text-slate-800 hidden relative group">
-            <button id="copyAiBtn" class="absolute top-2 right-2 p-1.5 rounded-md bg-white border shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-50 text-slate-500" title="Copy to clipboard">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-            </button>
-            <div id="aiOutputContent"></div>
+            class="mt-6 p-4 rounded-md border bg-slate-50 text-sm leading-relaxed text-slate-800 hidden">
           </div>
 
           <div id="translateModule" class="mt-8 pt-6 border-t border-slate-200 hidden">
             <div class="space-y-2 mb-4">
               <label class="text-sm font-semibold leading-none text-primary">Rewrite & Translate ke Bahasa
                 Inggris</label>
-              <p class="text-xs text-muted-foreground">AI akan memperbaiki grammar, mempersingkat pesan secara
-                profesional, dan mengubah istilah teknis (Tanggul -> Embankment, TMAS -> Water level, TMAT -> Ground
-                water).</p>
+              <p class="text-xs text-muted-foreground">AI akan memperbaiki grammar, mempersingkat pesan, dan mengubah
+                istilah (Tanggul -> Embankment, dll).</p>
               <textarea id="translateInput" rows="4"
                 placeholder="Tempel/edit teks laporan di sini untuk diterjemahkan..."
                 class="flex mt-2 min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"></textarea>
@@ -175,11 +188,7 @@
               Rewrite & Translate
             </button>
             <div id="translateOutputWrap"
-              class="mt-4 p-4 rounded-md border border-green-200 bg-green-50/50 text-sm leading-relaxed text-slate-800 hidden relative group">
-              <button id="copyTranslateBtn" class="absolute top-2 right-2 p-1.5 rounded-md bg-white border shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-50 text-green-600" title="Copy to clipboard">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-              </button>
-              <div id="translateOutputContent"></div>
+              class="mt-4 p-4 rounded-md border border-green-200 bg-green-50/50 text-sm leading-relaxed text-slate-800 hidden">
             </div>
           </div>
         </div>
