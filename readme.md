@@ -19,7 +19,7 @@ Aplikasi web inovatif yang menggabungkan analisis hidrologi presisi dengan kecer
   - [PapaParse](https://www.papaparse.com/) (CSV Parsing).
   - [Chart.js](https://www.chartjs.org/) (Data Visualization).
   - [SheetJS](https://sheetjs.com/) (Excel Export).
-- **AI Engine**: Google Gemini Pro.
+- **AI Engine**: Open AI.
 - **Deployment & Backend**: Vercel (Serverless Functions).
 
 ## 📁 Struktur Folder
