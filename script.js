@@ -387,14 +387,25 @@ function handleDownloadTemplate() {
 async function handleGenerateAIReport() {
     if (!state.processed) return alert("Proses data CSV terlebih dahulu!");
 
+    if (userContextEl.value.trim().length < 10) {
+        userContextEl.focus();
+        return alert("Konteks Cuaca/Curah Hujan terlalu singkat. Harap isi minimal 10 karakter agar AI dapat menganalisis dengan relevan!");
+    }
+
+    if (!confirm("Apakah Anda yakin ingin melakukan generate laporan? (Tindakan ini akan memanggil AI dan mengonsumsi kuota API Token)")) {
+        return;
+    }
+
+    generateAiBtnEl.innerHTML = "<span class='animate-pulse'>Generating Laporan...</span>";
+    generateAiBtnEl.disabled = true;
+
     aiOutputContentEl.innerHTML = "<span class='animate-pulse'>Menganalisis kondisi dominan dan menghubungi server, mohon tunggu...</span>";
     aiOutputWrapEl.classList.remove("hidden");
     translateModuleEl.classList.add("hidden");
-    generateAiBtnEl.disabled = true;
 
     try {
         const p = state.processed;
-        const userNotes = userContextEl.value || "Kondisi curah hujan bervariasi.";
+        const userNotes = userContextEl.value;
         const wmActions = wmActionsEl.value || "tim operasional WM terus memantau level air kanal melalui patroli rutin.";
 
         const currentSummary = p.weeklySummaryRecords.find(r => r.Week === p.baselineWeek);
@@ -490,6 +501,7 @@ ${templatePenutup}
         aiOutputContentEl.innerHTML = `<span class="text-red-600 font-medium">Gagal membuat laporan AI: ${error.message}</span>`;
     } finally {
         generateAiBtnEl.disabled = false;
+        generateAiBtnEl.innerHTML = "Generate Laporan (Bahasa Indonesia)";
     }
 }
 
@@ -500,9 +512,15 @@ async function handleTranslateReport() {
     const textToTranslate = translateInputEl.value.trim();
     if (!textToTranslate) return alert("Silakan masukkan teks yang ingin ditranslate!");
 
+    if (!confirm("Apakah Anda yakin ingin melakukan Rewrite & Translate? (Tindakan ini akan memanggil API AI)")) {
+        return;
+    }
+
+    translateBtnEl.innerHTML = "<span class='animate-pulse'>Processing...</span>";
+    translateBtnEl.disabled = true;
+
     translateOutputContentEl.innerHTML = "<span class='animate-pulse text-green-700'>Memperbaiki grammar dan menerjemahkan, mohon tunggu...</span>";
     translateOutputWrapEl.classList.remove("hidden");
-    translateBtnEl.disabled = true;
 
     try {
         // Prompt Translasi Berbahasa Inggris (Hemat Token)
@@ -536,5 +554,6 @@ ${textToTranslate}
         translateOutputContentEl.innerHTML = `<span class="text-red-600 font-medium">Gagal menerjemahkan: ${error.message}</span>`;
     } finally {
         translateBtnEl.disabled = false;
+        translateBtnEl.innerHTML = "Rewrite & Translate";
     }
 }
