@@ -1,6 +1,6 @@
 // Konfigurasi & State
 const CLASS_ORDER = ["No Data", "Banjir (<0)", "Tergenang (0-40)", "A Tergenang (41-45)", "Normal (46-60)", "A Kering (61-65)", "Kering (>65)"];
-const CLASS_COLORS = { "No Data": "#B0B8C2", "Banjir (<0)": "#000000", "Tergenang (0-40)": "#1D4ED8", "A Tergenang (41-45)": "#60A5FA", "Normal (46-60)": "#22C55E", "A Kering (61-65)": "#F59E0B", "Kering (>65)": "#EF4444" };
+const CLASS_COLORS = { "No Data": "#B0B8C2", "Banjir (<0)": "#71717A", "Tergenang (0-40)": "#1D4ED8", "A Tergenang (41-45)": "#60A5FA", "Normal (46-60)": "#22C55E", "A Kering (61-65)": "#F59E0B", "Kering (>65)": "#EF4444" };
 const MONTH_MAP = { jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4, may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8, sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12 };
 const COL_CANDIDATES = { week: ["week name", "week_name", "week"], estate: ["estate", "nama kebun"], id: ["piezorecordid", "piezorecordid", "id"], tmat: ["ketinggian", "tmat", "value"], block: ["block"], date: ["date"] };
 
@@ -321,8 +321,16 @@ function formatCell(v, classCol) {
 
 function renderCharts(p) {
     if (state.charts.trend) state.charts.trend.destroy(); if (state.charts.dist) state.charts.dist.destroy();
-    state.charts.trend = new Chart(document.getElementById("trendChart"), { type: "bar", data: { labels: p.weeks, datasets: [{ type: "bar", label: "Rainfall (mm)", data: p.weeklySummaryRecords.map(r => Number.isFinite(r["Rain (mm)"]) ? r["Rain (mm)"] : null), yAxisID: "y1", backgroundColor: "hsl(210 40% 90%)", hoverBackgroundColor: "hsl(210 40% 80%)" }, { type: "line", label: "Avg TMAT (cm)", data: p.weeklySummaryRecords.map(r => r["Avg TMAT (cm)"]), yAxisID: "y", tension: 0.3, borderColor: "hsl(240 5.9% 10%)", backgroundColor: "hsl(240 5.9% 10%)", pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { position: "top", labels: { usePointStyle: true, boxWidth: 8 } } }, scales: { y: { type: "linear", position: "left", title: { display: true, text: "Avg TMAT (cm)" } }, y1: { type: "linear", position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Rainfall (mm)" } } } } });
-    state.charts.dist = new Chart(document.getElementById("distChart"), { type: "bar", data: { labels: CLASS_ORDER, datasets: [{ label: "Baseline %", data: CLASS_ORDER.map(c => p.baselinePct[c]), backgroundColor: "hsl(215.4 16.3% 46.9%)" }, ...p.scenarioResults.map((r, i) => ({ label: `CH${r.scenarioMm} %`, data: CLASS_ORDER.map(c => r.pct[c]), backgroundColor: i === 0 ? "hsl(240 5.9% 10%)" : "hsl(221.2 83.2% 53.3%)" }))] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top", labels: { usePointStyle: true, boxWidth: 8 } } }, scales: { y: { beginAtZero: true, title: { display: true, text: "Percent (%)" } } } } });
+
+    const isDark = document.documentElement.classList.contains('dark');
+    Chart.defaults.color = isDark ? 'hsl(215 20.2% 65.1%)' : 'hsl(240 3.8% 46.1%)'; // text-muted-foreground
+    Chart.defaults.borderColor = isDark ? 'hsla(217.2, 32.6%, 17.5%, 0.5)' : 'hsla(240, 5.9%, 90%, 0.5)'; // border color grid
+    const mainLineColor = isDark ? "hsl(210 40% 98%)" : "hsl(240 5.9% 10%)"; // text-foreground
+    const barBgColorHover = isDark ? "hsl(217.2 32.6% 17.5%)" : "hsl(210 40% 80%)";
+    const barBgColor = isDark ? "hsla(217.2, 32.6%, 17.5%, 0.5)" : "hsl(210 40% 90%)";
+
+    state.charts.trend = new Chart(document.getElementById("trendChart"), { type: "bar", data: { labels: p.weeks, datasets: [{ type: "bar", label: "Rainfall (mm)", data: p.weeklySummaryRecords.map(r => Number.isFinite(r["Rain (mm)"]) ? r["Rain (mm)"] : null), yAxisID: "y1", backgroundColor: barBgColor, hoverBackgroundColor: barBgColorHover }, { type: "line", label: "Avg TMAT (cm)", data: p.weeklySummaryRecords.map(r => r["Avg TMAT (cm)"]), yAxisID: "y", tension: 0.3, borderColor: mainLineColor, backgroundColor: mainLineColor, pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { position: "top", labels: { usePointStyle: true, boxWidth: 8 } } }, scales: { y: { type: "linear", position: "left", title: { display: true, text: "Avg TMAT (cm)" } }, y1: { type: "linear", position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Rainfall (mm)" } } } } });
+    state.charts.dist = new Chart(document.getElementById("distChart"), { type: "bar", data: { labels: CLASS_ORDER, datasets: [{ label: "Baseline %", data: CLASS_ORDER.map(c => p.baselinePct[c]), backgroundColor: "hsl(215.4 16.3% 46.9%)" }, ...p.scenarioResults.map((r, i) => ({ label: `CH${r.scenarioMm} %`, data: CLASS_ORDER.map(c => r.pct[c]), backgroundColor: i === 0 ? mainLineColor : "hsl(221.2 83.2% 53.3%)" }))] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top", labels: { usePointStyle: true, boxWidth: 8 } } }, scales: { y: { beginAtZero: true, title: { display: true, text: "Percent (%)" } } } } });
 }
 
 function handleExportExcel() {
