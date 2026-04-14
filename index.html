@@ -213,6 +213,18 @@
     </div>
   </div>
 
+  <!-- Custom Modal Dialog -->
+  <div id="customModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity">
+    <div class="bg-card text-card-foreground p-6 rounded-xl shadow-lg border max-w-sm w-full mx-4 transform transition-all scale-95 opacity-0 duration-200" id="customModalBox">
+      <h3 id="customModalTitle" class="text-lg font-semibold mb-2">Konfirmasi</h3>
+      <p id="customModalMessage" class="text-sm text-muted-foreground mb-6 leading-relaxed">Pesan muncul di sini.</p>
+      <div class="flex justify-end space-x-3">
+        <button id="customModalCancel" class="px-4 py-2 text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md transition-colors">Batal</button>
+        <button id="customModalConfirm" class="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors">Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>

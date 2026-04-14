@@ -48,6 +48,53 @@ const copyTranslateBtn = document.getElementById("copyTranslateBtn");
 const tabBtns = ['dashboard', 'laporan', 'forecast', 'data'].map(id => document.getElementById(`tabBtn-${id}`));
 const tabPanes = ['dashboard', 'laporan', 'forecast', 'data'].map(id => document.getElementById(`tabPane-${id}`));
 
+// Custom Modal Logic
+const customModal = document.getElementById("customModal");
+const customModalBox = document.getElementById("customModalBox");
+const customModalTitle = document.getElementById("customModalTitle");
+const customModalMessage = document.getElementById("customModalMessage");
+const customModalCancel = document.getElementById("customModalCancel");
+const customModalConfirm = document.getElementById("customModalConfirm");
+
+function showModal(title, message, isAlert = false) {
+    return new Promise((resolve) => {
+        customModalTitle.textContent = title;
+        customModalMessage.textContent = message;
+        
+        if (isAlert) {
+            customModalCancel.classList.add("hidden");
+            customModalConfirm.textContent = "Mengerti";
+        } else {
+            customModalCancel.classList.remove("hidden");
+            customModalConfirm.textContent = "Lanjutkan";
+        }
+
+        customModal.classList.remove("hidden");
+        setTimeout(() => {
+            customModalBox.classList.remove("scale-95", "opacity-0");
+            customModalBox.classList.add("scale-100", "opacity-100");
+        }, 10);
+
+        const close = (result) => {
+            customModalBox.classList.remove("scale-100", "opacity-100");
+            customModalBox.classList.add("scale-95", "opacity-0");
+            setTimeout(() => {
+                customModal.classList.add("hidden");
+                resolve(result);
+            }, 200);
+            
+            customModalCancel.removeEventListener("click", onCancel);
+            customModalConfirm.removeEventListener("click", onConfirm);
+        };
+
+        const onCancel = () => close(false);
+        const onConfirm = () => close(true);
+
+        customModalCancel.addEventListener("click", onCancel);
+        customModalConfirm.addEventListener("click", onConfirm);
+    });
+}
+
 // Event Listeners
 csvFileEl.addEventListener("change", handleFileUpload);
 processBtnEl.addEventListener("click", handleProcess);
@@ -385,16 +432,15 @@ function handleDownloadTemplate() {
 // AI REPORT GENERATOR (BAHASA INDONESIA)
 // =========================================================================
 async function handleGenerateAIReport() {
-    if (!state.processed) return alert("Proses data CSV terlebih dahulu!");
+    if (!state.processed) return await showModal("Peringatan", "Proses data CSV terlebih dahulu!", true);
 
     if (userContextEl.value.trim().length < 10) {
         userContextEl.focus();
-        return alert("Konteks Cuaca/Curah Hujan terlalu singkat. Harap isi minimal 10 karakter agar AI dapat menganalisis dengan relevan!");
+        return await showModal("Konteks Terlalu Singkat", "Harap isi minimal 10 karakter untuk Konteks Cuaca agar AI dapat menganalisis dengan relevan!", true);
     }
 
-    if (!confirm("Apakah Anda yakin ingin melakukan generate laporan? (Tindakan ini akan memanggil AI dan mengonsumsi kuota API Token)")) {
-        return;
-    }
+    const isConfirmed = await showModal("Konfirmasi Laporan", "Apakah Anda yakin ingin men-generate laporan? (Tindakan ini akan memanggil AI dan mengonsumsi sebagian kuota API Token)");
+    if (!isConfirmed) return;
 
     generateAiBtnEl.innerHTML = "<span class='animate-pulse'>Generating Laporan...</span>";
     generateAiBtnEl.disabled = true;
@@ -510,11 +556,10 @@ ${templatePenutup}
 // =========================================================================
 async function handleTranslateReport() {
     const textToTranslate = translateInputEl.value.trim();
-    if (!textToTranslate) return alert("Silakan masukkan teks yang ingin ditranslate!");
+    if (!textToTranslate) return await showModal("Peringatan", "Silakan masukkan teks yang ingin ditranslate!", true);
 
-    if (!confirm("Apakah Anda yakin ingin melakukan Rewrite & Translate? (Tindakan ini akan memanggil API AI)")) {
-        return;
-    }
+    const isConfirmed = await showModal("Konfirmasi Translate", "Apakah Anda yakin ingin melakukan Rewrite & Translate? (Tindakan ini akan memanggil API AI dan mengonsumsi token)");
+    if (!isConfirmed) return;
 
     translateBtnEl.innerHTML = "<span class='animate-pulse'>Processing...</span>";
     translateBtnEl.disabled = true;
