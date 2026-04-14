@@ -44,6 +44,10 @@
           dengan AI.</p>
       </div>
       <div class="flex items-center gap-2">
+        <button id="themeToggleBtn" title="Toggle Theme" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-slate-100 h-10 w-10">
+          <svg id="themeIconLight" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="block"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+          <svg id="themeIconDark" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
         <button id="downloadTemplateBtn"
           class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2">
           Panduan CSV
@@ -139,7 +143,11 @@
           </button>
 
           <div id="aiOutputWrap"
-            class="mt-6 p-4 rounded-md border bg-slate-50 text-sm leading-relaxed text-slate-800 hidden">
+            class="mt-6 p-4 rounded-md border bg-slate-50 text-sm leading-relaxed text-slate-800 hidden relative group">
+            <button id="copyAiBtn" class="absolute top-2 right-2 p-1.5 rounded-md bg-white border shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-50 text-slate-500" title="Copy to clipboard">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            </button>
+            <div id="aiOutputContent"></div>
           </div>
 
           <div id="translateModule" class="mt-8 pt-6 border-t border-slate-200 hidden">
@@ -167,7 +175,11 @@
               Rewrite & Translate
             </button>
             <div id="translateOutputWrap"
-              class="mt-4 p-4 rounded-md border border-green-200 bg-green-50/50 text-sm leading-relaxed text-slate-800 hidden">
+              class="mt-4 p-4 rounded-md border border-green-200 bg-green-50/50 text-sm leading-relaxed text-slate-800 hidden relative group">
+              <button id="copyTranslateBtn" class="absolute top-2 right-2 p-1.5 rounded-md bg-white border shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-50 text-green-600" title="Copy to clipboard">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              </button>
+              <div id="translateOutputContent"></div>
             </div>
           </div>
         </div>
