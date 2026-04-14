@@ -394,39 +394,47 @@ async function handleGenerateAIReport() {
         const pctNormal = p.baselineTotal ? (countNormal / p.baselineTotal) * 100 : 0;
 
         let dominan = "Normal", instruksiAI = "", templatePenutup = "";
+
+        // UBAH instruksiAI menjadi bahasa Inggris yang ringkas
         if (pctKering >= Math.max(pctBasah, pctNormal)) {
             dominan = "Kering";
-            instruksiAI = `Karena data didominasi area KERING (${Math.round(pctKering)}%), fokuskan analisis Paragraf 1 pada bahaya kekeringan, defisit air, dan kantong-kantong kering yang kritis.`;
+            instruksiAI = `Focus Para 1 on drought hazards, water deficits, and critical dry pockets since data is ${Math.round(pctKering)}% DRY.`;
             templatePenutup = `Secara keseluruhan, TMAT masih berada di bawah tekanan kekeringan. Hal ini sejalan dengan kondisi lapangan: [SUMMARY OF USER WEATHER NOTE]. Rata-rata TMAT bergerak dari sekitar ${prevTmat} cm minggu lalu menjadi sekitar ${currTmat} cm minggu ini, dan blok merah (>65 cm) berubah dari sekitar ${prevRedPct}% menjadi sekitar ${currRedPct}%. Namun, kondisi kering masih mendominasi, dengan sebagian besar blok tetap berada di kelas kering (>60 cm), mengindikasikan risiko kekeringan masih tinggi. Respons piezometer masih lemah dalam skala lanskap dan blok-blok tersebut membutuhkan retensi air di kanal. Untuk memperlambat penurunan TMAT lebih lanjut, ${wmActions}.`;
         } else if (pctBasah >= Math.max(pctKering, pctNormal)) {
             dominan = "Basah";
-            instruksiAI = `Karena data didominasi area BASAH/TERGENANG (${Math.round(pctBasah)}%), fokuskan analisis Paragraf 1 pada masalah genangan, risiko banjir, dan perlunya membuang kelebihan air (drainase).`;
+            instruksiAI = `Focus Para 1 on inundation issues, flood risks, and drainage needs since data is ${Math.round(pctBasah)}% WET/FLOODED.`;
             templatePenutup = `Secara keseluruhan, TMAT mengindikasikan kondisi jenuh air atau tekanan genangan, dengan beberapa area menunjukkan kelebihan air minggu ini. Hal ini sejalan dengan kondisi cuaca: [SUMMARY OF USER WEATHER NOTE]. Rata-rata TMAT bergerak dari sekitar ${prevTmat} cm minggu lalu menjadi sekitar ${currTmat} cm minggu ini, sementara blok basah (<=45 cm) berubah dari sekitar ${prevWetPct}% menjadi sekitar ${currWetPct}%. Kondisi basah saat ini mendominasi, mengindikasikan risiko genangan masih tinggi jika drainase tidak dioptimalkan. Secara umum, lanskap sangat jenuh air. Untuk mengelola kelebihan air ini, ${wmActions}.`;
         } else {
-            instruksiAI = `Karena data didominasi area NORMAL (${Math.round(pctNormal)}%), fokuskan analisis Paragraf 1 pada keberhasilan menjaga kelembapan ideal, stabilitas tata air, dan tren kelembapan yang terkendali.`;
+            instruksiAI = `Focus Para 1 on successful ideal moisture maintenance and stable water management since data is ${Math.round(pctNormal)}% NORMAL.`;
             templatePenutup = `Secara keseluruhan, TMAT tetap dalam kondisi stabil dan normal, mencerminkan elevasi air yang terjaga dengan baik di sebagian besar blok minggu ini. Hal ini sejalan dengan kondisi cuaca: [SUMMARY OF USER WEATHER NOTE]. Rata-rata TMAT terkelola dengan baik, bergerak dari sekitar ${prevTmat} cm minggu lalu menjadi sekitar ${currTmat} cm minggu ini. Blok kelas normal (46-60 cm) mendominasi perkebunan, menunjukkan keberhasilan manajemen tata air dan tingkat kelembapan yang seimbang. Untuk mempertahankan kondisi optimal ini, ${wmActions}.`;
         }
 
         const sc0 = p.scenarioResults.find(s => s.scenarioMm === 0) || p.scenarioResults[0];
         const sc50 = p.scenarioResults.find(s => s.scenarioMm === 50) || p.scenarioResults[1];
 
+        // UBAH Prompt Text menjadi bahasa Inggris dengan format Data Key-Value (Sangat hemat token)
         const promptText = `
-      Anda adalah asisten ahli hidrologi. Buat laporan analisis TMAT dalam 4 paragraf.
-      DATA:
-      - TMAT M-1: ${prevTmat} cm, TMAT M0: ${currTmat} cm.
-      - Blok Kering (>60cm) M0: ${currentSummary["Kering >60 (count)"]} blok (${Math.round(currentSummary["Kering >60 (%)"])}%).
-      - Blok Basah (<=45cm) M0: ${currentSummary["Basah <=45 (count)"]} blok (${Math.round(currentSummary["Basah <=45 (%)"])}%).
-      - Blok Normal (46-60cm) M0: ${countNormal} blok (${Math.round(pctNormal)}%).
-      - Forecast 0mm: TMAT ${Math.round(Math.abs(sc0.avgNext))} cm, Kering >65cm: ${sc0.counts["Kering (>65)"]} blok, Basah <=45cm: ${sc0.summary["Basah <=45 Count"]} blok.
-      - Forecast 50mm: TMAT ${Math.round(Math.abs(sc50.avgNext))} cm, Kering >65cm: ${sc50.counts["Kering (>65)"]} blok, Basah <=45cm: ${sc50.summary["Basah <=45 Count"]} blok, Normal 46-60cm: ${sc50.counts["Normal (46-60)"]} blok.
+Role: Hydrology Expert Assistant.
+Task: Write a 4-paragraph TMAT analysis report.
+Language: STRICTLY INDONESIAN.
+Constraint: Output ONLY the 4 paragraphs. No conversational fillers or markdown blocks.
 
-      INSTRUKSI FORMAT:
-      Paragraf 1 (Bahasa Indonesia): Bahas catatan cuaca user ("${userNotes}"), bandingkan TMAT minggu lalu dan ini. ${instruksiAI}
-      Paragraf 2 (Bahasa Indonesia): Awali dengan "CH = 0 mm:". Jelaskan proyeksi TMAT, blok kering, dan basah jika tidak ada hujan.
-      Paragraf 3 (Bahasa Indonesia): Awali dengan "CH = 50 mm:". Jelaskan proyeksi pemulihan atau risiko genangan jika hujan turun.
-      Paragraf 4 (Bahasa Indonesia): KELUARKAN TEKS DI BAWAH INI PERSIS TANPA DIUBAH, hanya rangkum secara ringkas konteks cuaca user ("${userNotes}") dalam maksimal 10 kata di bagian [SUMMARY OF USER WEATHER NOTE].
+DATA:
+- TMAT: Prev=${prevTmat}cm, Curr=${currTmat}cm.
+- Dry(>60cm): ${currentSummary["Kering >60 (count)"]} blk (${Math.round(currentSummary["Kering >60 (%)"])}%).
+- Wet(<=45cm): ${currentSummary["Basah <=45 (count)"]} blk (${Math.round(currentSummary["Basah <=45 (%)"])}%).
+- Normal(46-60cm): ${countNormal} blk (${Math.round(pctNormal)}%).
+- Fcst 0mm: TMAT=${Math.round(Math.abs(sc0.avgNext))}cm, Dry(>65cm)=${sc0.counts["Kering (>65)"]}, Wet(<=45cm)=${sc0.summary["Basah <=45 Count"]}.
+- Fcst 50mm: TMAT=${Math.round(Math.abs(sc50.avgNext))}cm, Dry(>65cm)=${sc50.counts["Kering (>65)"]}, Wet(<=45cm)=${sc50.summary["Basah <=45 Count"]}, Normal(46-60cm)=${sc50.counts["Normal (46-60)"]}.
+- Context: "${userNotes}"
 
-      ${templatePenutup}
+FORMAT (in Indonesian):
+Para 1: Discuss Context, compare Prev vs Curr TMAT. ${instruksiAI}
+Para 2: Start with "CH = 0 mm:". Explain projection if no rain.
+Para 3: Start with "CH = 50 mm:". Explain projection if 50mm rain.
+Para 4: Output EXACTLY the text below. ONLY replace [SUMMARY OF USER WEATHER NOTE] with a <=10 word Indonesian summary of Context.
+
+${templatePenutup}
     `;
 
         const response = await fetch('/api/generate', {
@@ -467,19 +475,18 @@ async function handleTranslateReport() {
     translateBtnEl.disabled = true;
 
     try {
+        // Prompt Translasi Berbahasa Inggris (Hemat Token)
         const promptText = `
-      Rewrite this text to fix grammar, remove redundancies, improve readability, and strengthen the message. 
-      Keep it simple, clean, and professional and short. 
-      Semua output harus dalam bahasa Inggris. 
-      WAJIB terjemahkan istilah teknis berikut:
-      - tanggul menjadi embankment
-      - TMAS menjadi Water level
-      - TMAT menjadi ground water
-      
-      TEXT TO TRANSLATE AND REWRITE:
-      """
-      ${textToTranslate}
-      """
+Role: Professional Editor & Hydrology Translator.
+Task: Translate and rewrite the following Indonesian text into English. Fix grammar, remove redundancies, and improve readability. Keep it professional and concise.
+Constraint: Output ONLY the translated English text. No conversational fillers.
+Terminology Mapping:
+- "tanggul" -> "embankment"
+- "TMAS" -> "Water level"
+- "TMAT" -> "ground water"
+
+TEXT TO TRANSLATE:
+${textToTranslate}
     `;
 
         // Gunakan backend endpoint API yang sama!
