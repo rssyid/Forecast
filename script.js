@@ -60,7 +60,7 @@ function showModal(title, message, isAlert = false) {
     return new Promise((resolve) => {
         customModalTitle.textContent = title;
         customModalMessage.textContent = message;
-        
+
         if (isAlert) {
             customModalCancel.classList.add("hidden");
             customModalConfirm.textContent = "Mengerti";
@@ -82,7 +82,7 @@ function showModal(title, message, isAlert = false) {
                 customModal.classList.add("hidden");
                 resolve(result);
             }, 200);
-            
+
             customModalCancel.removeEventListener("click", onCancel);
             customModalConfirm.removeEventListener("click", onConfirm);
         };
@@ -482,29 +482,30 @@ async function handleGenerateAIReport() {
 
         let dominan = "Normal", instruksiAI = "", templatePenutup = "";
 
-        // UBAH instruksiAI menjadi bahasa Inggris yang ringkas
+        // UBAH instruksiAI menjadi bahasa Inggris untuk Executive Summary
         if (pctKering >= Math.max(pctBasah, pctNormal)) {
             dominan = "Kering";
-            instruksiAI = `Focus Para 1 on drought hazards, water deficits, and critical dry pockets since data is ${Math.round(pctKering)}% DRY.`;
-            templatePenutup = `Secara keseluruhan, TMAT masih berada di bawah tekanan kekeringan. Hal ini sejalan dengan kondisi lapangan: [SUMMARY OF USER WEATHER NOTE]. Rata-rata TMAT bergerak dari sekitar ${prevTmat} cm minggu lalu menjadi sekitar ${currTmat} cm minggu ini, dan blok merah (>65 cm) berubah dari sekitar ${prevRedPct}% menjadi sekitar ${currRedPct}%. Namun, kondisi kering masih mendominasi, dengan sebagian besar blok tetap berada di kelas kering (>60 cm), mengindikasikan risiko kekeringan masih tinggi. Respons piezometer masih lemah dalam skala lanskap dan blok-blok tersebut membutuhkan retensi air di kanal. Untuk memperlambat penurunan TMAT lebih lanjut, ${wmActions}.`;
+            instruksiAI = `Focus Para 1 on executive risk assessment regarding severe drought, fire hazards, and critical water deficit impacts on plantation yield (stres tanaman), since data is ${Math.round(pctKering)}% DRY. Tone must be urgent and actionable.`;
+            templatePenutup = `Kepada Yth. Manajemen dan Pimpinan Operasional. Secara keseluruhan, lanskap perkebunan sedang menghadapi tekanan defisit air yang signifikan. Hal ini selaras dengan laporan lapangan: [SUMMARY OF USER WEATHER NOTE]. Rata-rata TMAT bergerak dari ${prevTmat} cm menjadi ${currTmat} cm minggu ini, dengan proporsi blok kritis merah (>65 cm) berubah dari ${prevRedPct}% menjadi ${currRedPct}%. Kondisi defisit air mendominasi (>60 cm), mengindikasikan eskalasi risiko kebakaran dan stres tanaman yang tinggi. Sebagai tindak lanjut operasional, blok-blok terdampak membutuhkan intervensi retensi air di kanal secara masif dan penghentian drainase. Untuk memitigasi penurunan TMAT lebih lanjut dan menjaga aset, instruksi operasional saat ini adalah: ${wmActions}.`;
         } else if (pctBasah >= Math.max(pctKering, pctNormal)) {
             dominan = "Basah";
-            instruksiAI = `Focus Para 1 on inundation issues, flood risks, and drainage needs since data is ${Math.round(pctBasah)}% WET/FLOODED.`;
-            templatePenutup = `Secara keseluruhan, TMAT mengindikasikan kondisi jenuh air atau tekanan genangan, dengan beberapa area menunjukkan kelebihan air minggu ini. Hal ini sejalan dengan kondisi cuaca: [SUMMARY OF USER WEATHER NOTE]. Rata-rata TMAT bergerak dari sekitar ${prevTmat} cm minggu lalu menjadi sekitar ${currTmat} cm minggu ini, sementara blok basah (<=45 cm) berubah dari sekitar ${prevWetPct}% menjadi sekitar ${currWetPct}%. Kondisi basah saat ini mendominasi, mengindikasikan risiko genangan masih tinggi jika drainase tidak dioptimalkan. Secara umum, lanskap sangat jenuh air. Untuk mengelola kelebihan air ini, ${wmActions}.`;
+            instruksiAI = `Focus Para 1 on executive risk assessment regarding inundation, operational access disruption (hambatan panen/evakuasi), and urgent drainage priorities, since data is ${Math.round(pctBasah)}% WET/FLOODED. Tone must be operational and mitigative.`;
+            templatePenutup = `Kepada Yth. Manajemen dan Pimpinan Operasional. Secara keseluruhan, lanskap perkebunan terpantau berada pada kondisi jenuh air dengan risiko genangan operasional. Hal ini selaras dengan laporan lapangan: [SUMMARY OF USER WEATHER NOTE]. Rata-rata TMAT bergerak dari ${prevTmat} cm menjadi ${currTmat} cm minggu ini, dengan proporsi blok basah (<=45 cm) berubah dari ${prevWetPct}% menjadi ${currWetPct}%. Kondisi basah mendominasi, yang berpotensi menghambat akses panen dan evakuasi buah jika aliran air tidak segera dioptimalkan. Sebagai tindak lanjut operasional, pembuangan kelebihan air melalui pintu air/pompa harus diprioritaskan. Instruksi operasional saat ini adalah: ${wmActions}.`;
         } else {
-            instruksiAI = `Focus Para 1 on successful ideal moisture maintenance and stable water management since data is ${Math.round(pctNormal)}% NORMAL.`;
-            templatePenutup = `Secara keseluruhan, TMAT tetap dalam kondisi stabil dan normal, mencerminkan elevasi air yang terjaga dengan baik di sebagian besar blok minggu ini. Hal ini sejalan dengan kondisi cuaca: [SUMMARY OF USER WEATHER NOTE]. Rata-rata TMAT terkelola dengan baik, bergerak dari sekitar ${prevTmat} cm minggu lalu menjadi sekitar ${currTmat} cm minggu ini. Blok kelas normal (46-60 cm) mendominasi perkebunan, menunjukkan keberhasilan manajemen tata air dan tingkat kelembapan yang seimbang. Untuk mempertahankan kondisi optimal ini, ${wmActions}.`;
+            instruksiAI = `Focus Para 1 on executive summary of water stability, maintained ideal moisture for palm productivity, and standard operational readiness, since data is ${Math.round(pctNormal)}% NORMAL. Tone must be assuring and strategic.`;
+            templatePenutup = `Kepada Yth. Manajemen dan Pimpinan Operasional. Secara keseluruhan, tata air lanskap perkebunan berada dalam kondisi stabil dan terkendali. Hal ini selaras dengan laporan lapangan: [SUMMARY OF USER WEATHER NOTE]. Rata-rata TMAT terkelola dengan baik, bergerak dari ${prevTmat} cm menjadi ${currTmat} cm minggu ini. Mayoritas blok berada pada kelas normal (46-60 cm), merepresentasikan keberhasilan manajemen tata air dalam menjaga kelembapan gambut yang ideal untuk menopang produktivitas tanaman. Sebagai tindak lanjut operasional untuk mempertahankan stabilitas dan kelembapan optimal ini, instruksi saat ini adalah: ${wmActions}.`;
         }
 
         const sc0 = p.scenarioResults.find(s => s.scenarioMm === 0) || p.scenarioResults[0];
         const sc50 = p.scenarioResults.find(s => s.scenarioMm === 50) || p.scenarioResults[1];
 
-        // UBAH Prompt Text menjadi bahasa Inggris dengan format Data Key-Value (Sangat hemat token)
+        // Prompt Text dengan Role Senior Advisor & Tone Executive (Tetap Hemat Token)
         const promptText = `
-Role: Hydrology Expert Assistant.
-Task: Write a 4-paragraph TMAT analysis report.
+Role: Senior Hydrology Advisor to COO and Plantation Operations Managers.
+Task: Write a 4-paragraph TMAT Executive Analysis Report.
 Language: STRICTLY INDONESIAN.
-Constraint: Output ONLY the 4 paragraphs. No conversational fillers or markdown blocks.
+Tone: Executive, analytical, risk-focused, and actionable.
+Constraint: Output ONLY the 4 paragraphs. No conversational fillers, no markdown blocks.
 
 DATA:
 - TMAT: Prev=${prevTmat}cm, Curr=${currTmat}cm.
@@ -517,9 +518,9 @@ DATA:
 
 FORMAT (in Indonesian):
 Para 1: Discuss Context, compare Prev vs Curr TMAT. ${instruksiAI}
-Para 2: Start with "CH = 0 mm:". Explain projection if no rain.
-Para 3: Start with "CH = 50 mm:". Explain projection if 50mm rain.
-Para 4: Output EXACTLY the text below. ONLY replace [SUMMARY OF USER WEATHER NOTE] with a <=10 word Indonesian summary of Context.
+Para 2: Start with "Proyeksi CH = 0 mm:". Explain operational risks (drought/fire/yield drop) or recovery if no rain.
+Para 3: Start with "Proyeksi CH = 50 mm:". Explain operational risks (flood/access disruption) or recovery if 50mm rain.
+Para 4: Output EXACTLY the text below. ONLY replace [SUMMARY OF USER WEATHER NOTE] with a <=10 word formal Indonesian summary of Context.
 
 ${templatePenutup}
     `;
@@ -568,14 +569,14 @@ async function handleTranslateReport() {
     translateOutputWrapEl.classList.remove("hidden");
 
     try {
-        // Prompt Translasi Berbahasa Inggris (Hemat Token)
+        // Prompt Translasi Berbahasa Inggris (Executive Tone)
         const promptText = `
-Role: Professional Editor & Hydrology Translator.
-Task: Translate and rewrite the following Indonesian text into English. Fix grammar, remove redundancies, and improve readability. Keep it professional and concise.
-Constraint: Output ONLY the translated English text. No conversational fillers.
+Role: Senior Executive Translator & Hydrology Advisor.
+Task: Translate and rewrite the following Indonesian Executive Report into formal, C-Suite level English. Ensure the tone is authoritative, risk-focused, and highly professional.
+Constraint: Output ONLY the translated English text. No conversational fillers, no markdown, no bold text.
 Terminology Mapping:
 - "tanggul" -> "embankment"
-- "TMAS" -> "Water level"
+- "TMAS" -> "water level"
 - "TMAT" -> "ground water"
 
 TEXT TO TRANSLATE:
