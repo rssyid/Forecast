@@ -6,7 +6,9 @@
         "build:css": "npx @tailwindcss/cli -i ./style.css -o ./output.css --minify"
     },
     "dependencies": {
-        "openai": "latest"
+        "dotenv": "^17.4.2",
+        "openai": "latest",
+        "pg": "^8.20.0"
     },
     "devDependencies": {
         "@tailwindcss/cli": "^4.2.2",

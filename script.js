@@ -22,6 +22,8 @@ const forecastWrapEl = document.getElementById("forecastWrap");
 const forecastSummaryWrapEl = document.getElementById("forecastSummaryWrap");
 const modelSummaryEl = document.getElementById("modelSummary");
 const downloadTemplateBtnEl = document.getElementById("downloadTemplateBtn");
+const syncPiezometerBtnEl = document.getElementById("syncPiezometerBtn");
+const syncStatusTextEl = document.getElementById("syncStatusText");
 
 // AI Elements
 const generateAiBtnEl = document.getElementById("generateAiBtn");
@@ -100,6 +102,7 @@ csvFileEl.addEventListener("change", handleFileUpload);
 processBtnEl.addEventListener("click", handleProcess);
 exportExcelBtnEl.addEventListener("click", handleExportExcel);
 downloadTemplateBtnEl.addEventListener("click", handleDownloadTemplate);
+syncPiezometerBtnEl?.addEventListener("click", handleSyncPiezometer);
 generateAiBtnEl?.addEventListener("click", handleGenerateAIReport);
 translateBtnEl?.addEventListener("click", handleTranslateReport);
 
@@ -599,5 +602,101 @@ ${textToTranslate}
     } finally {
         translateBtnEl.disabled = false;
         translateBtnEl.innerHTML = "Rewrite & Translate";
+    }
+}
+
+// =========================================================================
+// PIEZOMETER DATA SYNC MODULE
+// =========================================================================
+async function handleSyncPiezometer() {
+    const isConfirmed = await showModal("Konfirmasi Update Data", "Proses ini akan menarik data Piezometer terbaru dari server pusat (Jan 2025 - Saat Ini). Karena sinkronisasi berjalan bertahap, status akan muncul di atas tombol. Lanjutkan?");
+    if (!isConfirmed) return;
+
+    syncPiezometerBtnEl.disabled = true;
+    syncPiezometerBtnEl.classList.add("opacity-50", "pointer-events-none");
+    syncPiezometerBtnEl.querySelector("svg")?.classList.add("animate-spin");
+    
+    syncStatusTextEl.classList.remove("hidden");
+    syncStatusTextEl.textContent = "Menyiapkan sinkronisasi...";
+
+    const companies = [
+        "PT.THIP", "PT.PTW", "PT.SUMS", "PT.WKN", "PT.PANPS", "PT.SAM", 
+        "PT.NJP", "PT.PLDK", "PT.SUMK", "PT.BAS", "PT.AAN", "PT.GAN", 
+        "PT.AJP", "PT.JJP", "PT.SIP", "PT.WSM"
+    ];
+
+    const startYear = 2025;
+    const startMonth = 1;
+
+    const now = new Date();
+    const endYear = now.getFullYear();
+    const endMonth = now.getMonth() + 1;
+
+    const ranges = [];
+    let currYear = startYear;
+    let currMonth = startMonth;
+
+    while (currYear < endYear || (currYear === endYear && currMonth <= endMonth)) {
+        const startDate = `${currYear}-${currMonth}-01`;
+        const endDateObj = new Date(currYear, currMonth, 0); 
+        const endDate = `${currYear}-${currMonth}-${endDateObj.getDate()}`;
+        ranges.push({ startDate, endDate });
+        currMonth++;
+        if (currMonth > 12) { currMonth = 1; currYear++; }
+    }
+
+    let totalInserted = 0;
+    
+    try {
+        let i = 0;
+        const totalSteps = companies.length * ranges.length;
+
+        for (const company of companies) {
+            for (const range of ranges) {
+                i++;
+                syncStatusTextEl.textContent = `Syncing [${i}/${totalSteps}]: ${company} (${range.startDate})`;
+                
+                try {
+                    const response = await fetch('/api/sync-piezometer', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            companyCode: company,
+                            startDate: range.startDate,
+                            endDate: range.endDate
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.inserted) {
+                            totalInserted += data.inserted;
+                        }
+                    } else {
+                        console.error("Gagal menarik", company, range.startDate);
+                    }
+                } catch (e) {
+                    console.error("Fetch Error:", e);
+                }
+                
+                // Delay 400ms to avoid overwhelming the server
+                await new Promise(r => setTimeout(r, 400));
+            }
+        }
+        syncStatusTextEl.textContent = `Data Up To Date! Ditambahkan ${totalInserted} baris.`;
+        syncStatusTextEl.classList.add("text-green-600");
+    } catch (err) {
+        console.error(err);
+        syncStatusTextEl.textContent = "Sinkronisasi gagal, periksa koneksi.";
+        syncStatusTextEl.classList.add("text-red-500");
+    } finally {
+        syncPiezometerBtnEl.disabled = false;
+        syncPiezometerBtnEl.classList.remove("opacity-50", "pointer-events-none");
+        syncPiezometerBtnEl.querySelector("svg")?.classList.remove("animate-spin");
+        setTimeout(() => {
+            syncStatusTextEl.classList.add("hidden");
+            syncStatusTextEl.classList.remove("text-green-600", "text-red-500");
+            syncStatusTextEl.textContent = "";
+        }, 5000);
     }
 }
