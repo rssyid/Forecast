@@ -480,32 +480,33 @@ async function handleGenerateAIReport() {
         const countNormal = p.baselineCounts["Normal (46-60)"] || 0;
         const pctNormal = p.baselineTotal ? (countNormal / p.baselineTotal) * 100 : 0;
 
-        let dominan = "Normal", instruksiAI = "", templatePenutup = "";
+        let dominan = "Normal", instruksiAI = "", arahanPenutup = "";
 
-        // UBAH instruksiAI menjadi bahasa Inggris untuk Executive Summary
+        // UBAH arahanPenutup agar AI merangkai bahasanya sendiri secara dinamis
         if (pctKering >= Math.max(pctBasah, pctNormal)) {
             dominan = "Kering";
-            instruksiAI = `Focus Para 1 on executive risk assessment regarding severe drought, fire hazards, and critical water deficit impacts on plantation yield (stres tanaman), since data is ${Math.round(pctKering)}% DRY. Tone must be urgent and actionable.`;
-            templatePenutup = `Secara keseluruhan, lanskap perkebunan sedang menghadapi tekanan defisit air yang signifikan. Hal ini selaras dengan laporan lapangan: [SUMMARY OF USER WEATHER NOTE]. Rata-rata TMAT bergerak dari ${prevTmat} cm menjadi ${currTmat} cm minggu ini, dengan proporsi blok kritis merah (>65 cm) berubah dari ${prevRedPct}% menjadi ${currRedPct}%. Kondisi defisit air mendominasi (>60 cm), mengindikasikan eskalasi risiko kebakaran dan stres tanaman yang tinggi. Sebagai tindak lanjut operasional, blok-blok terdampak membutuhkan intervensi retensi air di kanal secara masif dan penghentian drainase. Untuk memitigasi penurunan TMAT lebih lanjut dan menjaga aset, instruksi operasional saat ini adalah: ${wmActions}.`;
+            instruksiAI = `Focus Para 1 on executive risk assessment regarding severe drought, fire hazards, and critical water deficit impacts on plantation yield, since data is ${Math.round(pctKering)}% DRY.`;
+            arahanPenutup = `Para 4: Write a strong concluding paragraph addressed to "Manajemen dan Pimpinan Operasional". Summarize that the landscape is experiencing a dominant water deficit. Include the TMAT movement (${prevTmat}cm to ${currTmat}cm) and the change in critical red blocks (${prevRedPct}% to ${currRedPct}%). Naturally integrate the user's weather context: "${userNotes}". Conclude with this specific operational instruction to mitigate risks: "${wmActions}".`;
         } else if (pctBasah >= Math.max(pctKering, pctNormal)) {
             dominan = "Basah";
-            instruksiAI = `Focus Para 1 on executive risk assessment regarding inundation, operational access disruption (hambatan panen/evakuasi), and urgent drainage priorities, since data is ${Math.round(pctBasah)}% WET/FLOODED. Tone must be operational and mitigative.`;
-            templatePenutup = `Secara keseluruhan, lanskap perkebunan terpantau berada pada kondisi jenuh air dengan risiko genangan operasional. Hal ini selaras dengan laporan lapangan: [SUMMARY OF USER WEATHER NOTE]. Rata-rata TMAT bergerak dari ${prevTmat} cm menjadi ${currTmat} cm minggu ini, dengan proporsi blok basah (<=45 cm) berubah dari ${prevWetPct}% menjadi ${currWetPct}%. Kondisi basah mendominasi, yang berpotensi menghambat akses panen dan evakuasi buah jika aliran air tidak segera dioptimalkan. Sebagai tindak lanjut operasional, pembuangan kelebihan air melalui pintu air/pompa harus diprioritaskan. Instruksi operasional saat ini adalah: ${wmActions}.`;
+            instruksiAI = `Focus Para 1 on executive risk assessment regarding inundation, operational access disruption, and urgent drainage priorities, since data is ${Math.round(pctBasah)}% WET/FLOODED.`;
+            arahanPenutup = `Para 4: Write a strong concluding paragraph addressed to "Manajemen dan Pimpinan Operasional". Summarize that the landscape is waterlogged with high inundation risks. Include the TMAT movement (${prevTmat}cm to ${currTmat}cm) and the change in wet blocks (${prevWetPct}% to ${currWetPct}%). Naturally integrate the user's weather context: "${userNotes}". Conclude with this specific operational instruction to manage excess water: "${wmActions}".`;
         } else {
-            instruksiAI = `Focus Para 1 on executive summary of water stability, maintained ideal moisture for palm productivity, and standard operational readiness, since data is ${Math.round(pctNormal)}% NORMAL. Tone must be assuring and strategic.`;
-            templatePenutup = `Secara keseluruhan, tata air lanskap perkebunan berada dalam kondisi stabil dan terkendali. Hal ini selaras dengan laporan lapangan: [SUMMARY OF USER WEATHER NOTE]. Rata-rata TMAT terkelola dengan baik, bergerak dari ${prevTmat} cm menjadi ${currTmat} cm minggu ini. Mayoritas blok berada pada kelas normal (46-60 cm), merepresentasikan keberhasilan manajemen tata air dalam menjaga kelembapan gambut yang ideal untuk menopang produktivitas tanaman. Sebagai tindak lanjut operasional untuk mempertahankan stabilitas dan kelembapan optimal ini, instruksi saat ini adalah: ${wmActions}.`;
+            instruksiAI = `Focus Para 1 on executive summary of water stability, maintained ideal moisture for palm productivity, and standard operational readiness, since data is ${Math.round(pctNormal)}% NORMAL.`;
+            arahanPenutup = `Para 4: Write a strong concluding paragraph addressed to "Manajemen dan Pimpinan Operasional". Summarize that the water management is stable and under control. Include the TMAT movement (${prevTmat}cm to ${currTmat}cm). Naturally integrate the user's weather context: "${userNotes}". Conclude with this specific operational instruction to maintain current stability: "${wmActions}".`;
         }
 
         const sc0 = p.scenarioResults.find(s => s.scenarioMm === 0) || p.scenarioResults[0];
         const sc50 = p.scenarioResults.find(s => s.scenarioMm === 50) || p.scenarioResults[1];
 
-        // Prompt Text dengan Role Senior Advisor & Tone Executive (Tetap Hemat Token)
+        // Prompt Text yang lebih "bebas" namun tetap terkontrol datanya
         const promptText = `
 Role: Senior Hydrology Advisor to COO and Plantation Operations Managers.
 Task: Write a 4-paragraph TMAT Executive Analysis Report.
 Language: STRICTLY INDONESIAN.
-Tone: Executive, analytical, risk-focused, and actionable.
-Constraint: Output ONLY the 4 paragraphs. No conversational fillers, no markdown blocks.
+Tone: Executive, analytical, risk-focused, and actionable. 
+Style Instruction: VARY your vocabulary, sentence structure, and transitions each time you generate this report. Avoid sounding like a rigid template. Make it read naturally like a human expert's dynamic analysis.
+Constraint: Output ONLY the 4 paragraphs. No conversational fillers, no markdown.
 
 DATA:
 - TMAT: Prev=${prevTmat}cm, Curr=${currTmat}cm.
@@ -514,15 +515,12 @@ DATA:
 - Normal(46-60cm): ${countNormal} blk (${Math.round(pctNormal)}%).
 - Fcst 0mm: TMAT=${Math.round(Math.abs(sc0.avgNext))}cm, Dry(>65cm)=${sc0.counts["Kering (>65)"]}, Wet(<=45cm)=${sc0.summary["Basah <=45 Count"]}.
 - Fcst 50mm: TMAT=${Math.round(Math.abs(sc50.avgNext))}cm, Dry(>65cm)=${sc50.counts["Kering (>65)"]}, Wet(<=45cm)=${sc50.summary["Basah <=45 Count"]}, Normal(46-60cm)=${sc50.counts["Normal (46-60)"]}.
-- Context: "${userNotes}"
 
-FORMAT (in Indonesian):
-Para 1: Discuss Context, compare Prev vs Curr TMAT. ${instruksiAI}
-Para 2: Start with "Proyeksi CH = 0 mm:". Explain operational risks (drought/fire/yield drop) or recovery if no rain.
-Para 3: Start with "Proyeksi CH = 50 mm:". Explain operational risks (flood/access disruption) or recovery if 50mm rain.
-Para 4: Output EXACTLY the text below. ONLY replace [SUMMARY OF USER WEATHER NOTE] with a <=10 word formal Indonesian summary of Context.
-
-${templatePenutup}
+FORMAT INSTRUCTIONS:
+Para 1: ${instruksiAI} Compare Prev vs Curr TMAT naturally.
+Para 2: Analyze the 0 mm rain projection. Integrate the data naturally into sentences discussing operational risks or recovery.
+Para 3: Analyze the 50 mm rain projection. Integrate the data naturally into sentences discussing operational risks or recovery.
+${arahanPenutup}
     `;
 
         const response = await fetch('/api/generate', {
