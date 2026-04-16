@@ -4,6 +4,15 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed. Use POST.' });
   }
+
+  // Security: Check for ADMIN_KEY if set in environment
+  const adminKey = process.env.ADMIN_KEY;
+  if (adminKey) {
+    const providedKey = req.headers['x-admin-key'];
+    if (providedKey !== adminKey) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid or missing Admin Key.' });
+    }
+  }
   
   // This endpoint expects parsing specific parameters from the client
   const { companyCode, startDate, endDate } = req.body;

@@ -4,7 +4,15 @@ const CLASS_COLORS = { "No Data": "#B0B8C2", "Banjir (<0)": "#71717A", "Tergenan
 const MONTH_MAP = { jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4, may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8, sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12 };
 const COL_CANDIDATES = { week: ["week name", "week_name", "week"], estate: ["estate", "nama kebun"], id: ["piezorecordid", "piezorecordid", "id"], tmat: ["ketinggian", "tmat", "value"], block: ["block"], date: ["date"] };
 
-const state = { rawRows: [], detectedCols: null, weeks: [], processed: null, charts: { trend: null, dist: null }, lastFetch: { company: '', range: '' } };
+const state = { 
+    rawRows: [], 
+    detectedCols: null, 
+    weeks: [], 
+    processed: null, 
+    charts: { trend: null, dist: null }, 
+    lastFetch: { company: '', range: '' },
+    adminKey: ''
+};
 
 // DOM Elements
 const csvFileEl = document.getElementById("csvFile");
@@ -107,10 +115,17 @@ function showModal(title, message, isAlert = false) {
 
         const onCancel = () => close(false);
         const onConfirm = () => close(true);
-
+        
         customModalCancel.addEventListener("click", onCancel);
         customModalConfirm.addEventListener("click", onConfirm);
     });
+}
+
+function getAdminKey() {
+    if (!state.adminKey) {
+        state.adminKey = window.prompt("Masukkan Admin Key (Dashboard Password) untuk melanjutkan:");
+    }
+    return state.adminKey;
 }
 
 // Event Listeners
@@ -867,13 +882,21 @@ async function handleSyncPiezometer() {
             try {
                 const response = await fetch('/api/sync-piezometer', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-admin-key': getAdminKey() 
+                    },
                     body: JSON.stringify({
                         companyCode: company,
                         startDate: currentWeek.StartDate,
                         endDate: currentWeek.EndDate
                     })
                 });
+
+                if (response.status === 401) {
+                    state.adminKey = ''; // Reset key if unauthorized
+                    throw new Error("Admin Key salah atau tidak valid.");
+                }
 
                 if (response.ok) {
                     const data = await response.json();
@@ -924,7 +947,15 @@ async function handleFullResync() {
     resyncStatusBadgeEl.className = "text-xs px-2 py-0.5 rounded-full bg-orange-200 text-orange-800 animate-pulse";
 
     try {
-        const response = await fetch('/api/full-resync', { method: 'POST' });
+        const response = await fetch('/api/full-resync', { 
+            method: 'POST',
+            headers: { 'x-admin-key': getAdminKey() }
+        });
+        
+        if (response.status === 401) {
+            state.adminKey = '';
+            throw new Error("Admin Key salah atau tidak valid.");
+        }
         
         if (!response.ok) throw new Error("Gagal menghubungi server sync.");
 

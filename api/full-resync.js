@@ -66,6 +66,18 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed. Use POST.' });
     }
 
+    // Security check: Verify ADMIN_KEY if set in environment
+    const adminKey = process.env.ADMIN_KEY;
+    if (adminKey) {
+        const providedKey = req.headers['x-admin-key'];
+        if (providedKey !== adminKey) {
+            // Since this is SSE, we can't just return status 401 mid-stream, 
+            // but we are at the start of the handler here.
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Unauthorized: Invalid Admin Key.' }));
+        }
+    }
+
     // SSE headers – allows live progress streaming to the browser
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
