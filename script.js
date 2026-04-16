@@ -4,7 +4,7 @@ const CLASS_COLORS = { "No Data": "#B0B8C2", "Banjir (<0)": "#71717A", "Tergenan
 const MONTH_MAP = { jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4, may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8, sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12 };
 const COL_CANDIDATES = { week: ["week name", "week_name", "week"], estate: ["estate", "nama kebun"], id: ["piezorecordid", "piezorecordid", "id"], tmat: ["ketinggian", "tmat", "value"], block: ["block"], date: ["date"] };
 
-const state = { rawRows: [], detectedCols: null, weeks: [], processed: null, charts: { trend: null, dist: null } };
+const state = { rawRows: [], detectedCols: null, weeks: [], processed: null, charts: { trend: null, dist: null }, lastFetch: { company: '', range: '' } };
 
 // DOM Elements
 const csvFileEl = document.getElementById("csvFile");
@@ -322,76 +322,72 @@ async function handleProcess() {
     const isDbMode = dataSourceTypeEl?.value === "db";
 
     if (isDbMode) {
-        await handleProcessFromDB();
+        const currentCompany = dbCompanyEl?.value || "Semua";
+        const currentRange = dbRangeEl?.value || "12";
+
+        // Hanya fetch jika data belum ada atau filter berubah
+        if (!state.rawRows.length || state.lastFetch.company !== currentCompany || state.lastFetch.range !== currentRange) {
+            await handleFetchFromDB(currentCompany, currentRange);
+        } else {
+            // Data sudah ada, tinggal proses ulang dengan input rainfall terbaru
+            runProcessing();
+        }
     } else {
-        // === Mode CSV (Existing Logic) ===
-        try {
-            if (!state.rawRows.length || !state.detectedCols) throw new Error("Upload CSV terlebih dahulu.");
-            const p = processData(state.rawRows, state.detectedCols, getRainfallMapFromInputs(), parseScenarioInput(scenarioInputEl.value), baselineWeekEl.value);
-            state.processed = p;
-            renderModelSummary(p); renderTables(p); renderCharts(p);
-            resultsSectionEl.classList.remove("hidden"); exportExcelBtnEl.disabled = false;
-            setStatus(`Process selesai. Baseline week: ${p.baselineWeek}.`, "success");
-        } catch (error) { setStatus(error.message || "Gagal memproses data.", "warn"); }
+        // === Mode CSV ===
+        runProcessing();
     }
 }
 
-async function handleProcessFromDB() {
-    const companyCode = dbCompanyEl?.value || "Semua";
-    const lookbackWeeks = dbRangeEl?.value || "12";
+function runProcessing() {
+    try {
+        const isDbMode = dataSourceTypeEl?.value === "db";
+        if (!isDbMode && (!state.rawRows.length || !state.detectedCols)) throw new Error("Upload CSV terlebih dahulu.");
+        if (isDbMode && !state.rawRows.length) throw new Error("Ambil data database terlebih dahulu.");
 
+        const p = processData(state.rawRows, state.detectedCols, getRainfallMapFromInputs(), parseScenarioInput(scenarioInputEl.value), baselineWeekEl.value);
+        state.processed = p;
+        renderModelSummary(p); renderTables(p); renderCharts(p);
+        resultsSectionEl.classList.remove("hidden"); exportExcelBtnEl.disabled = false;
+        setStatus(`Process selesai. Baseline week: ${p.baselineWeek}.`, "success");
+    } catch (error) { 
+        setStatus(error.message || "Gagal memproses data.", "warn"); 
+    }
+}
+
+async function handleFetchFromDB(companyCode, lookbackWeeks) {
     processBtnEl.disabled = true;
     processBtnEl.textContent = "Mengambil data...";
     setStatus(`Menghubungi database untuk company "${companyCode}"...`, "neutral");
 
     try {
-        // Fetch data dari API backend
         const params = new URLSearchParams({ companyCode, lookbackWeeks });
         const res = await fetch(`/api/get-piezometer?${params}`);
-        if (!res.ok) {
-            const errData = await res.json();
-            throw new Error(errData.error || `HTTP Error ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
         const { data } = await res.json();
 
-        if (!data || data.length === 0) {
-            throw new Error(`Tidak ada data di database untuk company "${companyCode}". Jalankan sync terlebih dahulu.`);
-        }
+        if (!data || data.length === 0) throw new Error(`Tidak ada data untuk company "${companyCode}".`);
 
-        // Mapping kolom DB ke format yang dipahami processData()
-        const DB_COL_MAP = {
-            week: "month_name",
-            tmat: "ketinggian",
-            estate: "est_code",
-            id: "pie_record_id",
-            block: "block",
-            date: "date_timestamp"
-        };
+        const DB_COL_MAP = { week: "month_name", tmat: "ketinggian", estate: "est_code", id: "pie_record_id", block: "block", date: "date_timestamp" };
 
         state.rawRows = data;
         state.detectedCols = DB_COL_MAP;
         state.weeks = getSortedDistinctWeeks(data, DB_COL_MAP.week);
-        state.processed = null;
+        state.lastFetch = { company: companyCode, range: lookbackWeeks };
 
-        // Render mapping info & rainfall inputs seperti mode CSV
         if (mappingSummaryEl) renderColumnMapping(DB_COL_MAP, Object.values(DB_COL_MAP));
         renderRainfallInputs(state.weeks);
         renderBaselineOptions(state.weeks);
 
-        // Proses dan render hasil langsung
-        const p = processData(state.rawRows, state.detectedCols, getRainfallMapFromInputs(), parseScenarioInput(scenarioInputEl.value), baselineWeekEl.value);
-        state.processed = p;
-        renderModelSummary(p); renderTables(p); renderCharts(p);
-        resultsSectionEl.classList.remove("hidden"); exportExcelBtnEl.disabled = false;
-        setStatus(`Data DB berhasil diproses: ${data.length} baris, ${state.weeks.length} minggu. Baseline: ${p.baselineWeek}.`, "success");
-
+        // Setelah fetch pertama kali, jalankan proses awal (biasanya rainfall masih 0)
+        runProcessing();
     } catch (error) {
-        setStatus(error.message || "Gagal mengambil data dari database.", "warn");
+        setStatus(error.message, "warn");
     } finally {
         processBtnEl.disabled = false;
         processBtnEl.textContent = "Proses Data";
     }
 }
+
 
 function processData(rawRows, detectedCols, rainfallMap, scenarios, baselineWeek) {
     const rows = rawRows.map((row) => {
