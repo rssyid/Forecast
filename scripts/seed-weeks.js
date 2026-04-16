@@ -1,4 +1,29 @@
 import pool from '../lib/db.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load .env.local manually for standalone execution
+const envPath = path.join(__dirname, '..', '.env.local');
+if (fs.existsSync(envPath)) {
+    fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+            const eqIdx = trimmed.indexOf('=');
+            if (eqIdx > 0) {
+                const key = trimmed.slice(0, eqIdx).trim();
+                let val = trimmed.slice(eqIdx + 1).trim();
+                if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"'))) {
+                    val = val.slice(1, -1);
+                }
+                process.env[key] = process.env[key] || val;
+            }
+        }
+    });
+    console.log('✅ .env.local loaded');
+}
 
 const rawData = [
   {"Month":1,"Year":2025,"Week":1,"StartDate":"2024-12-30","EndDate":"2025-01-05","WeekName":"W112025"},
