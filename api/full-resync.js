@@ -29,7 +29,18 @@ function getDateRanges() {
     while (y < now.getFullYear() || (y === now.getFullYear() && m <= now.getMonth() + 1)) {
         const mm = String(m).padStart(2, '0');
         const lastDay = new Date(y, m, 0).getDate();
-        ranges.push({ startDate: `${y}-${mm}-01`, endDate: `${y}-${mm}-${lastDay}` });
+        
+        // Overlap Logic: Start from 7 days before the actual month start
+        const start = new Date(y, m - 1, 1);
+        start.setDate(start.getDate() - 7);
+        const startY = start.getFullYear();
+        const startM = String(start.getMonth() + 1).padStart(2, '0');
+        const startD = String(start.getDate()).padStart(2, '0');
+
+        ranges.push({ 
+            startDate: `${startY}-${startM}-${startD}`, 
+            endDate: `${y}-${mm}-${lastDay}` 
+        });
         m++; if (m > 12) { m = 1; y++; }
     }
     return ranges;
@@ -57,8 +68,9 @@ export default async function handler(req, res) {
 
     // SSE headers – allows live progress streaming to the browser
     res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering on proxies like Nginx/Vercel
 
     const send = (msg) => {
         res.end ? null : null; // check alive

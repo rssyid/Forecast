@@ -927,18 +927,23 @@ async function handleFullResync() {
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let buffer = '';
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            
+            // Simpan baris terakhir yang mungkin belum lengkap ke buffer untuk chunk berikutnya
+            buffer = lines.pop();
 
             lines.forEach(line => {
-                if (line.startsWith('data: ')) {
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('data: ')) {
                     try {
-                        const dataString = line.substring(6).trim();
+                        const dataString = trimmedLine.substring(6).trim();
                         if (!dataString) return;
                         
                         const data = JSON.parse(dataString);
@@ -957,7 +962,7 @@ async function handleFullResync() {
                             throw new Error(data.msg);
                         }
                     } catch (e) {
-                        console.warn("Gagal parse line:", line);
+                        console.warn("Gagal parse line:", trimmedLine, e);
                     }
                 }
             });
