@@ -25,6 +25,14 @@ const downloadTemplateBtnEl = document.getElementById("downloadTemplateBtn");
 const syncPiezometerBtnEl = document.getElementById("syncPiezometerBtn");
 const syncStatusTextEl = document.getElementById("syncStatusText");
 
+// DB Mode Elements
+const dataSourceTypeEl = document.getElementById("dataSourceType");
+const dbCompanyEl = document.getElementById("dbCompany");
+const dbRangeEl = document.getElementById("dbRange");
+const modeDbUi1El = document.getElementById("modeDbUi1");
+const modeDbUi2El = document.getElementById("modeDbUi2");
+const modeCsvUi1El = document.getElementById("modeCsvUi1");
+
 // AI Elements
 const generateAiBtnEl = document.getElementById("generateAiBtn");
 const userContextEl = document.getElementById("userContext");
@@ -98,7 +106,7 @@ function showModal(title, message, isAlert = false) {
 }
 
 // Event Listeners
-csvFileEl.addEventListener("change", handleFileUpload);
+csvFileEl?.addEventListener("change", handleFileUpload);
 processBtnEl.addEventListener("click", handleProcess);
 exportExcelBtnEl.addEventListener("click", handleExportExcel);
 downloadTemplateBtnEl.addEventListener("click", handleDownloadTemplate);
@@ -109,6 +117,28 @@ translateBtnEl?.addEventListener("click", handleTranslateReport);
 themeToggleBtn?.addEventListener("click", handleThemeToggle);
 copyAiBtn?.addEventListener("click", () => handleCopy(aiOutputContentEl, copyAiBtn));
 copyTranslateBtn?.addEventListener("click", () => handleCopy(translateOutputContentEl, copyTranslateBtn));
+
+// Data Source Mode Toggle
+if (dataSourceTypeEl) {
+    dataSourceTypeEl.addEventListener("change", () => {
+        const isDb = dataSourceTypeEl.value === "db";
+        // Tampilkan/sembunyikan UI yang relevan
+        modeDbUi1El?.classList.toggle("hidden", !isDb);
+        modeDbUi2El?.classList.toggle("hidden", !isDb);
+        modeCsvUi1El?.classList.toggle("hidden", isDb);
+        // Reset state setiap kali mode diganti
+        state.rawRows = []; state.detectedCols = null; state.weeks = [];
+        state.processed = null;
+        processBtnEl.disabled = isDb ? false : true; // DB mode: proses bisa langsung
+        exportExcelBtnEl.disabled = true;
+        resultsSectionEl.classList.add("hidden");
+        if (rainfallTableWrapEl) rainfallTableWrapEl.innerHTML = '';
+        if (mappingSummaryEl) mappingSummaryEl.innerHTML = '';
+        setStatus(isDb ? "Mode Database Server aktif. Pilih Company & Range, lalu klik Proses." : "Mode CSV aktif. Upload file untuk memulai.", "neutral");
+    });
+    // Jalankan sekali untuk set initial state sesuai default pilihan HTML
+    dataSourceTypeEl.dispatchEvent(new Event('change'));
+}
 
 // Tab Functionality
 tabBtns.forEach((btn, index) => {
@@ -281,15 +311,79 @@ function parseScenarioInput(text) {
     return validValues;
 }
 
-function handleProcess() {
+async function handleProcess() {
+    const isDbMode = dataSourceTypeEl?.value === "db";
+
+    if (isDbMode) {
+        await handleProcessFromDB();
+    } else {
+        // === Mode CSV (Existing Logic) ===
+        try {
+            if (!state.rawRows.length || !state.detectedCols) throw new Error("Upload CSV terlebih dahulu.");
+            const p = processData(state.rawRows, state.detectedCols, getRainfallMapFromInputs(), parseScenarioInput(scenarioInputEl.value), baselineWeekEl.value);
+            state.processed = p;
+            renderModelSummary(p); renderTables(p); renderCharts(p);
+            resultsSectionEl.classList.remove("hidden"); exportExcelBtnEl.disabled = false;
+            setStatus(`Process selesai. Baseline week: ${p.baselineWeek}.`, "success");
+        } catch (error) { setStatus(error.message || "Gagal memproses data.", "warn"); }
+    }
+}
+
+async function handleProcessFromDB() {
+    const companyCode = dbCompanyEl?.value || "Semua";
+    const lookbackWeeks = dbRangeEl?.value || "12";
+
+    processBtnEl.disabled = true;
+    processBtnEl.textContent = "Mengambil data...";
+    setStatus(`Menghubungi database untuk company "${companyCode}"...`, "neutral");
+
     try {
-        if (!state.rawRows.length || !state.detectedCols) throw new Error("Upload CSV terlebih dahulu.");
+        // Fetch data dari API backend
+        const params = new URLSearchParams({ companyCode, lookbackWeeks });
+        const res = await fetch(`/api/get-piezometer?${params}`);
+        if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.error || `HTTP Error ${res.status}`);
+        }
+        const { data } = await res.json();
+
+        if (!data || data.length === 0) {
+            throw new Error(`Tidak ada data di database untuk company "${companyCode}". Jalankan sync terlebih dahulu.`);
+        }
+
+        // Mapping kolom DB ke format yang dipahami processData()
+        const DB_COL_MAP = {
+            week: "month_name",
+            tmat: "ketinggian",
+            estate: "est_code",
+            id: "pie_record_id",
+            block: "block",
+            date: "date_timestamp"
+        };
+
+        state.rawRows = data;
+        state.detectedCols = DB_COL_MAP;
+        state.weeks = getSortedDistinctWeeks(data, DB_COL_MAP.week);
+        state.processed = null;
+
+        // Render mapping info & rainfall inputs seperti mode CSV
+        if (mappingSummaryEl) renderColumnMapping(DB_COL_MAP, Object.values(DB_COL_MAP));
+        renderRainfallInputs(state.weeks);
+        renderBaselineOptions(state.weeks);
+
+        // Proses dan render hasil langsung
         const p = processData(state.rawRows, state.detectedCols, getRainfallMapFromInputs(), parseScenarioInput(scenarioInputEl.value), baselineWeekEl.value);
         state.processed = p;
         renderModelSummary(p); renderTables(p); renderCharts(p);
         resultsSectionEl.classList.remove("hidden"); exportExcelBtnEl.disabled = false;
-        setStatus(`Process selesai. Baseline week: ${p.baselineWeek}.`, "success");
-    } catch (error) { setStatus(error.message || "Gagal memproses data.", "warn"); }
+        setStatus(`Data DB berhasil diproses: ${data.length} baris, ${state.weeks.length} minggu. Baseline: ${p.baselineWeek}.`, "success");
+
+    } catch (error) {
+        setStatus(error.message || "Gagal mengambil data dari database.", "warn");
+    } finally {
+        processBtnEl.disabled = false;
+        processBtnEl.textContent = "Proses Data";
+    }
 }
 
 function processData(rawRows, detectedCols, rainfallMap, scenarios, baselineWeek) {

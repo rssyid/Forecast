@@ -38,11 +38,12 @@ export default async function handler(req, res) {
 
     const query = `
       INSERT INTO piezometer_data (
-        data_taken, est_code, block, pie_record_id, ketinggian, 
+        company_code, data_taken, est_code, block, pie_record_id, ketinggian, 
         indicator_name, indicator_alias, month_name, date_timestamp, 
         banyak, url_images
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       ON CONFLICT (pie_record_id, date_timestamp) DO UPDATE SET
+        company_code = EXCLUDED.company_code,
         ketinggian = EXCLUDED.ketinggian,
         indicator_name = EXCLUDED.indicator_name,
         indicator_alias = EXCLUDED.indicator_alias,
@@ -54,7 +55,7 @@ export default async function handler(req, res) {
     let count = 0;
     for (const item of parsed) {
       await pool.query(query, [
-        item.DataTaken || "", item.EstCode || "", item.Block || "", 
+        companyCode, item.DataTaken || "", item.EstCode || "", item.Block || "", 
         item.PieRecordID || "", item.Ketinggian || 0,
         item.IndicatorName || "", item.IndicatorAlias || "", 
         item.MonthName || "", item.Date || 0,

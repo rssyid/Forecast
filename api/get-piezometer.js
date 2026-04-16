@@ -1,0 +1,53 @@
+import pool from '../lib/db.js';
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed. Use GET.' });
+  }
+
+  const { companyCode, lookbackWeeks } = req.query;
+
+  try {
+    const limit = parseInt(lookbackWeeks) || 8;
+    
+    // Find the latest active weeks available in the database
+    const weeksResult = await pool.query(`
+        SELECT month_name 
+        FROM piezometer_data 
+        GROUP BY month_name 
+        ORDER BY MAX(date_timestamp) DESC 
+        LIMIT $1
+    `, [limit]);
+
+    if (weeksResult.rows.length === 0) {
+        return res.status(200).json({ data: [], weeks: [] });
+    }
+
+    const targetWeeks = weeksResult.rows.map(r => r.month_name);
+
+    let dataQuery = `
+      SELECT data_taken, est_code, block, pie_record_id, ketinggian, 
+             indicator_name, indicator_alias, month_name, date_timestamp, 
+             banyak, url_images, company_code
+      FROM piezometer_data
+      WHERE month_name = ANY($1)
+    `;
+    let params = [targetWeeks];
+
+    if (companyCode && companyCode !== 'Semua') {
+       dataQuery += ` AND company_code = $2`;
+       params.push(companyCode);
+    }
+    
+    const dataResult = await pool.query(dataQuery, params);
+
+    res.status(200).json({ 
+        data: dataResult.rows, 
+        weeks: targetWeeks 
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+}
