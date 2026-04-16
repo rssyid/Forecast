@@ -19,7 +19,7 @@ const COMPANIES = [
 ];
 
 const API_URL = "https://app.gis-div.com/PZO/Service/MapService.asmx/GetDataPiezometer";
-const START_YEAR = 2025;
+const START_YEAR = 2026;
 const START_MONTH = 1;
 
 function getDateRanges() {
