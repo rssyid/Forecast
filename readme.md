@@ -1,73 +1,79 @@
 # TMAT Forecast & AI Dashboard
 
-Aplikasi web inovatif yang menggabungkan analisis hidrologi presisi dengan kecerdasan buatan (AI) untuk membantu manajemen tata air di perkebunan kelapa sawit, khususnya pada lahan gambut.
+Aplikasi web inovatif yang menggabungkan analisis hidrologi presisi dengan kecerdasan buatan (AI) untuk membantu manajemen tata air di perkebunan kelapa sawit, khususnya pada lahan gambut. Kini mendukung integrasi database server terpusat.
 
 ## 🌟 Fitur Utama
 
-- **Analisis Piezometer Otomatis**: Mengolah data CSV mentah dari lapangan secara instan.
-- **Forecasting Dinamis**: Melakukan simulasi perubahan Tinggi Muka Air Tanah (TMAT) berdasarkan skenario curah hujan (0mm, 50mm, dll) menggunakan model regresi linier.
-- **Generative AI Report**: Menghasilkan laporan naratif dalam Bahasa Indonesia yang menyesuaikan dengan kondisi dominan (Kering, Basah, atau Normal).
-- **Professional Translate & Rewrite**: Modul khusus untuk menerjemahkan dan menyempurnakan laporan ke Bahasa Inggris dengan standar profesional dan terminologi hidrologi yang tepat.
-- **Modern UI/UX**: Antarmuka bersih dan responsif berbasis estetika **Shadcn UI** menggunakan Tailwind CSS.
-- **Enterprise Security**: API Key Gemini disimpan dengan aman di sisi server menggunakan Vercel Serverless Functions.
+- **Dual Data Source**: Mendukung upload file **CSV Lokal** atau penarikan data langsung dari **Database Server (PostgreSQL)**.
+- **Full Resync Tool**: Fitur administratif untuk sinkronisasi ulang seluruh data piezometer dari server GIS Div ke database dashboard.
+- **Forecasting Dinamis**: Simulasi perubahan Tinggi Muka Air Tanah (TMAT) berdasarkan skenario curah hujan (0mm, 50mm, dll) menggunakan model regresi linier.
+- **Generative AI Report**: Menghasilkan laporan naratif eksklusif dalam Bahasa Indonesia yang menyesuaikan dengan kondisi lapangan.
+- **Professional Translate & Rewrite**: Modul khusus untuk menerjemahkan laporan ke Bahasa Inggris dengan standar C-Suite dan terminologi hidrologi yang tepat.
+- **Modern UI/UX**: Antarmuka bersih berbasis **Shadcn UI** dengan alur kerja (workflow) yang dioptimalkan.
+
+## 🚶 Walkthrough Penggunaan
+
+Ikuti langkah-langkah berikut untuk mendapatkan analisis TMAT yang akurat:
+
+### Langkah 1: Pengambilan Data
+- Pilih **Sumber Data** (Database Server atau CSV).
+- Jika menggunakan Database, pilih **Company** dan **Rentang Historis** (Default: 4 Minggu).
+- Klik tombol **"Ambil Data"**. Sistem akan memuat data historis dan menampilkan kolom input curah hujan (CH).
+
+### Langkah 2: Input Curah Hujan (Rainfall)
+- Setelah data muncul, isi estimasi curah hujan per minggu pada tabel **"Input Rainfall per Week"** yang muncul di panel konfigurasi.
+- Masukkan juga skenario curah hujan tambahan (default: 0, 50) pada kolom **Scenario Rainfall**.
+
+### Langkah 3: Pemrosesan & Visualisasi
+- Klik **"Proses Data"**.
+- Dashboard akan menampilkan **Ringkasan Model**, Grafik **Trend TMAT vs Rainfall**, dan **Tabel Forecast** untuk minggu depan.
+
+### Langkah 4: Analisis AI & Laporan
+- Buka tab **"Laporan"**.
+- Isi konteks cuaca lapangan dan aksi Water Management yang telah dilakukan.
+- Klik **"Generate Laporan"**. AI akan menyusun narasi analisis profesional untuk Anda.
+
+---
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: HTML5, Tailwind CSS (Shadcn UI Style).
-- **Logic**: Vanilla JavaScript (ES6+).
-- **Libraries**:
-  - [PapaParse](https://www.papaparse.com/) (CSV Parsing).
-  - [Chart.js](https://www.chartjs.org/) (Data Visualization).
-  - [SheetJS](https://sheetjs.com/) (Excel Export).
-- **AI Engine**: Open AI (gpt-5.4).
-- **Deployment & Backend**: Vercel (Serverless Functions).
+- **Logic**: Vanilla JavaScript (ES6+) & Node.js.
+- **Database**: PostgreSQL (Neon.tech).
+- **AI Engine**: OpenAI API.
+- **Backend & Deployment**: Vercel (Serverless Functions).
 
 ## 📁 Struktur Folder
 
 ```text
-├── index.html        # Struktur utama dashboard
-├── style.css         # Tema dan styling (Shadcn UI design)
-├── script.js         # Logika frontend, pemrosesan data, dan integrasi API
-├── package.json      # Konfigurasi dependensi backend
-└── api/
-    └── generate.js   # Serverless function untuk memanggil Gemini API secara aman
-```    
-## 🚀 Panduan Instalasi & Deployment
-1. Persiapan Repository
-Unggah semua file di atas ke repository GitHub Anda.
-
-2. Deployment di Vercel
-Masuk ke Vercel Dashboard dan impor repository tersebut.
-
-Sebelum klik Deploy, buka menu Environment Variables.
-
-Tambahkan variabel baru:
-```text
-Key: GEMINI_API_KEY
-Value: [Masukkan API Key Gemini Anda dari Google AI Studio]
-Klik Deploy.
+├── api/                # Serverless functions (Fetch data, Sync, AI Generate)
+├── lib/                # Konfigurasi Database & Utility
+├── scripts/            # Script migrasi dan backfill data (CLI)
+├── index.html          # Struktur utama dashboard
+├── script.js           # Logika frontend & visualisasi grafik
+├── server.js           # Custom server untuk development lokal (Windows compatible)
+└── vercel.json         # Konfigurasi routing & deployment
 ```
-3. Penggunaan
-Upload: Gunakan file CSV piezometer (Gunakan tombol "Panduan CSV" di dashboard untuk melihat format header).
 
-Input Rainfall: Masukkan data curah hujan realisasi mingguan di tabel yang muncul.
+## 🚀 Instalasi Lokal
 
-Process: Klik "Process Data" untuk melihat grafik dan tabel forecast.
+1. Clone repository ini.
+2. Buat file `.env.local` dan isi dengan:
+   ```text
+   DATABASE_URL=your_postgresql_url
+   OPENAI_API_KEY=your_openai_key
+   ```
+3. Jalankan server lokal:
+   ```bash
+   npm run dev
+   ```
+4. Buka `http://localhost:3000` di browser Anda.
 
-AI Report: Masukkan konteks lapangan dan aksi Water Management, lalu klik "Generate".
+## 📝 Catatan Terminologi
+Sistem kami memahami istilah teknis perkebunan:
+- **Tanggul** ➔ Embankment
+- **TMAS (Muka Air Saluran)** ➔ Canal Water Level
+- **TMAT (Muka Air Tanah)** ➔ Ground Water Level
 
-Translate: Gunakan modul di bagian bawah untuk mendapatkan versi Bahasa Inggris yang profesional.
-
-## 🔒 Keamanan API
-Proyek ini dirancang agar API Key tidak bocor ke publik. File script.js tidak pernah menyimpan kunci tersebut; komunikasi dilakukan melalui jalur internal Vercel /api/generate yang memanggil kunci dari Environment Variable di sisi server.
-
-## 📝 Catatan Terminologi Translasi
-Sistem translate telah dikonfigurasi secara khusus untuk mengubah istilah lokal menjadi standar profesional saat diterjemahkan ke Bahasa Inggris:
-
-Tanggul ➔ Embankment
-
-TMAS ➔ Water level
-
-TMAT ➔ Ground water
-
-Dikembangkan untuk efisiensi operasional hidrologi perkebunan.
+---
+Developed for Plantation Hydrology Operational Efficiency.
