@@ -33,6 +33,12 @@ const modeDbUi1El = document.getElementById("modeDbUi1");
 const modeDbUi2El = document.getElementById("modeDbUi2");
 const modeCsvUi1El = document.getElementById("modeCsvUi1");
 
+// Full Resync UI
+const fullResyncBtnEl = document.getElementById("fullResyncBtn");
+const resyncProgressWrapEl = document.getElementById("resyncProgressWrap");
+const resyncStatusBadgeEl = document.getElementById("resyncStatusBadge");
+const resyncLogEl = document.getElementById("resyncLog");
+
 // AI Elements
 const generateAiBtnEl = document.getElementById("generateAiBtn");
 const userContextEl = document.getElementById("userContext");
@@ -117,6 +123,7 @@ translateBtnEl?.addEventListener("click", handleTranslateReport);
 themeToggleBtn?.addEventListener("click", handleThemeToggle);
 copyAiBtn?.addEventListener("click", () => handleCopy(aiOutputContentEl, copyAiBtn));
 copyTranslateBtn?.addEventListener("click", () => handleCopy(translateOutputContentEl, copyTranslateBtn));
+fullResyncBtnEl?.addEventListener("click", handleFullResync);
 
 // Data Source Mode Toggle
 if (dataSourceTypeEl) {
@@ -897,3 +904,73 @@ async function handleSyncPiezometer() {
         }, 8000);
     }
 }
+
+async function handleFullResync() {
+    const isConfirmed = await showModal(
+        "Konfirmasi Full Resync",
+        "Tindakan ini akan MENGHAPUS (DROP) semua data di database dan melakukan sync ulang dari awal (2025). Proses ini memakan waktu beberapa menit. Lanjutkan?"
+    );
+
+    if (!isConfirmed) return;
+
+    // Reset UI
+    fullResyncBtnEl.disabled = true;
+    resyncProgressWrapEl.classList.remove("hidden");
+    resyncLogEl.innerHTML = '';
+    resyncStatusBadgeEl.textContent = "Berjalan...";
+    resyncStatusBadgeEl.className = "text-xs px-2 py-0.5 rounded-full bg-orange-200 text-orange-800 animate-pulse";
+
+    try {
+        const response = await fetch('/api/full-resync', { method: 'POST' });
+        
+        if (!response.ok) throw new Error("Gagal menghubungi server sync.");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            lines.forEach(line => {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const dataString = line.substring(6).trim();
+                        if (!dataString) return;
+                        
+                        const data = JSON.parse(dataString);
+                        
+                        // Tambah log ke panel
+                        const logLine = document.createElement('div');
+                        logLine.textContent = data.msg;
+                        resyncLogEl.appendChild(logLine);
+                        resyncLogEl.scrollTop = resyncLogEl.scrollHeight;
+
+                        if (data.msg === 'DONE') {
+                            resyncStatusBadgeEl.textContent = "Selesai";
+                            resyncStatusBadgeEl.className = "text-xs px-2 py-0.5 rounded-full bg-green-200 text-green-800";
+                            setStatus("Full Resync Database selesai.", "success");
+                        } else if (data.msg.startsWith('❌ ERROR')) {
+                            throw new Error(data.msg);
+                        }
+                    } catch (e) {
+                        console.warn("Gagal parse line:", line);
+                    }
+                }
+            });
+        }
+    } catch (error) {
+        resyncStatusBadgeEl.textContent = "Error";
+        resyncStatusBadgeEl.className = "text-xs px-2 py-0.5 rounded-full bg-red-200 text-red-800";
+        const errLine = document.createElement('div');
+        errLine.className = "text-red-600 font-bold";
+        errLine.textContent = `❌ ERROR: ${error.message}`;
+        resyncLogEl.appendChild(errLine);
+        setStatus("Resync gagal. Cek log progress.", "warn");
+    } finally {
+        fullResyncBtnEl.disabled = false;
+    }
+}

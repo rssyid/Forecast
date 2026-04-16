@@ -77,20 +77,27 @@ const server = http.createServer(async (req, res) => {
             const shimRes = {
                 status(code) { statusCode = code; return this; },
                 setHeader(k, v) { headers[k] = v; return this; },
+                // SSE / streaming: write directly to response
+                write(chunk) {
+                    if (!res.headersSent) res.writeHead(statusCode, headers);
+                    res.write(chunk);
+                    return this;
+                },
                 json(data) {
-                    if (!responseBody) {
-                        responseBody = JSON.stringify(data);
+                    if (!res.headersSent) {
                         res.writeHead(statusCode, headers);
-                        res.end(responseBody);
+                        res.end(JSON.stringify(data));
                     }
                     return this;
                 },
                 end(data) {
-                    if (!responseBody) {
-                        res.writeHead(statusCode, headers);
+                    if (!res.writableEnded) {
+                        if (!res.headersSent) res.writeHead(statusCode, headers);
                         res.end(data || '');
                     }
-                }
+                },
+                // expose raw response so SSE can write directly
+                _raw: res
             };
 
             const fileUrl = pathToFileURL(apiFile).href + `?t=${Date.now()}`;
