@@ -14,6 +14,7 @@ const processBtnEl = document.getElementById("processBtn");
 const exportExcelBtnEl = document.getElementById("exportExcelBtn");
 const statusBoxEl = document.getElementById("statusBox");
 const rainfallTableWrapEl = document.getElementById("rainfallTableWrap");
+const rainfallInputSectionEl = document.getElementById("rainfallInputSection");
 const mappingSummaryEl = document.getElementById("mappingSummary");
 const resultsSectionEl = document.getElementById("resultsSection");
 const weeklySummaryWrapEl = document.getElementById("weeklySummaryWrap");
@@ -29,6 +30,7 @@ const syncStatusTextEl = document.getElementById("syncStatusText");
 const dataSourceTypeEl = document.getElementById("dataSourceType");
 const dbCompanyEl = document.getElementById("dbCompany");
 const dbRangeEl = document.getElementById("dbRange");
+const fetchDbBtnEl = document.getElementById("fetchDbBtn");
 const modeDbUi1El = document.getElementById("modeDbUi1");
 const modeDbUi2El = document.getElementById("modeDbUi2");
 const modeCsvUi1El = document.getElementById("modeCsvUi1");
@@ -112,7 +114,23 @@ function showModal(title, message, isAlert = false) {
 }
 
 // Event Listeners
-csvFileEl?.addEventListener("change", handleFileUpload);
+if (csvFileEl) {
+    csvFileEl.addEventListener("change", (e) => {
+        handleFileUpload(e);
+        // Otomatis tampilkan bagian rainfall setelah upload
+        setTimeout(() => {
+            if (state.weeks.length > 0) {
+                rainfallInputSectionEl?.classList.remove("hidden");
+                processBtnEl.disabled = false;
+            }
+        }, 500);
+    });
+}
+fetchDbBtnEl?.addEventListener("click", () => {
+    const currentCompany = dbCompanyEl?.value || "Semua";
+    const currentRange = dbRangeEl?.value || "4";
+    handleFetchFromDB(currentCompany, currentRange);
+});
 processBtnEl.addEventListener("click", handleProcess);
 exportExcelBtnEl.addEventListener("click", handleExportExcel);
 downloadTemplateBtnEl.addEventListener("click", handleDownloadTemplate);
@@ -136,7 +154,10 @@ if (dataSourceTypeEl) {
         // Reset state setiap kali mode diganti
         state.rawRows = []; state.detectedCols = null; state.weeks = [];
         state.processed = null;
-        processBtnEl.disabled = isDb ? false : true; // DB mode: proses bisa langsung
+        state.lastFetch = { company: '', range: '' };
+        
+        processBtnEl.disabled = true; 
+        rainfallInputSectionEl?.classList.add("hidden");
         exportExcelBtnEl.disabled = true;
         resultsSectionEl.classList.add("hidden");
         if (rainfallTableWrapEl) rainfallTableWrapEl.innerHTML = '';
@@ -319,23 +340,7 @@ function parseScenarioInput(text) {
 }
 
 async function handleProcess() {
-    const isDbMode = dataSourceTypeEl?.value === "db";
-
-    if (isDbMode) {
-        const currentCompany = dbCompanyEl?.value || "Semua";
-        const currentRange = dbRangeEl?.value || "12";
-
-        // Hanya fetch jika data belum ada atau filter berubah
-        if (!state.rawRows.length || state.lastFetch.company !== currentCompany || state.lastFetch.range !== currentRange) {
-            await handleFetchFromDB(currentCompany, currentRange);
-        } else {
-            // Data sudah ada, tinggal proses ulang dengan input rainfall terbaru
-            runProcessing();
-        }
-    } else {
-        // === Mode CSV ===
-        runProcessing();
-    }
+    runProcessing();
 }
 
 function runProcessing() {
@@ -378,8 +383,10 @@ async function handleFetchFromDB(companyCode, lookbackWeeks) {
         renderRainfallInputs(state.weeks);
         renderBaselineOptions(state.weeks);
 
-        // Setelah fetch pertama kali, jalankan proses awal (biasanya rainfall masih 0)
-        runProcessing();
+        // Tampilkan input rainfall dan aktifkan tombol proses
+        rainfallInputSectionEl?.classList.remove("hidden");
+        processBtnEl.disabled = false;
+        setStatus(`Data berhasil diambil: ${data.length} baris. Silakan isi rainfall lalu klik 'Proses Data'.`, "success");
     } catch (error) {
         setStatus(error.message, "warn");
     } finally {
