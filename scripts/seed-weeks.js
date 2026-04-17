@@ -1,4 +1,3 @@
-import pool from '../lib/db.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -136,6 +135,8 @@ const rawData = [
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 async function seed() {
+  const { default: pool } = await import('../lib/db.js');
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS public.calendar_weeks (
       id SERIAL PRIMARY KEY,

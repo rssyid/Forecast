@@ -462,26 +462,69 @@ function max(arr) { return arr.length ? Math.max(...arr) : NaN; }
 function stddev(arr) { if (arr.length < 2) return NaN; const m = mean(arr); return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / (arr.length - 1)); }
 
 function fitRainResponse(records) {
-    const lastN = records.slice(-3); const fitRows = [];
-    for (let i = 1; i < lastN.length; i++) { if (Number.isFinite(lastN[i - 1]["Avg TMAT (cm)"]) && Number.isFinite(lastN[i]["Avg TMAT (cm)"]) && Number.isFinite(lastN[i]["Rain (mm)"])) fitRows.push({ x: lastN[i]["Rain (mm)"], y: lastN[i]["Avg TMAT (cm)"] - lastN[i - 1]["Avg TMAT (cm)"] }); }
-    let a, b, method = "fit";
-    if (fitRows.length >= 2 && new Set(fitRows.map(r => String(r.x))).size > 1) {
-        const n = fitRows.length, sumX = fitRows.reduce((s, r) => s + r.x, 0), sumY = fitRows.reduce((s, r) => s + r.y, 0), sumXY = fitRows.reduce((s, r) => s + r.x * r.y, 0), sumX2 = fitRows.reduce((s, r) => s + r.x * r.x, 0), denom = n * sumX2 - sumX * sumX;
-        if (denom !== 0) { b = (n * sumXY - sumX * sumY) / denom; a = (sumY - b * sumX) / n; }
+    const lastN = records.slice(-4); 
+    const fitRows = [];
+    for (let i = 1; i < lastN.length; i++) { 
+        if (Number.isFinite(lastN[i - 1]["Avg TMAT (cm)"]) && Number.isFinite(lastN[i]["Avg TMAT (cm)"]) && Number.isFinite(lastN[i]["Rain (mm)"])) {
+            fitRows.push({ 
+                x: lastN[i]["Rain (mm)"], 
+                y: lastN[i]["Avg TMAT (cm)"] - lastN[i - 1]["Avg TMAT (cm)"] 
+            }); 
+        }
     }
-    if (!Number.isFinite(a) || !Number.isFinite(b)) { const last2 = records.slice(-2); const d = last2.length === 2 ? (last2[1]["Avg TMAT (cm)"] - last2[0]["Avg TMAT (cm)"]) : 0; a = Number.isFinite(d) ? d : 0; b = -0.05; method = "fallback"; }
-    return { a, b: Math.min(b, -0.001), fitRows, method };
+
+    let a = 0, b = -0.05, r2 = 0, method = "fallback";
+
+    if (fitRows.length >= 2) {
+        const n = fitRows.length;
+        const sumX = fitRows.reduce((s, r) => s + r.x, 0);
+        const sumY = fitRows.reduce((s, r) => s + r.y, 0);
+        const sumXY = fitRows.reduce((s, r) => s + r.x * r.y, 0);
+        const sumX2 = fitRows.reduce((s, r) => s + r.x * r.x, 0);
+        const sumY2 = fitRows.reduce((s, r) => s + r.y * r.y, 0);
+        
+        const denom = n * sumX2 - sumX * sumX;
+        if (denom !== 0) {
+            const tempB = (n * sumXY - sumX * sumY) / denom;
+            const tempA = (sumY - tempB * sumX) / n;
+            
+            // Calculate R2
+            const numR = (n * sumXY - sumX * sumY);
+            const denR = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+            const tempR2 = denR !== 0 ? Math.pow(numR / denR, 2) : 0;
+
+            // Sanity check for peatland hydrology: b must be negative (rain makes it wetter)
+            // If b is positive, it's likely noise, use fallback or cap it.
+            if (tempB < 0) {
+                a = tempA;
+                b = Math.max(tempB, -0.8); // Cap b to -0.8 (extreme response)
+                r2 = tempR2;
+                method = "fit";
+            }
+        }
+    }
+
+    // Double sanity check for 'a' (natural drop): should usually be positive 
+    // unless the estate is actively flooding from groundwater rise.
+    return { a, b: Math.min(b, -0.001), r2, fitRows, method };
 }
 
 function forecastCountsFromBaseline(counts, dAvg, total) {
-    const out = { ...counts }, mag = Math.min(Math.abs(dAvg) / 10, 1);
+    const out = { ...counts };
+    // Damping factor: prevent drastic jumps for small dAvg
+    const mag = Math.min(Math.abs(dAvg) / 12, 1); 
+    
     if (dAvg >= 0) {
-        const m1 = 0.25 * mag, m2 = 0.35 * mag, m3 = 0.4 * mag;
+        // Drier (Deeper)
+        const m1 = 0.20 * mag, m2 = 0.30 * mag, m3 = 0.35 * mag;
         let s = Math.min(out["Normal (46-60)"] * m1, out["Normal (46-60)"]); out["Normal (46-60)"] -= s; out["A Kering (61-65)"] += s;
         s = Math.min(out["A Kering (61-65)"] * m2, out["A Kering (61-65)"]); out["A Kering (61-65)"] -= s; out["Kering (>65)"] += s;
-        [["Tergenang (0-40)", "A Tergenang (41-45)"], ["A Tergenang (41-45)", "Normal (46-60)"]].forEach(([src, dst]) => { const s2 = Math.min(out[src] * m3, out[src]); out[src] -= s2; out[dst] += s2; });
+        [["Tergenang (0-40)", "A Tergenang (41-45)"], ["A Tergenang (41-45)", "Normal (46-60)"]].forEach(([src, dst]) => { 
+            const s2 = Math.min(out[src] * m3, out[src]); out[src] -= s2; out[dst] += s2; 
+        });
     } else {
-        const m1 = 0.3 * mag, m2 = 0.25 * mag, m3 = 0.15 * mag;
+        // Wetter (Shallower)
+        const m1 = 0.25 * mag, m2 = 0.20 * mag, m3 = 0.12 * mag;
         let s = Math.min(out["Kering (>65)"] * m1, out["Kering (>65)"]); out["Kering (>65)"] -= s; out["A Kering (61-65)"] += s;
         s = Math.min(out["A Kering (61-65)"] * m2, out["A Kering (61-65)"]); out["A Kering (61-65)"] -= s; out["Normal (46-60)"] += s;
         s = Math.min(out["Normal (46-60)"] * m3, out["Normal (46-60)"]); out["Normal (46-60)"] -= s; out["A Tergenang (41-45)"] += s * 0.6; out["Tergenang (0-40)"] += s * 0.4;
@@ -500,8 +543,21 @@ function toNumber(v) { if (v == null) return NaN; if (typeof v === "number") ret
 
 // Rendering UI Shadcn Tables
 function renderModelSummary(p) {
-    modelSummaryEl.innerHTML = [["Baseline Week", p.baselineWeek], ["Baseline Avg TMAT", formatNumber(p.baselineAvgTMAT, 2)], ["Koefisien a", formatNumber(p.fit.a, 3)], ["Koefisien b", formatNumber(p.fit.b, 4)], ["Metode", p.fit.method]]
-        .map(([l, v]) => `<div class="flex flex-col gap-1 p-4 rounded-xl border bg-muted/50"><span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">${escapeHtml(l)}</span><span class="text-xl font-bold">${escapeHtml(String(v))}</span></div>`).join("");
+    const accuracy = p.fit.method === 'fit' ? Math.round(p.fit.r2 * 100) : 0;
+    const accuracyLabel = p.fit.method === 'fit' ? `${accuracy}%` : 'Low (N/A)';
+
+    modelSummaryEl.innerHTML = [
+        ["Baseline Week", p.baselineWeek], 
+        ["Baseline Avg TMAT", formatNumber(p.baselineAvgTMAT, 2)], 
+        ["Koefisien a", formatNumber(p.fit.a, 3)], 
+        ["Koefisien b", formatNumber(p.fit.b, 4)], 
+        ["Akurasi (R²)", accuracyLabel]
+    ]
+        .map(([l, v]) => `
+          <div class="flex flex-col gap-1 p-4 rounded-xl border bg-muted/50">
+            <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">${escapeHtml(l)}</span>
+            <span class="text-xl font-bold ${l.includes('R²') && accuracy < 50 ? 'text-yellow-600' : ''}">${escapeHtml(String(v))}</span>
+          </div>`).join("");
 }
 
 function renderTables(p) {
