@@ -163,7 +163,7 @@ export default function RainfallDailyClient() {
                                 <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Komparasi intensitas hujan antar estate di {company}</p>
                             </div>
                         </div>
-                        <div className="h-[300px]">
+                        <div className="h-[500px]">
                             <Bar 
                                 data={chartData} 
                                 options={{
@@ -183,14 +183,17 @@ export default function RainfallDailyClient() {
                                         tooltip: {
                                             mode: 'index',
                                             intersect: false,
-                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                            backgroundColor: 'rgba(255, 255, 255, 0.98)',
                                             titleColor: '#111827',
                                             bodyColor: '#4B5563',
                                             borderColor: '#E5E7EB',
                                             borderWidth: 1,
-                                            padding: 10,
-                                            boxPadding: 5,
-                                            usePointStyle: true
+                                            padding: 8,
+                                            boxPadding: 4,
+                                            bodySpacing: 2,
+                                            bodyFont: { size: 9 },
+                                            usePointStyle: true,
+                                            itemSort: (a, b) => b.raw - a.raw // Sort by rainfall value desc
                                         }
                                     },
                                     scales: {
