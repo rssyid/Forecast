@@ -64,9 +64,10 @@ export default function RainfallDailyClient() {
         // Add footer rows to copy
         const footerTotal = `Total (mm)\t${daysArray.map(d => Math.round(Object.values(data.matrix).reduce((acc, est) => acc + (est[d] || 0), 0))).join('\t')}\n`;
         const footerAvg = `Average (mm)\t${daysArray.map(d => Math.round(Object.values(data.matrix).reduce((acc, est) => acc + (est[d] || 0), 0) / (Object.keys(data.matrix).length || 1))).join('\t')}\n`;
-        const footerHH = `Hari Hujan (Est)\t${daysArray.map(d => Object.values(data.matrix).filter(est => (est[d] || 0) > 0).length).join('\t')}\n`;
+        const footerHH_Unit = `Hari Hujan (Unit)\t${daysArray.map(d => Object.values(data.matrix).filter(est => (est[d] || 0) > 0).length > 1 ? 1 : 0).join('\t')}\n`;
+        const footerHH_Qty = `Estate Hujan (Qty)\t${daysArray.map(d => Object.values(data.matrix).filter(est => (est[d] || 0) > 0).length).join('\t')}\n`;
         
-        navigator.clipboard.writeText(header1 + header2 + body + footerTotal + footerAvg + footerHH);
+        navigator.clipboard.writeText(header1 + header2 + body + footerTotal + footerAvg + footerHH_Unit + footerHH_Qty);
         alert('Tabel berhasil disalin ke clipboard!');
     };
 
@@ -84,7 +85,8 @@ export default function RainfallDailyClient() {
         // Add footer rows to CSV
         content += `Total (mm),${daysArray.map(d => Math.round(Object.values(data.matrix).reduce((acc, est) => acc + (est[d] || 0), 0))).join(',')}\n`;
         content += `Average (mm),${daysArray.map(d => Math.round(Object.values(data.matrix).reduce((acc, est) => acc + (est[d] || 0), 0) / (Object.keys(data.matrix).length || 1))).join(',')}\n`;
-        content += `Hari Hujan (Est),${daysArray.map(d => Object.values(data.matrix).filter(est => (est[d] || 0) > 0).length).join(',')}\n`;
+        content += `Hari Hujan (Unit),${daysArray.map(d => Object.values(data.matrix).filter(est => (est[d] || 0) > 0).length > 1 ? 1 : 0).join(',')}\n`;
+        content += `Estate Hujan (Qty),${daysArray.map(d => Object.values(data.matrix).filter(est => (est[d] || 0) > 0).length).join(',')}\n`;
 
         const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
@@ -309,12 +311,27 @@ export default function RainfallDailyClient() {
                                         })}
                                         <td className="border border-gray-200 p-2 text-center sticky right-0 bg-gray-100 z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">-</td>
                                     </tr>
-                                    {/* Row: Hari Hujan */}
+                                    {/* Row: Hari Hujan (Unit) */}
                                     <tr>
-                                        <td className="border border-gray-200 p-2 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Hari Hujan (Est)</td>
+                                        <td className="border border-gray-200 p-2 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)] text-blue-800">Hari Hujan (Unit)</td>
                                         {daysArray.map(d => {
                                             const rainyEstCount = Object.values(data.matrix).filter(estDays => (estDays[d] || 0) > 0).length;
-                                            return <td key={d} className="border border-gray-200 p-2 text-center text-blue-700 font-black">{rainyEstCount}</td>;
+                                            const isRainyDay = rainyEstCount > 1 ? 1 : 0;
+                                            return <td key={d} className={`border border-gray-200 p-2 text-center font-black ${isRainyDay ? 'bg-blue-100 text-blue-700' : 'text-gray-300'}`}>{isRainyDay}</td>;
+                                        })}
+                                        <td className="border border-gray-200 p-2 text-center sticky right-0 bg-blue-800 text-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
+                                            {daysArray.reduce((acc, d) => {
+                                                const rainyEstCount = Object.values(data.matrix).filter(estDays => (estDays[d] || 0) > 0).length;
+                                                return acc + (rainyEstCount > 1 ? 1 : 0);
+                                            }, 0)}
+                                        </td>
+                                    </tr>
+                                    {/* Row: Estate Hujan */}
+                                    <tr>
+                                        <td className="border border-gray-200 p-2 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Estate Hujan (Qty)</td>
+                                        {daysArray.map(d => {
+                                            const rainyEstCount = Object.values(data.matrix).filter(estDays => (estDays[d] || 0) > 0).length;
+                                            return <td key={d} className="border border-gray-200 p-2 text-center text-gray-500 font-medium">{rainyEstCount}</td>;
                                         })}
                                         <td className="border border-gray-200 p-2 text-center sticky right-0 bg-gray-100 z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">-</td>
                                     </tr>
