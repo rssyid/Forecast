@@ -317,7 +317,9 @@ export default function RainfallDailyClient() {
                                             const dayAvg = daySum / (values.length || 1);
                                             return <td key={d} className="border border-gray-200 p-2 text-center text-gray-500 font-medium">{Math.round(dayAvg)}</td>;
                                         })}
-                                        <td className="border border-gray-200 p-2 text-center sticky right-0 bg-gray-100 z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">-</td>
+                                        <td className="border border-gray-200 p-2 text-center sticky right-0 bg-gray-100 z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)] font-bold">
+                                            {Math.round(Object.values(data.matrix).reduce((totalAcc, estDays) => totalAcc + Object.values(estDays).reduce((acc, val) => acc + Number(val || 0), 0), 0) / (Object.keys(data.matrix).length * daysArray.length || 1))}
+                                        </td>
                                     </tr>
                                     {/* Row: Hari Hujan (Unit) */}
                                     <tr>
@@ -338,10 +340,12 @@ export default function RainfallDailyClient() {
                                     <tr>
                                         <td className="border border-gray-200 p-2 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Estate Hujan (Qty)</td>
                                         {daysArray.map(d => {
-                                            const rainyEstCount = Object.values(data.matrix).filter(estDays => (estDays[d] || 0) > 0).length;
+                                            const rainyEstCount = Object.values(data.matrix).filter(estDays => Number(estDays[d] || 0) > 0).length;
                                             return <td key={d} className="border border-gray-200 p-2 text-center text-gray-500 font-medium">{rainyEstCount}</td>;
                                         })}
-                                        <td className="border border-gray-200 p-2 text-center sticky right-0 bg-gray-100 z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">-</td>
+                                        <td className="border border-gray-200 p-2 text-center sticky right-0 bg-gray-100 z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)] font-bold">
+                                            {daysArray.reduce((acc, d) => acc + Object.values(data.matrix).filter(estDays => Number(estDays[d] || 0) > 0).length, 0)}
+                                        </td>
                                     </tr>
                                 </tfoot>
                             </table>
