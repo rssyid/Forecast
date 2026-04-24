@@ -50,9 +50,11 @@ export default function RainfallDailyClient() {
         const header1 = `\t${monthLabel}\n`;
         const header2 = `Estate\t${daysArray.join('\t')}\n`;
         let body = '';
-        Object.entries(data.matrix).sort().forEach(([est, days]) => {
-            body += `${est}\t${daysArray.map(d => days[d] || 0).join('\t')}\n`;
-        });
+        Object.entries(data.matrix)
+            .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' }))
+            .forEach(([est, days]) => {
+                body += `${est}\t${daysArray.map(d => Math.round(days[d] || 0)).join('\t')}\n`;
+            });
         navigator.clipboard.writeText(header1 + header2 + body);
         alert('Tabel berhasil disalin ke clipboard!');
     };
@@ -61,9 +63,11 @@ export default function RainfallDailyClient() {
         if (!data) return;
         let content = `Laporan Curah Hujan Harian - ${company} - ${monthLabel} 2026\n\n`;
         content += `Estate,${daysArray.map(d => String(d).padStart(2, '0')).join(',')}\n`;
-        Object.entries(data.matrix).sort().forEach(([est, days]) => {
-            content += `${est},${daysArray.map(d => days[d] || 0).join(',')}\n`;
-        });
+        Object.entries(data.matrix)
+            .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' }))
+            .forEach(([est, days]) => {
+                content += `${est},${daysArray.map(d => Math.round(days[d] || 0)).join(',')}\n`;
+            });
         const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
@@ -152,7 +156,9 @@ export default function RainfallDailyClient() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white">
-                                    {Object.entries(data.matrix).sort().map(([est, days]) => (
+                                    {Object.entries(data.matrix)
+                                        .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' }))
+                                        .map(([est, days]) => (
                                         <tr key={est} className="hover:bg-blue-50/50 transition-colors group">
                                             <td className="bg-gray-50 border border-gray-200 p-2 font-black text-gray-900 sticky left-0 group-hover:bg-blue-100/50">
                                                 {est}
@@ -161,7 +167,7 @@ export default function RainfallDailyClient() {
                                                 const val = days[d] || 0;
                                                 return (
                                                     <td key={d} className={`border border-gray-100 p-2 text-center font-medium ${val > 0 ? 'text-blue-600 font-bold' : 'text-gray-300'}`}>
-                                                        {val > 0 ? val : '0'}
+                                                        {val > 0 ? Math.round(val) : '0'}
                                                     </td>
                                                 );
                                             })}

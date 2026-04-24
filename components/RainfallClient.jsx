@@ -186,7 +186,9 @@ export default function RainfallClient() {
 
     const availableEstates = useMemo(() => {
         if (!data?.summary) return [];
-        return [...new Set(data.summary.map(r => r.est_code))].sort();
+        return [...new Set(data.summary.map(r => r.est_code))].sort((a, b) => 
+            a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+        );
     }, [data]);
 
     // Filtered and Sorted Table Data
@@ -200,6 +202,10 @@ export default function RainfallClient() {
 
         if (sortConfig.key) {
             processed.sort((a, b) => {
+                if (sortConfig.key === 'est_code' || sortConfig.key === 'company_code') {
+                    const res = a[sortConfig.key].localeCompare(b[sortConfig.key], undefined, { numeric: true, sensitivity: 'base' });
+                    return sortConfig.direction === 'asc' ? res : -res;
+                }
                 const aVal = parseFloat(a[sortConfig.key]) || 0;
                 const bVal = parseFloat(b[sortConfig.key]) || 0;
                 if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
