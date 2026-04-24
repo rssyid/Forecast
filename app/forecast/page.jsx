@@ -1,0 +1,609 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from 'react';
+import { processData, parseScenarioInput, detectColumns, getSortedDistinctWeeks, CLASS_ORDER, CLASS_COLORS, formatNumber } from '../../lib/forecastEngine';
+import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
+import { Database, UploadCloud, Download, Play, RefreshCw, BarChart2, FileText, Table2, DatabaseZap, ChevronDown, ChevronUp } from 'lucide-react';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Chart } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
+
+const COMPANIES = [
+  "PT.THIP", "PT.PTW", "PT.SUMS", "PT.WKN", "PT.PANPS", "PT.SAM",
+  "PT.NJP", "PT.PLDK", "PT.SUMK", "PT.BAS", "PT.AAN", "PT.GAN",
+  "PT.AJP", "PT.JJP", "PT.SIP", "PT.WSM"
+];
+
+export default function ForecastPage() {
+  const [sourceType, setSourceType] = useState('db'); // 'db' or 'csv'
+  const [dbCompany, setDbCompany] = useState('Semua');
+  const [dbRange, setDbRange] = useState('4');
+  
+  const [rawRows, setRawRows] = useState([]);
+  const [detectedCols, setDetectedCols] = useState(null);
+  const [weeks, setWeeks] = useState([]);
+  const [estateRainfall, setEstateRainfall] = useState({});
+  const [rainfallMap, setRainfallMap] = useState({}); // user inputs
+  
+  const [baselineWeek, setBaselineWeek] = useState('');
+  const [forecastModel, setForecastModel] = useState('simple');
+  const [scenarioInput, setScenarioInput] = useState('0,50');
+  
+  const [status, setStatus] = useState({ msg: 'Pilih sumber data dan klik Ambil Data.', type: 'neutral' });
+  const [isFetching, setIsFetching] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const [processed, setProcessed] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [showRainfall, setShowRainfall] = useState(false);
+
+  // AI Laporan States
+  const [userContext, setUserContext] = useState('');
+  const [wmActions, setWmActions] = useState('');
+
+  const handleFetchDB = async () => {
+    setIsFetching(true);
+    setStatus({ msg: `Menghubungi database untuk company "${dbCompany}"...`, type: 'neutral' });
+    try {
+        const params = new URLSearchParams({ companyCode: dbCompany, lookbackWeeks: dbRange });
+        const res = await fetch(`/api/get-piezometer?${params}`);
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        const { data, rainfall, estateRainfall: dbEstRain } = await res.json();
+
+        if (!data || data.length === 0) throw new Error(`Tidak ada data untuk company "${dbCompany}".`);
+
+        const DB_COL_MAP = { week: "month_name", tmat: "ketinggian", estate: "est_code", id: "pie_record_id", block: "block", date: "date_timestamp" };
+        const foundWeeks = getSortedDistinctWeeks(data, DB_COL_MAP.week);
+
+        setRawRows(data);
+        setDetectedCols(DB_COL_MAP);
+        setWeeks(foundWeeks);
+        setEstateRainfall(dbEstRain || {});
+        
+        // Setup initial rainfall inputs
+        const initialRainMap = {};
+        foundWeeks.forEach(w => {
+            initialRainMap[w] = rainfall?.[w] !== undefined ? rainfall[w].toFixed(2) : "";
+        });
+        setRainfallMap(initialRainMap);
+        setBaselineWeek(foundWeeks[foundWeeks.length - 1] || '');
+        
+        setShowRainfall(true);
+        setStatus({ msg: `Data berhasil diambil: ${data.length} baris. Silakan isi rainfall lalu klik 'Proses Data'.`, type: 'success' });
+    } catch (err) {
+        setStatus({ msg: err.message, type: 'error' });
+    } finally {
+        setIsFetching(false);
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+        header: true, skipEmptyLines: true,
+        complete: (results) => {
+            try {
+                if (!Array.isArray(results.data) || !results.data.length) throw new Error("CSV kosong.");
+                const cleanedRows = results.data.filter((row) => Object.values(row).some((value) => String(value ?? "").trim() !== ""));
+                const cols = detectColumns(results.meta.fields || []);
+                if (!cols.week) throw new Error("Kolom Week tidak ditemukan.");
+                if (!cols.tmat) throw new Error("Kolom TMAT tidak ditemukan.");
+
+                const foundWeeks = getSortedDistinctWeeks(cleanedRows, cols.week);
+                
+                setRawRows(cleanedRows);
+                setDetectedCols(cols);
+                setWeeks(foundWeeks);
+                setBaselineWeek(foundWeeks[foundWeeks.length - 1] || '');
+                
+                const initialRainMap = {};
+                foundWeeks.forEach(w => initialRainMap[w] = "");
+                setRainfallMap(initialRainMap);
+                
+                setShowRainfall(true);
+                setStatus({ msg: `CSV berhasil dibaca. Total baris: ${cleanedRows.length}.`, type: 'success' });
+            } catch (err) {
+                setStatus({ msg: err.message, type: 'error' });
+            }
+        }
+    });
+  };
+
+  const handleProcess = () => {
+    try {
+        if (!rawRows.length) throw new Error("Tidak ada data untuk diproses.");
+        
+        const numericRainMap = {};
+        Object.keys(rainfallMap).forEach(k => {
+            numericRainMap[k] = rainfallMap[k] === "" ? NaN : Number(rainfallMap[k]);
+        });
+        
+        const scenarios = parseScenarioInput(scenarioInput);
+        
+        const result = processData(rawRows, detectedCols, numericRainMap, scenarios, baselineWeek, forecastModel, estateRainfall);
+        setProcessed(result);
+        setStatus({ msg: `Proses selesai. Baseline week: ${result.baselineWeek}.`, type: 'success' });
+        setActiveTab('dashboard'); // auto switch to dashboard
+    } catch (err) {
+        setStatus({ msg: err.message, type: 'error' });
+    }
+  };
+
+  const handleExportExcel = () => {
+    if (!processed) return;
+    const wb = XLSX.utils.book_new();
+    const add = (data, name) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.length ? data : [{ Info: "No Data" }]), name);
+    
+    add(processed.rawRows, "Raw"); 
+    add(processed.weeklySummaryRecords, "WeeklySummary"); 
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Baseline Week", processed.baselineWeek], [], ["Kelas TMAT", "Count", "%"], ...CLASS_ORDER.map(c => [c, processed.baselineCounts[c], processed.baselinePct[c]])]), "Baseline");
+    add(processed.forecastRows, "Forecast"); 
+    add(processed.forecastSummaryRows, "ForecastSummary");
+    
+    XLSX.writeFile(wb, `TMAT_Forecast_${String(processed.baselineWeek || "export").toLowerCase().replace(/[^a-z0-9]+/g, "_")}.xlsx`);
+  };
+
+  const handleUpdateRecent = async () => {
+    const key = window.prompt("Masukkan Admin Key untuk Update Mingguan:");
+    if (!key) return;
+    setStatus({ msg: "Memulai Update Data Mingguan...", type: "neutral" });
+    try {
+      const res = await fetch("/api/update-recent", {
+        method: "POST",
+        headers: { "x-admin-key": key }
+      });
+      if (!res.ok) {
+          const errData = await res.json().catch(()=>({}));
+          throw new Error(errData.error || "Gagal memulai update mingguan");
+      }
+      
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while(true) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        for(let line of lines) {
+           if(line.startsWith('data: ')) {
+               try {
+                  const data = JSON.parse(line.substring(6));
+                  if(data.msg === "DONE") {
+                      setStatus({ msg: "Update Data Mingguan Selesai!", type: "success" });
+                  } else {
+                      setStatus({ msg: data.msg, type: "neutral" });
+                  }
+               } catch(e){}
+           }
+        }
+      }
+    } catch (err) {
+      setStatus({ msg: err.message, type: "error" });
+    }
+  };
+
+  const handleFullSync = async () => {
+    const key = window.prompt("PERINGATAN: Menghapus data lama.\nMasukkan Admin Key untuk Full Sync dari 2025:");
+    if (!key) return;
+    
+    if(!window.confirm("Yakin ingin melakukan Full Sync? Proses ini akan memakan waktu beberapa menit dan menghapus tabel Piezometer dan Curah Hujan saat ini.")) return;
+
+    setStatus({ msg: "Memulai Full Sync Piezometer & Curah Hujan (harap tunggu)...", type: "neutral" });
+    try {
+      const res = await fetch("/api/full-resync", {
+        method: "POST",
+        headers: { "x-admin-key": key }
+      });
+      if (!res.ok) {
+          const errData = await res.json().catch(()=>({}));
+          throw new Error(errData.error || "Gagal memulai full sync");
+      }
+      
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while(true) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        for(let line of lines) {
+           if(line.startsWith('data: ')) {
+               try {
+                  const data = JSON.parse(line.substring(6));
+                  if(data.msg === "DONE") {
+                      setStatus({ msg: "Full Sync Selesai! Semua data dari 2025 berhasil diunduh.", type: "success" });
+                  } else {
+                      setStatus({ msg: data.msg, type: "neutral" });
+                  }
+               } catch(e){}
+           }
+        }
+      }
+    } catch (err) {
+      setStatus({ msg: err.message, type: "error" });
+    }
+  };
+
+  // --- Render Helpers ---
+
+  const renderStatus = () => {
+    let baseClass = "text-sm px-4 py-3 rounded-xl font-medium border flex-1 transition-all ";
+    if (status.type === 'success') baseClass += "bg-green-50/80 border-green-200 text-green-900";
+    else if (status.type === 'error') baseClass += "bg-red-50/80 border-red-200 text-red-900";
+    else baseClass += "bg-white/60 border-gray-200 text-gray-700";
+    return <div className={baseClass}>{status.msg}</div>;
+  };
+
+  const getChartData = () => {
+    if (!processed) return { trend: null, dist: null };
+
+    const mainLineColor = "hsl(240 5.9% 10%)";
+    const barBgColor = "hsl(210 40% 90%)";
+
+    const trend = {
+        labels: processed.weeks,
+        datasets: [
+            {
+                type: "bar",
+                label: "Rainfall (mm)",
+                data: processed.weeklySummaryRecords.map(r => Number.isFinite(r["Rain (mm)"]) ? r["Rain (mm)"] : null),
+                yAxisID: "y1",
+                backgroundColor: barBgColor,
+                order: 2
+            },
+            {
+                type: "line",
+                label: "Avg TMAT (cm)",
+                data: processed.weeklySummaryRecords.map(r => r["Avg TMAT (cm)"]),
+                yAxisID: "y",
+                tension: 0.3,
+                borderColor: mainLineColor,
+                backgroundColor: mainLineColor,
+                pointRadius: 4,
+                order: 1
+            }
+        ]
+    };
+
+    const dist = {
+        labels: CLASS_ORDER,
+        datasets: [
+            {
+                label: "Baseline %",
+                data: CLASS_ORDER.map(c => processed.baselinePct[c]),
+                backgroundColor: "hsl(215.4 16.3% 46.9%)"
+            },
+            ...processed.scenarioResults.map((r, i) => ({
+                label: `CH${r.scenarioMm} %`,
+                data: CLASS_ORDER.map(c => r.pct[c]),
+                backgroundColor: i === 0 ? mainLineColor : "hsl(221.2 83.2% 53.3%)"
+            }))
+        ]
+    };
+
+    return { trend, dist };
+  };
+
+  const charts = getChartData();
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">TMAT Forecast & AI Report</h1>
+          <p className="text-sm text-gray-500 mt-1">Sistem Piezometer Advanced dengan integrasi Database dan Machine Learning.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+            onClick={handleUpdateRecent}
+            className="inline-flex items-center gap-2 bg-black text-white hover:bg-gray-800 h-10 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          >
+            <RefreshCw size={16} /> Update (Minggu Ini)
+          </button>
+          <button 
+            onClick={handleFullSync}
+            className="inline-flex items-center gap-2 bg-red-500 text-white hover:bg-red-600 h-10 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          >
+            <Database size={16} /> Full Sync (2025)
+          </button>
+          <button 
+            disabled={!processed}
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-2 bg-brand-orange text-white hover:bg-orange-600 h-10 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <Download size={16} /> Export Excel
+          </button>
+        </div>
+      </header>
+
+      {/* Input Section */}
+      <section className="glass-card p-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">Sumber Data</label>
+                <div className="relative">
+                    <select 
+                        value={sourceType} 
+                        onChange={(e) => setSourceType(e.target.value)}
+                        className="w-full h-10 pl-10 pr-4 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50 appearance-none"
+                    >
+                        <option value="db">Database Server</option>
+                        <option value="csv">File CSV Lokal</option>
+                    </select>
+                    <Database className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                </div>
+            </div>
+
+            {sourceType === 'db' ? (
+                <>
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700">Company</label>
+                        <select 
+                            value={dbCompany} onChange={(e) => setDbCompany(e.target.value)}
+                            className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50"
+                        >
+                            <option value="Semua">Gabungan (Semua Company)</option>
+                            {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700">Rentang Historis</label>
+                        <div className="flex gap-2">
+                            <select 
+                                value={dbRange} onChange={(e) => setDbRange(e.target.value)}
+                                className="flex-1 h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50"
+                            >
+                                <option value="4">4 Minggu Terakhir</option>
+                                <option value="8">8 Minggu Terakhir</option>
+                                <option value="12">12 Minggu Terakhir</option>
+                            </select>
+                            <button 
+                                onClick={handleFetchDB} disabled={isFetching}
+                                className="bg-black text-white px-4 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
+                            >
+                                {isFetching ? <RefreshCw size={16} className="animate-spin" /> : "Ambil"}
+                            </button>
+                        </div>
+                    </div>
+                </>
+            ) : (
+                <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">CSV Piezometer</label>
+                    <input 
+                        type="file" accept=".csv" onChange={handleFileUpload}
+                        className="w-full h-10 px-3 py-1.5 rounded-xl border border-gray-200 bg-white/50 text-sm file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-green/20 file:text-green-800 hover:file:bg-brand-green/30"
+                    />
+                </div>
+            )}
+
+            <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">Baseline Week</label>
+                <select 
+                    disabled={!weeks.length}
+                    value={baselineWeek} onChange={(e) => setBaselineWeek(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm disabled:opacity-50"
+                >
+                    {weeks.map(w => <option key={w} value={w}>{w}</option>)}
+                </select>
+            </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">Metode Forecast</label>
+                <select 
+                    value={forecastModel} onChange={(e) => setForecastModel(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50"
+                >
+                    <option value="simple">Simple Linear (Company)</option>
+                    <option value="weighted">Weighted Lag (Hujan Lalu)</option>
+                    <option value="estate">Granular Estate-Based (High Acc)</option>
+                </select>
+            </div>
+            <div className="col-span-1 md:col-span-3 space-y-2">
+                <label className="text-sm font-semibold text-gray-700">Scenario Rainfall (mm)</label>
+                <input 
+                    type="text" value={scenarioInput} onChange={(e) => setScenarioInput(e.target.value)}
+                    placeholder="0,50,100"
+                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50"
+                />
+            </div>
+        </div>
+
+        {/* Rainfall Inputs Collapse Section */}
+        {weeks.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-gray-100">
+                <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-3">
+                        <h3 className="text-md font-semibold text-gray-800">Input Rainfall per Week</h3>
+                        {forecastModel === 'estate' && (
+                            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-green-200">Auto Mode</span>
+                        )}
+                    </div>
+                    <button 
+                        onClick={() => setShowRainfall(!showRainfall)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-500"
+                    >
+                        {showRainfall ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </button>
+                </div>
+
+                {showRainfall && forecastModel !== 'estate' && (
+                    <div className="bg-white/40 rounded-xl border border-gray-100 overflow-hidden">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50/50 text-gray-500">
+                                <tr>
+                                    <th className="px-4 py-3 font-medium">Week Name</th>
+                                    <th className="px-4 py-3 font-medium">Rainfall (mm)</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {weeks.map(w => (
+                                    <tr key={w} className="hover:bg-white/60 transition-colors">
+                                        <td className="px-4 py-2 font-medium text-gray-700">{w}</td>
+                                        <td className="px-4 py-2">
+                                            <input 
+                                                type="number" step="any"
+                                                value={rainfallMap[w] !== undefined ? rainfallMap[w] : ''}
+                                                onChange={(e) => setRainfallMap({...rainfallMap, [w]: e.target.value})}
+                                                className="w-full h-8 px-2 rounded-lg border border-gray-200 bg-white focus:ring-2 focus:ring-brand-orange/30 outline-none transition-shadow"
+                                            />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+                {showRainfall && forecastModel === 'estate' && (
+                    <p className="text-sm text-gray-500 italic p-4 bg-white/40 rounded-xl border border-gray-100">
+                        Pada mode Granular Estate-Based, data curah hujan historis ditarik secara spesifik untuk masing-masing estate langsung dari database. Anda tidak perlu menginputnya secara manual.
+                    </p>
+                )}
+            </div>
+        )}
+
+        <div className="mt-8 flex flex-col md:flex-row items-center gap-4">
+            {renderStatus()}
+            <button 
+                onClick={handleProcess}
+                disabled={!weeks.length}
+                className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-black text-white h-12 px-8 rounded-xl font-medium hover:bg-gray-800 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 shadow-lg shadow-gray-200"
+            >
+                <Play size={18} /> Proses Data AI
+            </button>
+        </div>
+      </section>
+
+      {/* Results Section */}
+      {processed && (
+          <section className="mt-8">
+              <div className="flex space-x-2 border-b border-gray-200 mb-6 overflow-x-auto">
+                  {[
+                      { id: 'dashboard', label: 'Dashboard AI', icon: <BarChart2 size={16}/> },
+                      { id: 'laporan', label: 'Laporan Teks', icon: <FileText size={16}/> },
+                      { id: 'forecast', label: 'Tabel Forecast', icon: <Table2 size={16}/> },
+                      { id: 'data', label: 'Data Raw', icon: <DatabaseZap size={16}/> }
+                  ].map(tab => (
+                      <button 
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                      >
+                          {tab.icon} {tab.label}
+                      </button>
+                  ))}
+              </div>
+
+              {activeTab === 'dashboard' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      {/* Model Summary Cards */}
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                          {[
+                              { label: "Metode", val: processed.fit.method === 'estate-agg' ? 'Estate-Based' : (processed.fit.modelType === 'weighted' ? 'Weighted Lag' : 'Linear') },
+                              { label: "Baseline Week", val: processed.baselineWeek },
+                              { label: "Koef. a (Avg)", val: formatNumber(processed.fit.a, 3) },
+                              { label: "Koef. b (Avg)", val: formatNumber(processed.fit.b, 4) },
+                              { label: "Akurasi (R²)", val: processed.fit.method === 'fallback' ? 'Low' : `${Math.round(processed.fit.r2 * 100)}%` }
+                          ].map(card => (
+                              <div key={card.label} className="glass-card p-4 flex flex-col justify-center">
+                                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{card.label}</span>
+                                  <span className="text-xl font-bold text-gray-900">{card.val}</span>
+                              </div>
+                          ))}
+                      </div>
+
+                      {/* Charts */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div className="glass-card p-5 h-[400px] flex flex-col">
+                              <h3 className="text-sm font-bold text-gray-800 mb-4">Trend Historis (TMAT vs Rainfall)</h3>
+                              <div className="flex-1 relative">
+                                  {charts.trend && <Chart type="bar" data={charts.trend.data || charts.trend} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { position: "left", title: { display: true, text: "Avg TMAT (cm)" } }, y1: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Rainfall (mm)" } } } }} />}
+                              </div>
+                          </div>
+                          <div className="glass-card p-5 h-[400px] flex flex-col">
+                              <h3 className="text-sm font-bold text-gray-800 mb-4">Distribusi TMAT Forecast</h3>
+                              <div className="flex-1 relative">
+                                  {charts.dist && <Chart type="bar" data={charts.dist.data || charts.dist} options={{ responsive: true, maintainAspectRatio: false }} />}
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              )}
+
+              {activeTab === 'laporan' && (
+                  <div className="glass-card p-6 animate-in fade-in duration-300">
+                      <div className="mb-6 pb-4 border-b border-gray-100">
+                          <h3 className="text-lg font-bold text-gray-900">AI Report Generator</h3>
+                          <p className="text-sm text-gray-500">Fitur ini akan segera diintegrasikan dengan API AI.</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                          <div className="space-y-2">
+                              <label className="text-sm font-medium text-gray-700">Konteks Cuaca (Opsional)</label>
+                              <textarea 
+                                  value={userContext} onChange={e => setUserContext(e.target.value)}
+                                  className="w-full h-24 p-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-orange/50"
+                                  placeholder="Contoh: Realisasi hujan aktual lebih rendah..."
+                              />
+                          </div>
+                          <div className="space-y-2">
+                              <label className="text-sm font-medium text-gray-700">Aksi Water Management</label>
+                              <textarea 
+                                  value={wmActions} onChange={e => setWmActions(e.target.value)}
+                                  className="w-full h-24 p-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-orange/50"
+                                  placeholder="Contoh: Menutup pintu air A12..."
+                              />
+                          </div>
+                      </div>
+                      <button className="bg-brand-green text-green-900 font-bold px-6 py-2 rounded-xl text-sm opacity-50 cursor-not-allowed">
+                          Generate Laporan AI
+                      </button>
+                  </div>
+              )}
+
+              {activeTab === 'forecast' && (
+                  <div className="space-y-6 animate-in fade-in duration-300">
+                      <div className="glass-card overflow-hidden">
+                          <div className="bg-gray-50/50 p-4 border-b border-gray-100">
+                              <h3 className="font-bold text-gray-800">Tabel Forecast Distribusi</h3>
+                          </div>
+                          <div className="overflow-x-auto p-4">
+                              <table className="w-full text-sm text-left">
+                                  <thead className="text-gray-500 border-b border-gray-200">
+                                      <tr>
+                                          {Object.keys(processed.forecastRows[0]).map(k => <th key={k} className="p-3">{k}</th>)}
+                                      </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-100">
+                                      {processed.forecastRows.map((r, i) => (
+                                          <tr key={i} className="hover:bg-gray-50/50">
+                                              {Object.entries(r).map(([k, v], j) => (
+                                                  <td key={k} className="p-3">
+                                                      {j === 0 ? <span className="px-2 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: `${CLASS_COLORS[v]}20`, color: CLASS_COLORS[v] }}>{v}</span> : (typeof v === 'number' && k.includes('%') ? v.toFixed(1) + '%' : v)}
+                                                  </td>
+                                              ))}
+                                          </tr>
+                                      ))}
+                                  </tbody>
+                              </table>
+                          </div>
+                      </div>
+                  </div>
+              )}
+
+              {activeTab === 'data' && (
+                  <div className="glass-card p-6 animate-in fade-in duration-300">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">Raw Data Overview</h3>
+                      <p className="text-sm text-gray-500">Mode ini digunakan untuk inspeksi data tabel historis, saat ini tersembunyi agar performa UI lebih ringan. Silakan Export Excel untuk melihat seluruh row data mentah.</p>
+                  </div>
+              )}
+
+          </section>
+      )}
+    </div>
+  );
+}

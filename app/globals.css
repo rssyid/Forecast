@@ -36,14 +36,15 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
   body {
-    @apply bg-background text-foreground;
     background-color: var(--color-brand-light);
+    color: hsl(var(--foreground));
     font-family: var(--font-sans);
   }
 }
+
 
 /* Glassmorphism Utilities */
 .glass-panel {
