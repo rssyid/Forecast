@@ -51,13 +51,21 @@ export async function GET(request) {
             ORDER BY r.record_date ASC
         `, params);
 
-        // 3. Year-to-date Trend (for Calendar Heatmap) - Independent of date filters
+        // 3. Year-to-date Trend (for Calendar Heatmap) - Independent of global date filters
+        const hmCompany = searchParams.get('hmCompany') || 'Semua';
+        const hmEstate = searchParams.get('hmEstate') || 'Semua';
+
         const currentYear = new Date().getFullYear();
-        let yearWhere = `WHERE r.record_date >= '${currentYear}-01-01' `;
+        let yearWhere = `WHERE r.record_date >= '${currentYear}-01-01' AND r.record_date <= '${currentYear}-12-31' `;
         let yearParams = [];
-        if (company !== 'Semua') {
-            yearWhere += `AND r.company_code = $1 `;
-            yearParams = [company];
+
+        if (hmCompany !== 'Semua') {
+            yearWhere += `AND r.company_code = $${yearParams.length + 1} `;
+            yearParams.push(hmCompany);
+        }
+        if (hmEstate !== 'Semua') {
+            yearWhere += `AND r.est_code = $${yearParams.length + 1} `;
+            yearParams.push(hmEstate);
         }
 
         const yearTrendRes = await pool.query(`

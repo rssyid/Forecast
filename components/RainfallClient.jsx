@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { CloudRain, Building2, CalendarDays, RefreshCw, AlertTriangle, TrendingUp, Map } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { CloudRain, Building2, CalendarDays, RefreshCw, AlertTriangle, TrendingUp, Map, Filter } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler, LineController, BarController } from 'chart.js';
 import { Line } from 'react-chartjs-2';
@@ -10,11 +10,11 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 const COMPANIES = ['Semua', 'PT.THIP', 'PT.PTW', 'PT.SUMS', 'PT.WKN', 'PT.PANPS', 'PT.SAM', 'PT.NJP', 'PT.PLDK', 'PT.SUMK', 'PT.BAS', 'PT.AAN', 'PT.GAN', 'PT.AJP', 'PT.JJP', 'PT.SIP', 'PT.WSM'];
 
-// Helper to generate days from Jan 1, 2026 to today
-function generateYearDays() {
-    const start = new Date('2026-01-01');
-    const end = new Date();
+// Helper to generate ALL days of 2026
+function generateFullYear2026() {
     const days = [];
+    const start = new Date('2026-01-01');
+    const end = new Date('2026-12-31');
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         days.push(d.toISOString().split('T')[0]);
     }
@@ -42,27 +42,30 @@ function RainCard({ label, value, sub, icon, color = '#3B82F6', loading }) {
     );
 }
 
-function CalendarHeatmap({ data, loading }) {
-    const days = generateYearDays();
-    // Use yearTrend for independent data
-    const dataMap = data?.yearTrend ? Object.fromEntries(data.yearTrend.map(t => [t.date, t.avg_mm])) : {};
+function CalendarHeatmap({ yearTrend, loading, onFilterChange, selectedCompany, selectedEstate, estates = [] }) {
+    const days = generateFullYear2026();
+    const dataMap = yearTrend ? Object.fromEntries(yearTrend.map(t => [t.date, t.avg_mm])) : {};
+    const todayStr = new Date().toISOString().split('T')[0];
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
     
-    // Group days by month
-    const monthGroups = [];
-    let currentMonth = -1;
-    days.forEach(day => {
-        const d = new Date(day);
-        const m = d.getMonth();
-        if (m !== currentMonth) {
-            monthGroups.push({ month: months[m], days: [] });
-            currentMonth = m;
-        }
-        monthGroups[monthGroups.length - 1].days.push(day);
-    });
+    const monthGroups = useMemo(() => {
+        const groups = [];
+        let currentMonth = -1;
+        days.forEach(day => {
+            const d = new Date(day);
+            const m = d.getMonth();
+            if (m !== currentMonth) {
+                groups.push({ month: months[m], days: [] });
+                currentMonth = m;
+            }
+            groups[groups.length - 1].days.push(day);
+        });
+        return groups;
+    }, [days]);
 
-    const getColor = (val) => {
+    const getColor = (val, day) => {
+        if (day > todayStr) return '#fafafa'; // Future dates
         const v = parseFloat(val) || 0;
         if (v === 0) return '#9E9E9E'; // Kering
         if (v <= 20) return '#2196F3'; // Ringan
@@ -73,17 +76,40 @@ function CalendarHeatmap({ data, loading }) {
 
     return (
         <div className="glass-card p-6 overflow-x-auto custom-scrollbar">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-6">
                 <div>
                     <h3 className="text-sm font-bold text-gray-800">Kalender Intensitas Hujan (2026)</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Data tahunan (tidak terpengaruh filter tanggal).</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Filter lokal (Company & Estate) khusus untuk kalender ini.</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 font-bold">
-                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#9E9E9E'}}></div> 0mm</div>
-                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#2196F3'}}></div> 1-20</div>
-                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#FFC107'}}></div> 21-50</div>
-                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#F44336'}}></div> 51-100</div>
-                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#B71C1C'}}></div> &gt;100</div>
+                
+                <div className="flex flex-wrap items-center gap-4">
+                    {/* Local Filters */}
+                    <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+                        <Filter size={12} className="text-gray-400 ml-1" />
+                        <SearchableSelect
+                            options={COMPANIES}
+                            value={selectedCompany}
+                            onChange={(val) => onFilterChange(val, 'Semua')}
+                            placeholder="PT..."
+                            className="w-[120px]"
+                        />
+                        <SearchableSelect
+                            options={['Semua', ...estates]}
+                            value={selectedEstate}
+                            onChange={(val) => onFilterChange(selectedCompany, val)}
+                            placeholder="Estate..."
+                            className="w-[120px]"
+                        />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 font-bold">
+                        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#9E9E9E'}}></div> 0mm</div>
+                        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#2196F3'}}></div> 1-20</div>
+                        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#FFC107'}}></div> 21-50</div>
+                        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#F44336'}}></div> 51-100</div>
+                        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#B71C1C'}}></div> &gt;100</div>
+                        <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#fafafa', border: '1px solid #eee'}}></div> Mendatang</div>
+                    </div>
                 </div>
             </div>
 
@@ -97,9 +123,9 @@ function CalendarHeatmap({ data, loading }) {
                                 return (
                                     <div 
                                         key={day}
-                                        title={`${day}: ${val} mm`}
-                                        className={`w-3.5 h-3.5 rounded-[2px] transition-all hover:scale-150 hover:z-10 cursor-pointer`}
-                                        style={{ backgroundColor: getColor(val) }}
+                                        title={`${day}: ${day > todayStr ? 'Mendatang' : (val + ' mm')}`}
+                                        className={`w-3.5 h-3.5 rounded-[2px] transition-all ${day <= todayStr ? 'hover:scale-150 hover:z-10 cursor-pointer' : ''}`}
+                                        style={{ backgroundColor: getColor(val, day) }}
                                     />
                                 );
                             })}
@@ -122,18 +148,24 @@ export default function RainfallClient() {
     const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [showDatePicker, setShowDatePicker] = useState(false);
 
+    // Heatmap Local Filters
+    const [heatmapCompany, setHeatmapCompany] = useState('Semua');
+    const [heatmapEstate, setHeatmapEstate] = useState('Semua');
+
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
 
-    const fetchData = useCallback(async (selectedCompany, start, end) => {
+    const fetchData = useCallback(async (selectedCompany, start, end, hmCompany, hmEstate) => {
         setLoading(true);
         setError(null);
         try {
             const params = new URLSearchParams({ 
                 company: selectedCompany,
                 start: start,
-                end: end
+                end: end,
+                hmCompany: hmCompany,
+                hmEstate: hmEstate
             });
             const res = await fetch(`/api/rainfall-history?${params}`);
             if (!res.ok) throw new Error(`Gagal memuat data: ${res.status}`);
@@ -147,8 +179,14 @@ export default function RainfallClient() {
     }, []);
 
     useEffect(() => {
-        fetchData(company, startDate, endDate);
-    }, [company, startDate, endDate, fetchData]);
+        fetchData(company, startDate, endDate, heatmapCompany, heatmapEstate);
+    }, [company, startDate, endDate, heatmapCompany, heatmapEstate, fetchData]);
+
+    // Extract estates for heatmap filter
+    const availableEstates = useMemo(() => {
+        if (!data?.summary) return [];
+        return [...new Set(data.summary.map(r => r.est_code))].sort();
+    }, [data]);
 
     const trendData = data?.trend ? {
         labels: data.trend.map(t => {
@@ -180,7 +218,6 @@ export default function RainfallClient() {
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-3">
-                    {/* Unified Date Range Filter */}
                     <div className="relative">
                         <button 
                             onClick={() => setShowDatePicker(!showDatePicker)}
@@ -284,8 +321,18 @@ export default function RainfallClient() {
                 />
             </div>
 
-            {/* Calendar Heatmap (Independent of Filter Date) */}
-            <CalendarHeatmap data={data} loading={loading} />
+            {/* Calendar Heatmap (Independent with Local Filters) */}
+            <CalendarHeatmap 
+                yearTrend={data?.yearTrend} 
+                loading={loading} 
+                onFilterChange={(c, e) => {
+                    setHeatmapCompany(c);
+                    setHeatmapEstate(e);
+                }}
+                selectedCompany={heatmapCompany}
+                selectedEstate={heatmapEstate}
+                estates={availableEstates}
+            />
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
