@@ -87,8 +87,21 @@ export default function DashboardClient() {
             .then(json => {
                 if (json.weeks && json.weeks.length > 0) {
                     setWeekList(json.weeks);
-                    // Default: latest week (last item since sorted ASC)
-                    setWeek(json.weeks[json.weeks.length - 1].formatted_name);
+                    
+                    // Default to current week (where today is between start and end)
+                    const now = new Date();
+                    const currentWeek = json.weeks.find(w => {
+                        const start = new Date(w.start_date);
+                        const end = new Date(w.end_date);
+                        return now >= start && now <= end;
+                    });
+
+                    if (currentWeek) {
+                        setWeek(currentWeek.formatted_name);
+                    } else {
+                        // Fallback: latest week (last item)
+                        setWeek(json.weeks[json.weeks.length - 1].formatted_name);
+                    }
                 }
             })
             .catch(() => {});
