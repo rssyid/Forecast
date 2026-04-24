@@ -42,7 +42,7 @@ function RainCard({ label, value, sub, icon, color = '#3B82F6', loading }) {
     );
 }
 
-function CalendarHeatmap({ yearTrend, loading, onFilterChange, selectedCompany, selectedEstate, estates = [] }) {
+function CalendarHeatmap({ yearTrend, loading, onEstateChange, selectedEstate, estates = [] }) {
     const days = generateFullYear2026();
     const dataMap = yearTrend ? Object.fromEntries(yearTrend.map(t => [t.date, t.avg_mm])) : {};
     const todayStr = new Date().toISOString().split('T')[0];
@@ -79,26 +79,19 @@ function CalendarHeatmap({ yearTrend, loading, onFilterChange, selectedCompany, 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-6">
                 <div>
                     <h3 className="text-sm font-bold text-gray-800">Kalender Intensitas Hujan (2026)</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Filter lokal (Company & Estate) khusus untuk kalender ini.</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Filter lokal per estate khusus untuk kalender ini.</p>
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-4">
-                    {/* Local Filters */}
+                    {/* Local Estate Filter */}
                     <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
-                        <Filter size={12} className="text-gray-400 ml-1" />
-                        <SearchableSelect
-                            options={COMPANIES}
-                            value={selectedCompany}
-                            onChange={(val) => onFilterChange(val, 'Semua')}
-                            placeholder="PT..."
-                            className="w-[120px]"
-                        />
+                        <Map size={12} className="text-gray-400 ml-1" />
                         <SearchableSelect
                             options={['Semua', ...estates]}
                             value={selectedEstate}
-                            onChange={(val) => onFilterChange(selectedCompany, val)}
-                            placeholder="Estate..."
-                            className="w-[120px]"
+                            onChange={onEstateChange}
+                            placeholder="Pilih Estate..."
+                            className="w-[180px]"
                         />
                     </div>
 
@@ -148,15 +141,14 @@ export default function RainfallClient() {
     const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [showDatePicker, setShowDatePicker] = useState(false);
 
-    // Heatmap Local Filters
-    const [heatmapCompany, setHeatmapCompany] = useState('Semua');
+    // Heatmap Local Filter (Estate only, Company follows Global)
     const [heatmapEstate, setHeatmapEstate] = useState('Semua');
 
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
 
-    const fetchData = useCallback(async (selectedCompany, start, end, hmCompany, hmEstate) => {
+    const fetchData = useCallback(async (selectedCompany, start, end, hmEstate) => {
         setLoading(true);
         setError(null);
         try {
@@ -164,7 +156,7 @@ export default function RainfallClient() {
                 company: selectedCompany,
                 start: start,
                 end: end,
-                hmCompany: hmCompany,
+                hmCompany: selectedCompany, // Always use global company for heatmap too
                 hmEstate: hmEstate
             });
             const res = await fetch(`/api/rainfall-history?${params}`);
@@ -179,12 +171,18 @@ export default function RainfallClient() {
     }, []);
 
     useEffect(() => {
-        fetchData(company, startDate, endDate, heatmapCompany, heatmapEstate);
-    }, [company, startDate, endDate, heatmapCompany, heatmapEstate, fetchData]);
+        fetchData(company, startDate, endDate, heatmapEstate);
+    }, [company, startDate, endDate, heatmapEstate, fetchData]);
 
-    // Extract estates for heatmap filter
+    // Reset heatmap estate when global company changes
+    useEffect(() => {
+        setHeatmapEstate('Semua');
+    }, [company]);
+
+    // Extract estates for heatmap filter - Filtered by global company
     const availableEstates = useMemo(() => {
         if (!data?.summary) return [];
+        // If global company is not 'Semua', the data.summary already contains only those estates
         return [...new Set(data.summary.map(r => r.est_code))].sort();
     }, [data]);
 
@@ -325,11 +323,7 @@ export default function RainfallClient() {
             <CalendarHeatmap 
                 yearTrend={data?.yearTrend} 
                 loading={loading} 
-                onFilterChange={(c, e) => {
-                    setHeatmapCompany(c);
-                    setHeatmapEstate(e);
-                }}
-                selectedCompany={heatmapCompany}
+                onEstateChange={setHeatmapEstate}
                 selectedEstate={heatmapEstate}
                 estates={availableEstates}
             />

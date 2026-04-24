@@ -26,32 +26,44 @@ export async function GET(request) {
             params.push(company);
         }
 
-        // 1. Summary by Estate (Filtered)
+        // 1. Summary by Estate (Filtered) - Group by Estate and Date first to average stations
         const summaryRes = await pool.query(`
+            WITH daily_estate_avg AS (
+                SELECT 
+                    r.est_code, r.company_code, r.record_date,
+                    AVG(r.rainfall_mm) as avg_rain
+                FROM daily_rainfall r
+                ${whereClause}
+                GROUP BY r.est_code, r.company_code, r.record_date
+            )
             SELECT 
-                r.est_code, r.company_code,
-                ROUND(SUM(r.rainfall_mm)::numeric, 1) AS total_mm,
-                ROUND(AVG(r.rainfall_mm)::numeric, 1) AS avg_daily_mm,
-                COUNT(CASE WHEN r.rainfall_mm > 0 THEN 1 END)::int AS hari_hujan,
+                est_code, company_code,
+                ROUND(SUM(avg_rain)::numeric, 1) AS total_mm,
+                ROUND(AVG(avg_rain)::numeric, 1) AS avg_daily_mm,
+                COUNT(CASE WHEN avg_rain > 0 THEN 1 END)::int AS hari_hujan,
                 COUNT(*)::int AS total_hari
-            FROM daily_rainfall r
-            ${whereClause}
-            GROUP BY r.est_code, r.company_code
+            FROM daily_estate_avg
+            GROUP BY est_code, company_code
             ORDER BY total_mm DESC
         `, params);
 
-        // 2. Filtered Trend (for line chart)
+        // 2. Filtered Trend (for line chart) - Averaging across estates
         const filterTrendRes = await pool.query(`
+            WITH daily_estate_avg AS (
+                SELECT r.record_date, r.est_code, AVG(r.rainfall_mm) as avg_rain
+                FROM daily_rainfall r
+                ${whereClause}
+                GROUP BY r.record_date, r.est_code
+            )
             SELECT 
-                r.record_date::text AS date,
-                ROUND(AVG(r.rainfall_mm)::numeric, 1) AS avg_mm
-            FROM daily_rainfall r
-            ${whereClause}
-            GROUP BY r.record_date
-            ORDER BY r.record_date ASC
+                record_date::text AS date,
+                ROUND(AVG(avg_rain)::numeric, 1) AS avg_mm
+            FROM daily_estate_avg
+            GROUP BY record_date
+            ORDER BY record_date ASC
         `, params);
 
-        // 3. Year-to-date Trend (for Calendar Heatmap) - Independent of global date filters
+        // 3. Year-to-date Trend (for Calendar Heatmap)
         const hmCompany = searchParams.get('hmCompany') || 'Semua';
         const hmEstate = searchParams.get('hmEstate') || 'Semua';
 
@@ -69,13 +81,18 @@ export async function GET(request) {
         }
 
         const yearTrendRes = await pool.query(`
+            WITH daily_estate_avg AS (
+                SELECT r.record_date, r.est_code, AVG(r.rainfall_mm) as avg_rain
+                FROM daily_rainfall r
+                ${yearWhere}
+                GROUP BY r.record_date, r.est_code
+            )
             SELECT 
-                r.record_date::text AS date,
-                ROUND(AVG(r.rainfall_mm)::numeric, 1) AS avg_mm
-            FROM daily_rainfall r
-            ${yearWhere}
-            GROUP BY r.record_date
-            ORDER BY r.record_date ASC
+                record_date::text AS date,
+                ROUND(AVG(avg_rain)::numeric, 1) AS avg_mm
+            FROM daily_estate_avg
+            GROUP BY record_date
+            ORDER BY record_date ASC
         `, yearParams);
 
         return Response.json({
