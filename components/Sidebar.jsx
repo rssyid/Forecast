@@ -11,7 +11,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     { href: '/', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { href: '/forecast', icon: <BarChart2 size={20} />, label: 'Forecast & AI' },
     { href: '/rainfall', icon: <CalendarDays size={20} />, label: 'Curah Hujan' },
-    { href: '#', icon: <Settings size={20} />, label: 'Pengaturan' }
+    { href: '/settings', icon: <Settings size={20} />, label: 'Pengaturan' }
   ];
 
   return (
