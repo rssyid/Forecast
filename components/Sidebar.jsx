@@ -10,7 +10,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   const links = [
     { href: '/', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { href: '/forecast', icon: <BarChart2 size={20} />, label: 'Forecast & AI' },
-    { href: '#', icon: <CalendarDays size={20} />, label: 'Curah Hujan' },
+    { href: '/rainfall', icon: <CalendarDays size={20} />, label: 'Curah Hujan' },
     { href: '#', icon: <Settings size={20} />, label: 'Pengaturan' }
   ];
 
