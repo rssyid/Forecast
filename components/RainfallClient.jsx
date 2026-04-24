@@ -110,7 +110,7 @@ export default function RainfallClient() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <RainCard
                     label="Total Rainfall (Current Period)"
-                    value={data?.rainfallData ? `${data.rainfallData.reduce((acc, curr) => acc + curr.total_mm, 0).toFixed(0)} mm` : '–'}
+                    value={data?.rainfallData ? `${data.rainfallData.reduce((acc, curr) => acc + (parseFloat(curr.total_mm) || 0), 0).toFixed(0)} mm` : '–'}
                     sub="Cumulative across all estates"
                     icon={<CloudRain size={16} />}
                     color="#3B82F6"
@@ -118,7 +118,7 @@ export default function RainfallClient() {
                 />
                 <RainCard
                     label="Avg Daily Intensity"
-                    value={data?.rainfallData ? `${(data.rainfallData.reduce((acc, curr) => acc + curr.avg_daily_mm, 0) / (data.rainfallData.length || 1)).toFixed(1)} mm` : '–'}
+                    value={data?.rainfallData ? `${(data.rainfallData.reduce((acc, curr) => acc + (parseFloat(curr.avg_daily_mm) || 0), 0) / (data.rainfallData.length || 1)).toFixed(1)} mm` : '–'}
                     sub="Daily average for selected company"
                     icon={<TrendingUp size={16} />}
                     color="#10B981"
