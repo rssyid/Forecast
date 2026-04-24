@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useCallback, useMemo } from 'react';
-import { Building2, Calendar, FileDown, Copy, FileSpreadsheet, FileText, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Building2, Calendar, FileDown, Copy, FileSpreadsheet, FileText, AlertTriangle, RefreshCw, TrendingUp } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 const COMPANIES = ['PT.THIP', 'PT.PTW', 'PT.SUMS', 'PT.WKN', 'PT.PANPS', 'PT.SAM', 'PT.NJP', 'PT.PLDK', 'PT.SUMK', 'PT.BAS', 'PT.AAN', 'PT.GAN', 'PT.AJP', 'PT.JJP', 'PT.SIP', 'PT.WSM'];
 
@@ -75,6 +79,31 @@ export default function RainfallDailyClient() {
         link.click();
     };
 
+    const chartData = useMemo(() => {
+        if (!data) return null;
+        
+        const labels = daysArray.map(d => String(d).padStart(2, '0'));
+        const dailyAvg = daysArray.map(d => {
+            const values = Object.values(data.matrix).map(estDays => estDays[d] || 0);
+            const sum = values.reduce((acc, v) => acc + v, 0);
+            return sum / (values.length || 1);
+        });
+
+        return {
+            labels,
+            datasets: [{
+                label: 'Rata-rata Curah Hujan (mm)',
+                data: dailyAvg,
+                borderColor: '#3B82F6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointHoverRadius: 6
+            }]
+        };
+    }, [data, daysArray]);
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -122,7 +151,41 @@ export default function RainfallDailyClient() {
             )}
 
             {data ? (
-                <div className="space-y-4 animate-in fade-in duration-500">
+                <div className="space-y-6 animate-in fade-in duration-500">
+                    {/* Trend Chart */}
+                    <div className="glass-card p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                    <TrendingUp size={16} className="text-blue-500" />
+                                    Tren Curah Hujan Harian - {monthLabel} 2026
+                                </h3>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Rata-rata seluruh estate di {company}</p>
+                            </div>
+                        </div>
+                        <div className="h-[250px]">
+                            <Line 
+                                data={chartData} 
+                                options={{
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: { 
+                                        legend: { display: false },
+                                        tooltip: {
+                                            callbacks: {
+                                                label: (context) => `Rata-rata: ${context.parsed.y.toFixed(1)} mm`
+                                            }
+                                        }
+                                    },
+                                    scales: {
+                                        y: { beginAtZero: true, grid: { color: '#f3f4f6' }, title: { display: true, text: 'Rainfall (mm)', font: { size: 10 } } },
+                                        x: { grid: { display: false }, title: { display: true, text: 'Tanggal', font: { size: 10 } } }
+                                    }
+                                }} 
+                            />
+                        </div>
+                    </div>
+
                     {/* Toolbar */}
                     <div className="flex items-center justify-end gap-2">
                         <button onClick={handleCopy} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-[10px] font-bold text-gray-600 hover:bg-gray-50 transition-all">
