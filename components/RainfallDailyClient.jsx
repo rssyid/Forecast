@@ -205,18 +205,25 @@ export default function RainfallDailyClient() {
                         </div>
                     </div>
 
-                    {/* Toolbar */}
-                    <div className="flex items-center justify-end gap-2">
-                        <button onClick={handleCopy} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-[10px] font-bold text-gray-600 hover:bg-gray-50 transition-all">
-                            <Copy size={12} /> Salin Tabel
-                        </button>
-                        <button onClick={handleExportCSV} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-[10px] font-bold text-gray-600 hover:bg-gray-50 transition-all">
-                            <FileSpreadsheet size={12} className="text-green-600" /> Export CSV / Excel
-                        </button>
-                    </div>
-
-                    {/* Table Container */}
+                    {/* Table Card */}
                     <div className="glass-card overflow-hidden">
+                        {/* Card Header with Title and Tools */}
+                        <div className="p-6 border-b border-gray-100 bg-gray-50/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-800">Curah Hujan Harian {company} {monthLabel} 2026</h3>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Rekapitulasi intensitas hujan per hari</p>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                                <button onClick={handleCopy} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-[10px] font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm">
+                                    <Copy size={12} /> Salin Tabel
+                                </button>
+                                <button onClick={handleExportCSV} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-[10px] font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm">
+                                    <FileSpreadsheet size={12} className="text-green-600" /> Export CSV / Excel
+                                </button>
+                            </div>
+                        </div>
+
                         <div className="overflow-x-auto custom-scrollbar">
                             <table className="w-full text-[11px] border-collapse">
                                 <thead>
