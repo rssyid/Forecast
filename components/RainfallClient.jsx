@@ -44,7 +44,8 @@ function RainCard({ label, value, sub, icon, color = '#3B82F6', loading }) {
 
 function CalendarHeatmap({ data, loading }) {
     const days = generateYearDays();
-    const dataMap = data?.trend ? Object.fromEntries(data.trend.map(t => [t.date, t.avg_mm])) : {};
+    // Use yearTrend for independent data
+    const dataMap = data?.yearTrend ? Object.fromEntries(data.yearTrend.map(t => [t.date, t.avg_mm])) : {};
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
     
@@ -63,11 +64,11 @@ function CalendarHeatmap({ data, loading }) {
 
     const getColor = (val) => {
         const v = parseFloat(val) || 0;
-        if (v === 0) return 'bg-gray-100';
-        if (v <= 20) return 'bg-blue-100';
-        if (v <= 50) return 'bg-blue-400';
-        if (v <= 100) return 'bg-blue-600';
-        return 'bg-indigo-800';
+        if (v === 0) return '#9E9E9E'; // Kering
+        if (v <= 20) return '#2196F3'; // Ringan
+        if (v <= 50) return '#FFC107'; // Sedang
+        if (v <= 100) return '#F44336'; // Lebat
+        return '#B71C1C'; // Sangat Lebat
     };
 
     return (
@@ -75,14 +76,14 @@ function CalendarHeatmap({ data, loading }) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
                 <div>
                     <h3 className="text-sm font-bold text-gray-800">Kalender Intensitas Hujan (2026)</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Rata-rata harian gabungan (Company Wide).</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Data tahunan (tidak terpengaruh filter tanggal).</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 font-medium">
-                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-gray-100"></div> 0mm</div>
-                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-blue-100"></div> 1-20</div>
-                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-blue-400"></div> 21-50</div>
-                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-blue-600"></div> 51-100</div>
-                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-indigo-800"></div> &gt;100</div>
+                <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 font-bold">
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#9E9E9E'}}></div> 0mm</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#2196F3'}}></div> 1-20</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#FFC107'}}></div> 21-50</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#F44336'}}></div> 51-100</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm" style={{backgroundColor: '#B71C1C'}}></div> &gt;100</div>
                 </div>
             </div>
 
@@ -97,7 +98,8 @@ function CalendarHeatmap({ data, loading }) {
                                     <div 
                                         key={day}
                                         title={`${day}: ${val} mm`}
-                                        className={`w-3.5 h-3.5 rounded-[2px] transition-all hover:scale-150 hover:z-10 cursor-pointer ${getColor(val)}`}
+                                        className={`w-3.5 h-3.5 rounded-[2px] transition-all hover:scale-150 hover:z-10 cursor-pointer`}
+                                        style={{ backgroundColor: getColor(val) }}
                                     />
                                 );
                             })}
@@ -282,7 +284,7 @@ export default function RainfallClient() {
                 />
             </div>
 
-            {/* Calendar Heatmap (Aggregated by Company) */}
+            {/* Calendar Heatmap (Independent of Filter Date) */}
             <CalendarHeatmap data={data} loading={loading} />
 
             {/* Charts Section */}

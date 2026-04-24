@@ -26,7 +26,7 @@ export async function GET(request) {
             params.push(company);
         }
 
-        // 1. Summary by Estate
+        // 1. Summary by Estate (Filtered)
         const summaryRes = await pool.query(`
             SELECT 
                 r.est_code, r.company_code,
@@ -40,8 +40,8 @@ export async function GET(request) {
             ORDER BY total_mm DESC
         `, params);
 
-        // 2. Trend by Date (for chart)
-        const trendRes = await pool.query(`
+        // 2. Filtered Trend (for line chart)
+        const filterTrendRes = await pool.query(`
             SELECT 
                 r.record_date::text AS date,
                 ROUND(AVG(r.rainfall_mm)::numeric, 1) AS avg_mm
@@ -51,9 +51,29 @@ export async function GET(request) {
             ORDER BY r.record_date ASC
         `, params);
 
+        // 3. Year-to-date Trend (for Calendar Heatmap) - Independent of date filters
+        const currentYear = new Date().getFullYear();
+        let yearWhere = `WHERE r.record_date >= '${currentYear}-01-01' `;
+        let yearParams = [];
+        if (company !== 'Semua') {
+            yearWhere += `AND r.company_code = $1 `;
+            yearParams = [company];
+        }
+
+        const yearTrendRes = await pool.query(`
+            SELECT 
+                r.record_date::text AS date,
+                ROUND(AVG(r.rainfall_mm)::numeric, 1) AS avg_mm
+            FROM daily_rainfall r
+            ${yearWhere}
+            GROUP BY r.record_date
+            ORDER BY r.record_date ASC
+        `, yearParams);
+
         return Response.json({
             summary: summaryRes.rows,
-            trend: trendRes.rows
+            trend: filterTrendRes.rows,
+            yearTrend: yearTrendRes.rows
         });
 
     } catch (err) {
