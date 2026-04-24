@@ -102,6 +102,7 @@ export default function RainfallDailyClient() {
                         onChange={(label) => setMonth(MONTHS.find(m => m.label === label)?.value)}
                         placeholder="Pilih Bulan..."
                         className="w-[160px]"
+                        autoSort={false}
                     />
                     <button
                         onClick={fetchData}

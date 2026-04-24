@@ -14,14 +14,17 @@ import { ChevronDown, Search, X } from 'lucide-react';
  *   className: string
  *   disabled: boolean
  */
-export default function SearchableSelect({ options = [], value, onChange, placeholder = "Pilih...", icon, className = '', disabled = false }) {
+export default function SearchableSelect({ options = [], value, onChange, placeholder = "Pilih...", icon, className = '', disabled = false, autoSort = true }) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const containerRef = useRef(null);
     const inputRef = useRef(null);
 
-    // Normalize options to { value, label }
-    const normalized = options.map(o => typeof o === 'string' ? { value: o, label: o } : o);
+    // Normalize options to { value, label } and apply natural sorting if requested
+    let normalized = options.map(o => typeof o === 'string' ? { value: o, label: o } : o);
+    if (autoSort) {
+        normalized.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
+    }
 
     // Current label
     const currentLabel = normalized.find(o => o.value === value)?.label ?? placeholder;

@@ -186,6 +186,7 @@ export default function DashboardClient() {
                         placeholder="Pilih Minggu..."
                         disabled={weekList.length === 0}
                         className="min-w-[180px]"
+                        autoSort={false}
                     />
                     {/* Company Filter */}
                     <SearchableSelect
@@ -320,15 +321,17 @@ export default function DashboardClient() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {data.estateBreakdown.map((e, i) => {
-                                        const pct = e.total > 0 ? ((e.cnt_kering / e.total) * 100).toFixed(0) : 0;
-                                        const st = classifyStatus(e.avg_tmat);
-                                        return (
-                                            <tr key={i} className="hover:bg-white/60 transition-colors">
-                                                <td className="px-4 py-3">
-                                                    <div className="font-semibold text-gray-800 text-xs">{e.estate}</div>
-                                                    <div className="text-[10px] text-gray-400">{e.company}</div>
-                                                </td>
+                                    {data.estateBreakdown
+                                        .sort((a, b) => a.estate.localeCompare(b.estate, undefined, { numeric: true, sensitivity: 'base' }))
+                                        .map((e, i) => {
+                                            const pct = e.total > 0 ? ((e.cnt_kering / e.total) * 100).toFixed(0) : 0;
+                                            const st = classifyStatus(e.avg_tmat);
+                                            return (
+                                                <tr key={i} className="hover:bg-white/60 transition-colors">
+                                                    <td className="px-4 py-3">
+                                                        <div className="font-semibold text-gray-800 text-xs">{e.estate}</div>
+                                                        <div className="text-[10px] text-gray-400">{e.company}</div>
+                                                    </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${st.color}20`, color: st.color }}>
                                                         {e.avg_tmat} cm
@@ -380,7 +383,9 @@ export default function DashboardClient() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {data.rainfallData.map((r, i) => {
+                                    {data.rainfallData
+                                        .sort((a, b) => a.est_code.localeCompare(b.est_code, undefined, { numeric: true, sensitivity: 'base' }))
+                                        .map((r, i) => {
                                         const maxRain = Math.max(...data.rainfallData.map(d => d.total_mm));
                                         const pct = maxRain > 0 ? (r.total_mm / maxRain * 100) : 0;
                                         return (
