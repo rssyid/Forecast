@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Building2, Calendar, FileDown, Copy, FileSpreadsheet, FileText, AlertTriangle, RefreshCw, TrendingUp } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
@@ -15,8 +15,6 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
  * - Daily Summaries (Total, Average, Hari Hujan Unit >1, Estate Hujan Qty)
  */
 
-const COMPANIES = ['PT.THIP', 'PT.PTW', 'PT.SUMS', 'PT.WKN', 'PT.PANPS', 'PT.SAM', 'PT.NJP', 'PT.PLDK', 'PT.SUMK', 'PT.BAS', 'PT.AAN', 'PT.GAN', 'PT.AJP', 'PT.JJP', 'PT.SIP', 'PT.WSM'];
-
 const MONTHS = [
     { value: '1', label: 'Januari' }, { value: '2', label: 'Februari' }, { value: '3', label: 'Maret' },
     { value: '4', label: 'April' }, { value: '5', label: 'Mei' }, { value: '6', label: 'Juni' },
@@ -26,10 +24,25 @@ const MONTHS = [
 
 export default function RainfallDailyClient() {
     const [company, setCompany] = useState('');
-    const [month, setMonth] = useState('');
+    const [month, setMonth] = useState('1');
+    const [companyList, setCompanyList] = useState([]);
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
+
+    // Fetch active companies
+    useEffect(() => {
+        fetch('/api/companies?active=true')
+            .then(r => r.json())
+            .then(json => {
+                if (json.companies) {
+                    const codes = json.companies.map(c => c.code);
+                    setCompanyList(codes);
+                    if (codes.length > 0 && !company) setCompany(codes[0]);
+                }
+            })
+            .catch(() => {});
+    }, []);
 
     const fetchData = useCallback(async () => {
         if (!company || !month) return;
@@ -141,11 +154,11 @@ export default function RainfallDailyClient() {
                 <div className="flex flex-wrap items-center gap-3">
                     <SearchableSelect
                         icon={<Building2 size={14} />}
-                        options={COMPANIES}
+                        options={companyList}
                         value={company}
                         onChange={setCompany}
                         placeholder="Pilih Company..."
-                        className="w-[180px]"
+                        className="min-w-[150px]"
                     />
                     <SearchableSelect
                         icon={<Calendar size={14} />}
