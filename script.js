@@ -144,6 +144,9 @@ if (csvFileEl) {
         }, 500);
     });
 }
+fetchDbBtnEl?.addEventListener("click", () => {
+    const currentCompany = dbCompanyEl?.value || "Semua";
+    const currentRange = dbRangeEl?.value || "4";
     handleFetchFromDB(currentCompany, currentRange);
 });
 forecastModelEl?.addEventListener("change", (e) => { state.selectedModel = e.target.value; });
