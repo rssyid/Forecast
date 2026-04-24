@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { Settings, Database, RefreshCw, AlertTriangle, CheckCircle2, Lock, CalendarDays } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings, Database, RefreshCw, AlertTriangle, CheckCircle2, Lock, CalendarDays, Building2 } from 'lucide-react';
 
 export default function SettingsClient() {
     const [adminKey, setAdminKey] = useState('');
@@ -10,6 +10,35 @@ export default function SettingsClient() {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
+
+    const [companies, setCompanies] = useState([]);
+    const [compLoading, setCompLoading] = useState(false);
+
+    // Fetch companies list
+    useEffect(() => {
+        setCompLoading(true);
+        fetch('/api/companies')
+            .then(r => r.json())
+            .then(json => {
+                if (json.companies) setCompanies(json.companies);
+            })
+            .finally(() => setCompLoading(false));
+    }, []);
+
+    const handleToggleCompany = async (code, currentStatus) => {
+        try {
+            const nextStatus = !currentStatus;
+            const res = await fetch('/api/companies', {
+                method: 'PATCH',
+                body: JSON.stringify({ code, is_active: nextStatus })
+            });
+            if (res.ok) {
+                setCompanies(prev => prev.map(c => c.code === code ? { ...c, is_active: nextStatus } : c));
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
     const handleSync = async () => {
         if (!adminKey) {
