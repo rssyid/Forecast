@@ -10,6 +10,17 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 const COMPANIES = ['Semua', 'PT.THIP', 'PT.PTW', 'PT.SUMS', 'PT.WKN', 'PT.PANPS', 'PT.SAM', 'PT.NJP', 'PT.PLDK', 'PT.SUMK', 'PT.BAS', 'PT.AAN', 'PT.GAN', 'PT.AJP', 'PT.JJP', 'PT.SIP', 'PT.WSM'];
 
+// Helper to generate days from Jan 1, 2025 to today
+function generateYearDays() {
+    const start = new Date('2025-01-01');
+    const end = new Date();
+    const days = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        days.push(d.toISOString().split('T')[0]);
+    }
+    return days;
+}
+
 function RainCard({ label, value, sub, icon, color = '#3B82F6', loading }) {
     return (
         <div className="glass-card p-5 flex flex-col gap-3">
@@ -31,16 +42,83 @@ function RainCard({ label, value, sub, icon, color = '#3B82F6', loading }) {
     );
 }
 
+function CalendarHeatmap({ data, loading }) {
+    const days = generateYearDays();
+    const dataMap = data?.trend ? Object.fromEntries(data.trend.map(t => [t.date, t.avg_mm])) : {};
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+    
+    // Group days by month
+    const monthGroups = [];
+    let currentMonth = -1;
+    days.forEach(day => {
+        const d = new Date(day);
+        const m = d.getMonth();
+        if (m !== currentMonth) {
+            monthGroups.push({ month: months[m], days: [] });
+            currentMonth = m;
+        }
+        monthGroups[monthGroups.length - 1].days.push(day);
+    });
+
+    const getColor = (val) => {
+        const v = parseFloat(val) || 0;
+        if (v === 0) return 'bg-gray-100';
+        if (v <= 20) return 'bg-blue-100';
+        if (v <= 50) return 'bg-blue-400';
+        if (v <= 100) return 'bg-blue-600';
+        return 'bg-indigo-800';
+    };
+
+    return (
+        <div className="glass-card p-6 overflow-x-auto custom-scrollbar">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+                <div>
+                    <h3 className="text-sm font-bold text-gray-800">Kalender Intensitas Hujan (2025)</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">Rata-rata harian gabungan (Company Wide).</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 font-medium">
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-gray-100"></div> 0mm</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-blue-100"></div> 1-20</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-blue-400"></div> 21-50</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-blue-600"></div> 51-100</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-indigo-800"></div> &gt;100</div>
+                </div>
+            </div>
+
+            <div className="flex gap-6 min-w-max pb-4">
+                {monthGroups.map((mg, idx) => (
+                    <div key={idx} className="flex flex-col gap-2">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase text-center border-b border-gray-50 pb-1">{mg.month}</span>
+                        <div className="grid grid-cols-7 gap-1">
+                            {mg.days.map(day => {
+                                const val = dataMap[day] || 0;
+                                return (
+                                    <div 
+                                        key={day}
+                                        title={`${day}: ${val} mm`}
+                                        className={`w-3.5 h-3.5 rounded-[2px] transition-all hover:scale-150 hover:z-10 cursor-pointer ${getColor(val)}`}
+                                    />
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default function RainfallClient() {
     const [company, setCompany] = useState('Semua');
     
-    // Default: Last 30 days
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
         d.setDate(d.getDate() - 30);
         return d.toISOString().split('T')[0];
     });
     const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState(null);
@@ -70,7 +148,6 @@ export default function RainfallClient() {
         fetchData(company, startDate, endDate);
     }, [company, startDate, endDate, fetchData]);
 
-    // Trend Chart Data
     const trendData = data?.trend ? {
         labels: data.trend.map(t => {
             const d = new Date(t.date);
@@ -87,7 +164,6 @@ export default function RainfallClient() {
         }]
     } : null;
 
-    // Sorted Rain Days: Highest to Lowest
     const sortedRainDays = data?.summary ? [...data.summary].sort((a, b) => b.hari_hujan - a.hari_hujan) : [];
 
     return (
@@ -98,29 +174,67 @@ export default function RainfallClient() {
                     <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
                         Analisis Curah Hujan
                     </h1>
-                    <p className="text-sm text-gray-500 mt-1">Monitoring intensitas dan distribusi curah hujan per estate secara real-time.</p>
+                    <p className="text-sm text-gray-500 mt-1">Monitoring intensitas dan distribusi curah hujan secara mendalam.</p>
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-3">
-                    {/* Date Filters */}
-                    <div className="flex items-center gap-2 bg-white/70 backdrop-blur-sm border border-gray-200 p-1 rounded-xl shadow-sm">
-                        <div className="flex items-center gap-2 px-2 border-r border-gray-100">
-                            <CalendarDays size={14} className="text-gray-400" />
-                            <input 
-                                type="date" 
-                                value={startDate}
-                                onChange={e => setStartDate(e.target.value)}
-                                className="text-xs font-medium outline-none bg-transparent py-1"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2 px-2">
-                            <input 
-                                type="date" 
-                                value={endDate}
-                                onChange={e => setEndDate(e.target.value)}
-                                className="text-xs font-medium outline-none bg-transparent py-1"
-                            />
-                        </div>
+                    {/* Unified Date Range Filter */}
+                    <div className="relative">
+                        <button 
+                            onClick={() => setShowDatePicker(!showDatePicker)}
+                            className="flex items-center gap-3 px-4 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-bold text-gray-700 hover:border-gray-400 transition-all min-w-[220px] justify-between"
+                        >
+                            <div className="flex items-center gap-2">
+                                <CalendarDays size={14} className="text-gray-400" />
+                                <span>{startDate} – {endDate}</span>
+                            </div>
+                            <RefreshCw size={12} className={`text-gray-300 ${loading ? 'animate-spin' : ''}`} />
+                        </button>
+
+                        {showDatePicker && (
+                            <div className="absolute z-50 mt-2 right-0 bg-white border border-gray-200 p-5 rounded-2xl shadow-2xl flex flex-col gap-4 min-w-[320px] animate-in fade-in zoom-in duration-200">
+                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pilih Rentang Tanggal</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-[10px] font-bold text-gray-500">Mulai</label>
+                                        <input 
+                                            type="date" 
+                                            value={startDate}
+                                            onChange={e => setStartDate(e.target.value)}
+                                            className="text-xs font-medium border border-gray-100 p-2 rounded-lg bg-gray-50 outline-none focus:ring-2 focus:ring-black/5"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-[10px] font-bold text-gray-500">Selesai</label>
+                                        <input 
+                                            type="date" 
+                                            value={endDate}
+                                            onChange={e => setEndDate(e.target.value)}
+                                            className="text-xs font-medium border border-gray-100 p-2 rounded-lg bg-gray-50 outline-none focus:ring-2 focus:ring-black/5"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => {
+                                            const d = new Date();
+                                            d.setDate(d.getDate() - 30);
+                                            setStartDate(d.toISOString().split('T')[0]);
+                                            setEndDate(new Date().toISOString().split('T')[0]);
+                                        }}
+                                        className="flex-1 bg-gray-100 text-gray-600 text-[10px] font-bold py-2.5 rounded-xl hover:bg-gray-200 transition-colors"
+                                    >
+                                        30 Hari Terakhir
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowDatePicker(false)}
+                                        className="flex-1 bg-black text-white text-[10px] font-bold py-2.5 rounded-xl hover:bg-gray-800 transition-colors"
+                                    >
+                                        Terapkan
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <SearchableSelect
@@ -131,12 +245,6 @@ export default function RainfallClient() {
                         placeholder="Pilih Company..."
                         className="min-w-[150px]"
                     />
-                    <button
-                        onClick={() => fetchData(company, startDate, endDate)}
-                        className="p-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors shadow-sm"
-                    >
-                        <RefreshCw size={16} className={loading ? 'animate-spin text-gray-400' : 'text-gray-600'} />
-                    </button>
                 </div>
             </div>
 
@@ -151,7 +259,7 @@ export default function RainfallClient() {
                 <RainCard
                     label="Total Curah Hujan"
                     value={data?.summary ? `${data.summary.reduce((acc, curr) => acc + (parseFloat(curr.total_mm) || 0), 0).toFixed(0)} mm` : '–'}
-                    sub="Kumulatif seluruh estate"
+                    sub="Kumulatif periode terpilih"
                     icon={<CloudRain size={16} />}
                     color="#3B82F6"
                     loading={loading}
@@ -159,7 +267,7 @@ export default function RainfallClient() {
                 <RainCard
                     label="Rata-rata Intensitas"
                     value={data?.summary ? `${(data.summary.reduce((acc, curr) => acc + (parseFloat(curr.avg_daily_mm) || 0), 0) / (data.summary.length || 1)).toFixed(1)} mm` : '–'}
-                    sub="Rata-rata harian per estate"
+                    sub="Rata-rata harian gabungan"
                     icon={<TrendingUp size={16} />}
                     color="#10B981"
                     loading={loading}
@@ -174,11 +282,14 @@ export default function RainfallClient() {
                 />
             </div>
 
+            {/* Calendar Heatmap (Aggregated by Company) */}
+            <CalendarHeatmap data={data} loading={loading} />
+
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="glass-card p-6 lg:col-span-2">
                     <h3 className="text-sm font-bold text-gray-800 mb-1">Tren Curah Hujan Harian</h3>
-                    <p className="text-xs text-gray-400 mb-4">Rata-rata mm di seluruh area aktif</p>
+                    <p className="text-xs text-gray-400 mb-4">Rata-rata mm di seluruh area terpilih</p>
                     <div className="h-[300px]">
                         {loading ? (
                             <div className="h-full flex items-center justify-center">
@@ -225,54 +336,6 @@ export default function RainfallClient() {
                             </div>
                         ) : <div className="text-gray-400 text-center text-sm py-10 italic">Data tidak tersedia</div>}
                     </div>
-                </div>
-            </div>
-
-            {/* Estate Intensity Heatmap */}
-            <div className="glass-card p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-800">Estate Intensity Heatmap</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Distribusi spasial intensitas hujan per estate.</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-4 text-[10px] text-gray-500 font-medium">
-                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-gray-100"></div> 0mm</div>
-                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-100"></div> 1-20mm</div>
-                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-400"></div> 21-50mm</div>
-                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-600"></div> 51-100mm</div>
-                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-indigo-800"></div> &gt;100mm</div>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                    {loading ? (
-                        Array.from({ length: 12 }).map((_, i) => (
-                            <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-xl" />
-                        ))
-                    ) : data?.summary?.length > 0 ? (
-                        data.summary.map((r, i) => {
-                            const val = parseFloat(r.total_mm) || 0;
-                            let colorClass = 'bg-gray-100 text-gray-400';
-                            if (val > 100) colorClass = 'bg-indigo-800 text-white shadow-lg shadow-indigo-200';
-                            else if (val > 50) colorClass = 'bg-blue-600 text-white shadow-lg shadow-blue-200';
-                            else if (val > 20) colorClass = 'bg-blue-400 text-white';
-                            else if (val > 0)  colorClass = 'bg-blue-100 text-blue-700';
-
-                            return (
-                                <div key={i} className={`${colorClass} p-3 rounded-xl flex flex-col justify-between h-20 transition-all hover:scale-105 cursor-default`}>
-                                    <span className="text-[10px] font-bold uppercase tracking-tight opacity-80">{r.est_code}</span>
-                                    <div className="flex items-baseline gap-0.5">
-                                        <span className="text-lg font-black">{val.toFixed(0)}</span>
-                                        <span className="text-[10px] font-medium opacity-70">mm</span>
-                                    </div>
-                                </div>
-                            );
-                        })
-                    ) : (
-                        <div className="col-span-full py-12 text-center text-gray-400 text-sm italic">
-                            Belum ada data heatmap untuk periode ini.
-                        </div>
-                    )}
                 </div>
             </div>
 
