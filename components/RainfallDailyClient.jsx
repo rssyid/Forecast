@@ -193,7 +193,7 @@ export default function RainfallDailyClient() {
                                             bodySpacing: 2,
                                             bodyFont: { size: 9 },
                                             usePointStyle: true,
-                                            itemSort: (a, b) => b.raw - a.raw // Sort by rainfall value desc
+                                            itemSort: (a, b) => a.dataset.label.localeCompare(b.dataset.label, undefined, { numeric: true, sensitivity: 'base' })
                                         }
                                     },
                                     scales: {
