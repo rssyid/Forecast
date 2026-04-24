@@ -322,7 +322,12 @@ export default function DashboardClient() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {data.estateBreakdown
-                                        .sort((a, b) => a.estate.localeCompare(b.estate, undefined, { numeric: true, sensitivity: 'base' }))
+                                        .sort((a, b) => {
+                                            const pctA = a.total > 0 ? (a.cnt_kering / a.total) : 0;
+                                            const pctB = b.total > 0 ? (b.cnt_kering / b.total) : 0;
+                                            if (pctB !== pctA) return pctB - pctA;
+                                            return a.estate.localeCompare(b.estate, undefined, { numeric: true, sensitivity: 'base' });
+                                        })
                                         .map((e, i) => {
                                             const pct = e.total > 0 ? ((e.cnt_kering / e.total) * 100).toFixed(0) : 0;
                                             const st = classifyStatus(e.avg_tmat);
@@ -384,7 +389,10 @@ export default function DashboardClient() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {data.rainfallData
-                                        .sort((a, b) => a.est_code.localeCompare(b.est_code, undefined, { numeric: true, sensitivity: 'base' }))
+                                        .sort((a, b) => {
+                                            if (b.total_mm !== a.total_mm) return b.total_mm - a.total_mm;
+                                            return a.est_code.localeCompare(b.est_code, undefined, { numeric: true, sensitivity: 'base' });
+                                        })
                                         .map((r, i) => {
                                         const maxRain = Math.max(...data.rainfallData.map(d => d.total_mm));
                                         const pct = maxRain > 0 ? (r.total_mm / maxRain * 100) : 0;
