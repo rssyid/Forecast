@@ -318,7 +318,11 @@ export default function RainfallDailyClient() {
                                             return <td key={d} className="border border-gray-200 p-2 text-center text-gray-500 font-medium">{Math.round(dayAvg)}</td>;
                                         })}
                                         <td className="border border-gray-200 p-2 text-center sticky right-0 bg-gray-100 z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)] font-bold">
-                                            {Math.round(Object.values(data.matrix).reduce((totalAcc, estDays) => totalAcc + Object.values(estDays).reduce((acc, val) => acc + Number(val || 0), 0), 0) / (Object.keys(data.matrix).length * daysArray.length || 1))}
+                                            {Math.round(daysArray.reduce((acc, d) => {
+                                                const values = Object.values(data.matrix).map(estDays => Number(estDays[d] || 0));
+                                                const dayAvg = values.reduce((sum, v) => sum + v, 0) / (values.length || 1);
+                                                return acc + dayAvg;
+                                            }, 0))}
                                         </td>
                                     </tr>
                                     {/* Row: Hari Hujan (Unit) */}
