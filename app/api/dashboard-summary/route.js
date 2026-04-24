@@ -110,7 +110,29 @@ export async function GET(request) {
             rainfallData = rainRes.rows;
         }
 
-        // 5. DB sync status
+        // 5. Last Rain Analysis (Days since last rain relative to week_end)
+        let lastRainData = [];
+        if (rainEnd) {
+            const lastRainCompanyWhere = companyFilter !== 'Semua' ? 'AND r.company_code = $2' : '';
+            const lastRainParams = companyFilter !== 'Semua' ? [rainEnd, companyFilter] : [rainEnd];
+
+            const lastRainRes = await pool.query(`
+                SELECT 
+                    r.est_code, r.company_code,
+                    MAX(r.record_date)::text AS last_rain_date,
+                    ($1::date - MAX(r.record_date)::date)::int AS days_since_rain
+                FROM daily_rainfall r
+                WHERE r.rainfall_mm > 0 
+                  AND r.record_date <= $1
+                  ${lastRainCompanyWhere}
+                GROUP BY r.est_code, r.company_code
+                ORDER BY days_since_rain DESC
+                LIMIT 10
+            `, lastRainParams);
+            lastRainData = lastRainRes.rows;
+        }
+
+        // 6. DB sync status
         const syncRes = await pool.query(`
             SELECT COUNT(*)::int AS total_records,
                    COUNT(DISTINCT company_code)::int AS total_companies,
@@ -122,7 +144,7 @@ export async function GET(request) {
 
         return Response.json({
             weeklyData, currentWeek, prevWeek,
-            estateBreakdown, rainfallData,
+            estateBreakdown, rainfallData, lastRainData,
             rainfallWeekStart: rainStart, rainfallWeekEnd: rainEnd,
             syncInfo, selectedCompany: companyFilter,
             selectedWeek: selectedWeekName,

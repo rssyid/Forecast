@@ -297,27 +297,26 @@ export default function DashboardClient() {
                 </div>
             </div>
 
-            {/* Bottom Row: Estate Table + Rainfall */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Bottom Row: Estate Tables */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Top Estate by Kering */}
-                <div className="glass-card overflow-hidden">
+                <div className="glass-card overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-gray-100">
-                        <h3 className="text-sm font-bold text-gray-800">Estate Paling Kering (Minggu Ini)</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Diurutkan berdasarkan % Piezometer Kering &gt; 65cm</p>
+                        <h3 className="text-sm font-bold text-gray-800">Estate Paling Kering</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Persentase Piezometer Kering &gt; 65cm</p>
                     </div>
-                    <div className="overflow-auto max-h-72">
+                    <div className="overflow-auto flex-1 max-h-80">
                         {loading ? (
                             <div className="p-6 space-y-3">
                                 {[1,2,3].map(i => <div key={i} className="h-8 bg-gray-100 animate-pulse rounded-lg" />)}
                             </div>
                         ) : (data?.estateBreakdown?.length > 0) ? (
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-50/50 text-xs text-gray-500 uppercase tracking-wider">
+                                <thead className="bg-gray-50/50 text-xs text-gray-500 uppercase tracking-wider sticky top-0 z-10">
                                     <tr>
                                         <th className="px-4 py-3 text-left">Estate</th>
                                         <th className="px-4 py-3 text-right">Avg TMAT</th>
                                         <th className="px-4 py-3 text-right">Kering</th>
-                                        <th className="px-4 py-3 text-right">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -334,57 +333,51 @@ export default function DashboardClient() {
                                             return (
                                                 <tr key={i} className="hover:bg-white/60 transition-colors">
                                                     <td className="px-4 py-3">
-                                                        <div className="font-semibold text-gray-800 text-xs">{e.estate}</div>
-                                                        <div className="text-[10px] text-gray-400">{e.company}</div>
+                                                        <div className="font-semibold text-gray-800 text-[11px]">{e.estate}</div>
+                                                        <div className="text-[9px] text-gray-400 uppercase tracking-tighter">{e.company}</div>
                                                     </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${st.color}20`, color: st.color }}>
+                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: `${st.color}20`, color: st.color }}>
                                                         {e.avg_tmat} cm
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <div className="flex items-center justify-end gap-1">
-                                                        <div className="w-12 bg-gray-100 rounded-full h-1.5">
-                                                            <div className="h-1.5 rounded-full bg-red-400" style={{ width: `${Math.min(pct, 100)}%` }} />
+                                                        <div className="w-8 bg-gray-100 rounded-full h-1">
+                                                            <div className="h-1 rounded-full bg-red-400" style={{ width: `${Math.min(pct, 100)}%` }} />
                                                         </div>
-                                                        <span className="text-xs text-gray-600">{pct}%</span>
+                                                        <span className="text-[11px] font-bold text-gray-600">{pct}%</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-right text-xs text-gray-500">{e.total}</td>
                                             </tr>
                                         );
                                     })}
                                 </tbody>
                             </table>
                         ) : (
-                            <p className="text-sm text-gray-400 p-6 text-center">Tidak ada data estate.</p>
+                            <p className="text-sm text-gray-400 p-6 text-center">Tidak ada data.</p>
                         )}
                     </div>
                 </div>
 
                 {/* Rainfall Summary */}
-                <div className="glass-card overflow-hidden">
+                <div className="glass-card overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-gray-100">
-                        <h3 className="text-sm font-bold text-gray-800">Curah Hujan Periode Minggu Ini</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                            {data?.rainfallWeekStart && data?.rainfallWeekEnd
-                                ? `${data.rainfallWeekStart} s/d ${data.rainfallWeekEnd}`
-                                : 'Periode minggu piezometer terkini'}
-                        </p>
+                        <h3 className="text-sm font-bold text-gray-800">Curah Hujan Tertinggi</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Akumulasi CH Periode Minggu Ini</p>
                     </div>
-                    <div className="overflow-auto max-h-72">
+                    <div className="overflow-auto flex-1 max-h-80">
                         {loading ? (
                             <div className="p-6 space-y-3">
                                 {[1,2,3].map(i => <div key={i} className="h-8 bg-gray-100 animate-pulse rounded-lg" />)}
                             </div>
                         ) : (data?.rainfallData?.length > 0) ? (
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-50/50 text-xs text-gray-500 uppercase tracking-wider">
+                                <thead className="bg-gray-50/50 text-xs text-gray-500 uppercase tracking-wider sticky top-0 z-10">
                                     <tr>
                                         <th className="px-4 py-3 text-left">Estate</th>
                                         <th className="px-4 py-3 text-right">Total CH</th>
-                                        <th className="px-4 py-3 text-right">Hari Hujan</th>
-                                        <th className="px-4 py-3 text-right">Avg Harian</th>
+                                        <th className="px-4 py-3 text-right">HH</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -399,26 +392,20 @@ export default function DashboardClient() {
                                         return (
                                             <tr key={i} className="hover:bg-white/60 transition-colors">
                                                 <td className="px-4 py-3">
-                                                    <div className="font-semibold text-gray-800 text-xs">{r.est_code || '–'}</div>
-                                                    <div className="text-[10px] text-gray-400">{r.company_code}</div>
+                                                    <div className="font-semibold text-gray-800 text-[11px]">{r.est_code || '–'}</div>
+                                                    <div className="text-[9px] text-gray-400 uppercase tracking-tighter">{r.company_code}</div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <div className="flex items-center justify-end gap-1">
-                                                        <div className="w-12 bg-gray-100 rounded-full h-1.5">
-                                                            <div className="h-1.5 rounded-full bg-blue-400" style={{ width: `${pct}%` }} />
+                                                        <div className="w-8 bg-gray-100 rounded-full h-1">
+                                                            <div className="h-1 rounded-full bg-blue-400" style={{ width: `${pct}%` }} />
                                                         </div>
-                                                        <span className="text-xs font-semibold text-gray-700">{r.total_mm} mm</span>
+                                                        <span className="text-[11px] font-bold text-gray-700">{r.total_mm} mm</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    <div className="flex items-center justify-end gap-1">
-                                                        <div className="w-12 bg-gray-100 rounded-full h-1.5">
-                                                            <div className="h-1.5 rounded-full bg-blue-600" style={{ width: `${(r.hari_hujan / (r.total_hari || 14)) * 100}%` }} />
-                                                        </div>
-                                                        <span className="text-xs font-semibold text-blue-700">{r.hari_hujan}<span className="text-gray-400 font-normal">/{r.total_hari}</span></span>
-                                                    </div>
+                                                    <span className="text-[11px] font-bold text-blue-700">{r.hari_hujan}<span className="text-gray-300 font-normal">/{r.total_hari}</span></span>
                                                 </td>
-                                                <td className="px-4 py-3 text-right text-xs text-gray-500">{r.avg_daily_mm} mm/hari</td>
                                             </tr>
                                         );
                                     })}
@@ -427,8 +414,65 @@ export default function DashboardClient() {
                         ) : (
                             <div className="p-6 text-center">
                                 <CloudRain size={32} className="mx-auto text-gray-200 mb-2" />
-                                <p className="text-sm text-gray-400">Data curah hujan belum tersedia.</p>
-                                <p className="text-xs text-gray-300 mt-1">Jalankan Sync Rainfall untuk mengisi data.</p>
+                                <p className="text-xs text-gray-400">Belum ada data CH.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Estate Tanpa Hujan Terlama */}
+                <div className="glass-card overflow-hidden flex flex-col">
+                    <div className="p-5 border-b border-gray-100">
+                        <h3 className="text-sm font-bold text-gray-800">Tanpa Hujan Terlama</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Hari sejak kejadian hujan terakhir</p>
+                    </div>
+                    <div className="overflow-auto flex-1 max-h-80">
+                        {loading ? (
+                            <div className="p-6 space-y-3">
+                                {[1,2,3].map(i => <div key={i} className="h-8 bg-gray-100 animate-pulse rounded-lg" />)}
+                            </div>
+                        ) : (data?.lastRainData?.length > 0) ? (
+                            <table className="w-full text-sm">
+                                <thead className="bg-gray-50/50 text-xs text-gray-500 uppercase tracking-wider sticky top-0 z-10">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left">Estate</th>
+                                        <th className="px-4 py-3 text-right">Hujan Terakhir</th>
+                                        <th className="px-4 py-3 text-right">Lama (Hari)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {data.lastRainData
+                                        .sort((a, b) => {
+                                            if (b.days_since_rain !== a.days_since_rain) return b.days_since_rain - a.days_since_rain;
+                                            return a.est_code.localeCompare(b.est_code, undefined, { numeric: true, sensitivity: 'base' });
+                                        })
+                                        .map((r, i) => {
+                                            const days = r.days_since_rain;
+                                            const color = days > 14 ? 'text-red-600' : days > 7 ? 'text-orange-500' : 'text-gray-600';
+                                            return (
+                                                <tr key={i} className="hover:bg-white/60 transition-colors">
+                                                    <td className="px-4 py-3">
+                                                        <div className="font-semibold text-gray-800 text-[11px]">{r.est_code || '–'}</div>
+                                                        <div className="text-[9px] text-gray-400 uppercase tracking-tighter">{r.company_code}</div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <div className="text-[10px] font-medium text-gray-500">{fmtDate(r.last_rain_date)}</div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <div className={`text-xs font-black ${color}`}>{days} <span className="text-[9px] font-normal opacity-60">hari</span></div>
+                                                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: days > 14 ? '#EF4444' : days > 7 ? '#F59E0B' : '#22C55E' }} />
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <div className="p-6 text-center">
+                                <AlertTriangle size={32} className="mx-auto text-gray-200 mb-2" />
+                                <p className="text-xs text-gray-400">Data analisis kekeringan tidak tersedia.</p>
                             </div>
                         )}
                     </div>
