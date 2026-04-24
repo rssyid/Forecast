@@ -141,6 +141,9 @@ export default function RainfallClient() {
     const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [showDatePicker, setShowDatePicker] = useState(false);
 
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+
     // Heatmap Local Filter (Estate only, Company follows Global)
     const [heatmapEstate, setHeatmapEstate] = useState('Semua');
 
@@ -174,9 +177,10 @@ export default function RainfallClient() {
         fetchData(company, startDate, endDate, heatmapEstate);
     }, [company, startDate, endDate, heatmapEstate, fetchData]);
 
-    // Reset heatmap estate when global company changes
+    // Reset heatmap estate and pagination when global company changes
     useEffect(() => {
         setHeatmapEstate('Semua');
+        setCurrentPage(1);
     }, [company]);
 
     // Extract estates for heatmap filter - Filtered by global company
@@ -384,8 +388,9 @@ export default function RainfallClient() {
 
             {/* Estate Detail Table */}
             <div className="glass-card overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gray-50/30">
+                <div className="p-6 border-b border-gray-100 bg-gray-50/30 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-gray-800">Detail Curah Hujan per Estate</h3>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase">Total: {data?.summary?.length || 0} Estate</div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
@@ -399,7 +404,7 @@ export default function RainfallClient() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white">
-                            {data?.summary?.map((r, i) => (
+                            {data?.summary?.slice((currentPage - 1) * 5, currentPage * 5).map((r, i) => (
                                 <tr key={i} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-6 py-4 font-semibold text-gray-900">{r.est_code}</td>
                                     <td className="px-6 py-4 text-gray-500 text-xs">{r.company_code}</td>
@@ -412,9 +417,39 @@ export default function RainfallClient() {
                                     <td className="px-6 py-4 text-right text-gray-500">{r.avg_daily_mm} mm/hari</td>
                                 </tr>
                             ))}
+                            {(!data?.summary || data.summary.length === 0) && (
+                                <tr>
+                                    <td colSpan="5" className="px-6 py-10 text-center text-gray-400 italic">Data tidak ditemukan</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {data?.summary?.length > 5 && (
+                    <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+                        <div className="text-[10px] font-bold text-gray-400 uppercase">
+                            Halaman {currentPage} dari {Math.ceil(data.summary.length / 5)}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 transition-all"
+                            >
+                                Sebelumnya
+                            </button>
+                            <button 
+                                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(data.summary.length / 5), prev + 1))}
+                                disabled={currentPage === Math.ceil(data.summary.length / 5)}
+                                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 transition-all"
+                            >
+                                Berikutnya
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
