@@ -80,28 +80,30 @@ export default function RainfallDailyClient() {
     };
 
     const chartData = useMemo(() => {
-        if (!data) return null;
+        if (!data || !data.matrix) return null;
         
         const labels = daysArray.map(d => String(d).padStart(2, '0'));
-        const dailyAvg = daysArray.map(d => {
-            const values = Object.values(data.matrix).map(estDays => estDays[d] || 0);
-            const sum = values.reduce((acc, v) => acc + v, 0);
-            return sum / (values.length || 1);
-        });
+        
+        // Generate distinct colors
+        const colors = [
+            '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', 
+            '#EC4899', '#06B6D4', '#F97316', '#6366F1', '#84CC16'
+        ];
 
-        return {
-            labels,
-            datasets: [{
-                label: 'Rata-rata Curah Hujan (mm)',
-                data: dailyAvg,
-                borderColor: '#3B82F6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 3,
-                pointHoverRadius: 6
-            }]
-        };
+        const datasets = Object.entries(data.matrix)
+            .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' }))
+            .map(([est, days], idx) => ({
+                label: est,
+                data: daysArray.map(d => days[d] || 0),
+                borderColor: colors[idx % colors.length],
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 2,
+                pointHoverRadius: 5
+            }));
+
+        return { labels, datasets };
     }, [data, daysArray]);
 
     return (
@@ -158,28 +160,44 @@ export default function RainfallDailyClient() {
                             <div>
                                 <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                                     <TrendingUp size={16} className="text-blue-500" />
-                                    Tren Curah Hujan Harian - {monthLabel} 2026
+                                    Tren Curah Hujan Harian per Estate - {monthLabel} 2026
                                 </h3>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Rata-rata seluruh estate di {company}</p>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Komparasi intensitas hujan antar estate di {company}</p>
                             </div>
                         </div>
-                        <div className="h-[250px]">
+                        <div className="h-[300px]">
                             <Line 
                                 data={chartData} 
                                 options={{
                                     responsive: true,
                                     maintainAspectRatio: false,
                                     plugins: { 
-                                        legend: { display: false },
-                                        tooltip: {
-                                            callbacks: {
-                                                label: (context) => `Rata-rata: ${context.parsed.y.toFixed(1)} mm`
+                                        legend: { 
+                                            display: true,
+                                            position: 'bottom',
+                                            labels: {
+                                                usePointStyle: true,
+                                                boxWidth: 6,
+                                                font: { size: 10, weight: 'bold' },
+                                                padding: 20
                                             }
+                                        },
+                                        tooltip: {
+                                            mode: 'index',
+                                            intersect: false,
+                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                            titleColor: '#111827',
+                                            bodyColor: '#4B5563',
+                                            borderColor: '#E5E7EB',
+                                            borderWidth: 1,
+                                            padding: 10,
+                                            boxPadding: 5,
+                                            usePointStyle: true
                                         }
                                     },
                                     scales: {
-                                        y: { beginAtZero: true, grid: { color: '#f3f4f6' }, title: { display: true, text: 'Rainfall (mm)', font: { size: 10 } } },
-                                        x: { grid: { display: false }, title: { display: true, text: 'Tanggal', font: { size: 10 } } }
+                                        y: { beginAtZero: true, grid: { color: '#f3f4f6' }, title: { display: true, text: 'Rainfall (mm)', font: { size: 10, weight: 'bold' } } },
+                                        x: { grid: { display: false }, title: { display: true, text: 'Tanggal', font: { size: 10, weight: 'bold' } } }
                                     }
                                 }} 
                             />
