@@ -1,22 +1,42 @@
-import pg from 'pg';
-const { Pool } = pg;
+import pool from '../../../lib/db.js';
 
 const WEEK_LIMIT = 8;
+
+const DEFAULT_COMPANIES = [
+    'PT.THIP', 'PT.PTW', 'PT.SUMS', 'PT.WKN', 'PT.PANPS', 
+    'PT.SAM', 'PT.NJP', 'PT.PLDK', 'PT.SUMK', 'PT.BAS', 
+    'PT.AAN', 'PT.GAN', 'PT.AJP', 'PT.JJP', 'PT.SIP', 'PT.WSM'
+];
+
+async function ensureCompaniesTable() {
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS companies (
+            code TEXT PRIMARY KEY,
+            is_active BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    
+    const checkRes = await pool.query('SELECT COUNT(*) FROM companies');
+    if (parseInt(checkRes.rows[0].count) === 0) {
+        for (const code of DEFAULT_COMPANIES) {
+            await pool.query('INSERT INTO companies (code, is_active) VALUES ($1, true) ON CONFLICT DO NOTHING', [code]);
+        }
+    }
+}
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const companyFilter = searchParams.get('company') || 'Semua';
     const weekFilter = searchParams.get('week') || null;
 
-    const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false }
-    });
-
     try {
-        // 0. Fetch active companies
+        // 0. Ensure table exists and fetch active companies
+        await ensureCompaniesTable();
         const activeRes = await pool.query('SELECT code FROM companies WHERE is_active = true');
-        const activeCodes = activeRes.rows.map(r => r.code);
+        const activeCodes = activeRes.rows.length > 0 
+            ? activeRes.rows.map(r => r.code)
+            : DEFAULT_COMPANIES; // Fallback to all if somehow empty
 
         const companyWhere = companyFilter !== 'Semua' 
             ? `AND p.company_code = $1` 
@@ -26,8 +46,6 @@ export async function GET(request) {
             ? [companyFilter] 
             : [activeCodes];
         
-        const paramIdx = queryParams.length;
-
         // 1. Resolve anchor week start_date from calendar_weeks
         let anchorStartDate = null;
         if (weekFilter) {
@@ -40,9 +58,9 @@ export async function GET(request) {
 
         // 2. Get WEEK_LIMIT weeks of TMAT data ending at/before selected week
         const weekCondition = anchorStartDate
-            ? `AND cw.start_date <= $${queryParams.length + 1}`
+            ? `AND cw.start_date <= $2`
             : '';
-        const weekParams = anchorStartDate ? [...queryParams, anchorStartDate] : queryParams;
+        const weekParams = anchorStartDate ? [queryParams[0], anchorStartDate] : [queryParams[0]];
 
         const weeklyQ = `
             SELECT 
@@ -155,7 +173,5 @@ export async function GET(request) {
     } catch (err) {
         console.error('[Dashboard API Error]', err.message);
         return Response.json({ error: err.message }, { status: 500 });
-    } finally {
-        await pool.end();
     }
 }
