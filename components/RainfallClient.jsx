@@ -10,9 +10,9 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 const COMPANIES = ['Semua', 'PT.THIP', 'PT.PTW', 'PT.SUMS', 'PT.WKN', 'PT.PANPS', 'PT.SAM', 'PT.NJP', 'PT.PLDK', 'PT.SUMK', 'PT.BAS', 'PT.AAN', 'PT.GAN', 'PT.AJP', 'PT.JJP', 'PT.SIP', 'PT.WSM'];
 
-// Helper to generate days from Jan 1, 2025 to today
+// Helper to generate days from Jan 1, 2026 to today
 function generateYearDays() {
-    const start = new Date('2025-01-01');
+    const start = new Date('2026-01-01');
     const end = new Date();
     const days = [];
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
@@ -74,7 +74,7 @@ function CalendarHeatmap({ data, loading }) {
         <div className="glass-card p-6 overflow-x-auto custom-scrollbar">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
                 <div>
-                    <h3 className="text-sm font-bold text-gray-800">Kalender Intensitas Hujan (2025)</h3>
+                    <h3 className="text-sm font-bold text-gray-800">Kalender Intensitas Hujan (2026)</h3>
                     <p className="text-xs text-gray-400 mt-0.5">Rata-rata harian gabungan (Company Wide).</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 font-medium">
