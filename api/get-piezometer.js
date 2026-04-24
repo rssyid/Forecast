@@ -11,12 +11,13 @@ export default async function handler(req, res) {
     const limit = parseInt(lookbackWeeks) || 8;
     
     // Find the latest active weeks available in the database
+    // We take limit + 1 so we have the 'previous week' data for the oldest week in the target range
     const weeksResult = await pool.query(`
         SELECT month_name 
         FROM piezometer_data 
         GROUP BY month_name 
         ORDER BY MAX(date_timestamp) DESC 
-        LIMIT $1
+        LIMIT $1 + 1
     `, [limit]);
 
     if (weeksResult.rows.length === 0) {

@@ -11,7 +11,8 @@ const state = {
     processed: null, 
     charts: { trend: null, dist: null }, 
     lastFetch: { company: '', range: '' },
-    adminKey: ''
+    adminKey: '',
+    selectedModel: 'simple'
 };
 
 // DOM Elements
@@ -40,6 +41,7 @@ const dataSourceTypeEl = document.getElementById("dataSourceType");
 const dbCompanyEl = document.getElementById("dbCompany");
 const dbRangeEl = document.getElementById("dbRange");
 const fetchDbBtnEl = document.getElementById("fetchDbBtn");
+const forecastModelEl = document.getElementById("forecastModel");
 const modeDbUi1El = document.getElementById("modeDbUi1");
 const modeDbUi2El = document.getElementById("modeDbUi2");
 const modeCsvUi1El = document.getElementById("modeCsvUi1");
@@ -142,11 +144,9 @@ if (csvFileEl) {
         }, 500);
     });
 }
-fetchDbBtnEl?.addEventListener("click", () => {
-    const currentCompany = dbCompanyEl?.value || "Semua";
-    const currentRange = dbRangeEl?.value || "4";
     handleFetchFromDB(currentCompany, currentRange);
 });
+forecastModelEl?.addEventListener("change", (e) => { state.selectedModel = e.target.value; });
 processBtnEl.addEventListener("click", handleProcess);
 exportExcelBtnEl.addEventListener("click", handleExportExcel);
 downloadTemplateBtnEl.addEventListener("click", handleDownloadTemplate);
@@ -369,7 +369,7 @@ function runProcessing() {
         if (!isDbMode && (!state.rawRows.length || !state.detectedCols)) throw new Error("Upload CSV terlebih dahulu.");
         if (isDbMode && !state.rawRows.length) throw new Error("Ambil data database terlebih dahulu.");
 
-        const p = processData(state.rawRows, state.detectedCols, getRainfallMapFromInputs(), parseScenarioInput(scenarioInputEl.value), baselineWeekEl.value);
+        const p = processData(state.rawRows, state.detectedCols, getRainfallMapFromInputs(), parseScenarioInput(scenarioInputEl.value), baselineWeekEl.value, state.selectedModel);
         state.processed = p;
         renderModelSummary(p); renderTables(p); renderCharts(p);
         resultsSectionEl.classList.remove("hidden"); exportExcelBtnEl.disabled = false;
@@ -416,47 +416,119 @@ async function handleFetchFromDB(companyCode, lookbackWeeks) {
 }
 
 
-function processData(rawRows, detectedCols, rainfallMap, scenarios, baselineWeek) {
+function processData(rawRows, detectedCols, rainfallMap, scenarios, baselineWeek, modelType = 'simple') {
     const rows = rawRows.map((row) => {
         const tmatValue = toNumber(row[detectedCols.tmat]);
         return { ...row, __TMAT_NUM__: tmatValue, TMAT_Class: classifyTMAT(tmatValue) };
     });
 
     const weeks = getSortedDistinctWeeks(rows, detectedCols.week);
-    const weeklyCounts = {}; rows.forEach(r => { const w = String(r[detectedCols.week] || "").trim(); if (w) { weeklyCounts[w] = weeklyCounts[w] || {}; weeklyCounts[w][r.TMAT_Class] = (weeklyCounts[w][r.TMAT_Class] || 0) + 1; } });
-
-    const weeklyPct = {}, weeklySummaryRecords = [];
-    weeks.forEach((week) => {
-        const counts = ensureAllClasses(weeklyCounts[week] || {});
-        const values = rows.filter(r => String(r[detectedCols.week] || "").trim() === week).map(r => r.__TMAT_NUM__).filter(Number.isFinite);
-        const total = sumValues(counts);
-        weeklyPct[week] = Object.fromEntries(CLASS_ORDER.map(c => [c, total ? (counts[c] / total) * 100 : 0]));
-        const basah = counts["Tergenang (0-40)"] + counts["A Tergenang (41-45)"], kering60 = counts["A Kering (61-65)"] + counts["Kering (>65)"];
-        weeklySummaryRecords.push({ Week: week, "Total Records": total, "Avg TMAT (cm)": mean(values), "Min TMAT (cm)": min(values), "Max TMAT (cm)": max(values), StdDev: stddev(values), "Basah <=45 (count)": basah, "Basah <=45 (%)": total ? (basah / total) * 100 : 0, "Kering >60 (count)": kering60, "Kering >60 (%)": total ? (kering60 / total) * 100 : 0, "Rain (mm)": rainfallMap[week] ?? NaN });
-    });
-
-    const fit = fitRainResponse(weeklySummaryRecords);
     const effectiveBaselineWeek = baselineWeek || weeks[weeks.length - 1];
-    const baselineCounts = ensureAllClasses(weeklyCounts[effectiveBaselineWeek] || {});
+
+    // Helper: Summarize a set of rows into weekly summary (for regression)
+    const getWeeklySummary = (subsetRows) => {
+        const countsByWeek = {};
+        subsetRows.forEach(r => {
+            const w = String(r[detectedCols.week] || "").trim();
+            if (w) {
+                countsByWeek[w] = countsByWeek[w] || {};
+                countsByWeek[w][r.TMAT_Class] = (countsByWeek[w][r.TMAT_Class] || 0) + 1;
+            }
+        });
+        
+        return weeks.map(week => {
+            const counts = ensureAllClasses(countsByWeek[week] || {});
+            const values = subsetRows.filter(r => String(r[detectedCols.week] || "").trim() === week).map(r => r.__TMAT_NUM__).filter(Number.isFinite);
+            const total = sumValues(counts);
+            const basah = (counts["Tergenang (0-40)"] || 0) + (counts["A Tergenang (41-45)"] || 0);
+            const kering60 = (counts["A Kering (61-65)"] || 0) + (counts["Kering (>65)"] || 0);
+            return {
+                Week: week,
+                "Total Records": total,
+                "Avg TMAT (cm)": mean(values),
+                "Rain (mm)": rainfallMap[week] ?? NaN,
+                counts
+            };
+        });
+    };
+
+    let fit, scenarioResults;
+    const allWeeklySummary = getWeeklySummary(rows);
+    const baselineCounts = ensureAllClasses(allWeeklySummary.find(r => r.Week === effectiveBaselineWeek)?.counts || {});
     const baselineTotal = sumValues(baselineCounts);
     const baselinePct = Object.fromEntries(CLASS_ORDER.map(c => [c, baselineTotal ? (baselineCounts[c] / baselineTotal) * 100 : 0]));
-    const baselineAvgTMAT = weeklySummaryRecords.find(r => r.Week === effectiveBaselineWeek)?.["Avg TMAT (cm)"] ?? NaN;
+    const baselineAvgTMAT = allWeeklySummary.find(r => r.Week === effectiveBaselineWeek)?.["Avg TMAT (cm)"] ?? NaN;
 
-    const scenarioResults = scenarios.map((scenarioMm) => {
-        const dAvg = fit.a + fit.b * scenarioMm;
-        const counts = forecastCountsFromBaseline(baselineCounts, dAvg, baselineTotal);
-        const total = sumValues(counts);
-        return { scenarioMm, dAvg, avgNext: baselineAvgTMAT + dAvg, counts, pct: Object.fromEntries(CLASS_ORDER.map(c => [c, total ? (counts[c] / total) * 100 : 0])), summary: summarizeCounts(counts) };
-    });
+    if (modelType === 'estate') {
+        // ESTATE-BASED MODEL
+        const estates = [...new Set(rows.map(r => String(r[detectedCols.estate] || "Unknown").trim()))];
+        const estateModels = estates.map(est => {
+            const estRows = rows.filter(r => String(r[detectedCols.estate] || "").trim() === est);
+            const estWeeklySummary = getWeeklySummary(estRows);
+            const estFit = fitRainResponse(estWeeklySummary, 'simple'); // Estate level use simple rain
+            const estBaseline = ensureAllClasses(estWeeklySummary.find(r => r.Week === effectiveBaselineWeek)?.counts || {});
+            const estBaselineAvg = estWeeklySummary.find(r => r.Week === effectiveBaselineWeek)?.["Avg TMAT (cm)"] ?? NaN;
+            return { est, fit: estFit, baselineCounts: estBaseline, baselineAvg: estBaselineAvg, total: sumValues(estBaseline) };
+        });
+
+        // Aggregated Scenario Results
+        scenarioResults = scenarios.map(scenarioMm => {
+            const aggregatedCounts = {};
+            CLASS_ORDER.forEach(c => aggregatedCounts[c] = 0);
+            let totalDavg = 0, countDavg = 0;
+
+            estateModels.forEach(em => {
+                const dAvg = em.fit.a + em.fit.b * scenarioMm;
+                const shifted = forecastCountsFromBaseline(em.baselineCounts, dAvg, em.total);
+                CLASS_ORDER.forEach(c => aggregatedCounts[c] += shifted[c]);
+                if (em.total > 0) { totalDavg += dAvg; countDavg++; }
+            });
+
+            const finalDavg = countDavg > 0 ? totalDavg / countDavg : 0;
+            const total = sumValues(aggregatedCounts);
+            return { 
+                scenarioMm, 
+                dAvg: finalDavg, 
+                avgNext: baselineAvgTMAT + finalDavg, 
+                counts: aggregatedCounts, 
+                pct: Object.fromEntries(CLASS_ORDER.map(c => [c, total ? (aggregatedCounts[c] / total) * 100 : 0])),
+                summary: summarizeCounts(aggregatedCounts) 
+            };
+        });
+
+        // Representative fit for UI (mean coefficients)
+        const validModels = estateModels.filter(m => m.fit.method === 'fit');
+        fit = {
+            a: mean(validModels.map(m => m.fit.a)) || 0,
+            b: mean(validModels.map(m => m.fit.b)) || -0.05,
+            r2: mean(validModels.map(m => m.fit.r2)) || 0,
+            method: validModels.length > 0 ? 'estate-agg' : 'fallback'
+        };
+
+    } else {
+        // COMPANY-LEVEL MODEL (Simple or Weighted)
+        fit = fitRainResponse(allWeeklySummary, modelType);
+        scenarioResults = scenarios.map((scenarioMm) => {
+            const dAvg = fit.a + fit.b * scenarioMm;
+            const counts = forecastCountsFromBaseline(baselineCounts, dAvg, baselineTotal);
+            const total = sumValues(counts);
+            return { scenarioMm, dAvg, avgNext: baselineAvgTMAT + dAvg, counts, pct: Object.fromEntries(CLASS_ORDER.map(c => [c, total ? (counts[c] / total) * 100 : 0])), summary: summarizeCounts(counts) };
+        });
+    }
 
     const forecastRows = CLASS_ORDER.map(c => { const r = { "Kelas TMAT": c, "Baseline Count": baselineCounts[c], "Baseline %": baselinePct[c] }; scenarioResults.forEach(res => { r[`CH${res.scenarioMm} Count`] = res.counts[c]; r[`CH${res.scenarioMm} %`] = res.pct[c]; }); return r; });
-
     const bSum = summarizeCounts(baselineCounts);
     const forecastSummaryRows = [{ Metric: "Basah <=45 Count", Baseline: bSum["Basah <=45 Count"] }, { Metric: "Basah <=45 %", Baseline: bSum["Basah <=45 %"] }, { Metric: "Kering >60 Count", Baseline: bSum["Kering >60 Count"] }, { Metric: "Kering >60 %", Baseline: bSum["Kering >60 %"] }, { Metric: "Total", Baseline: bSum.Total }];
     scenarioResults.forEach(res => { forecastSummaryRows[0][`CH${res.scenarioMm}`] = res.summary["Basah <=45 Count"]; forecastSummaryRows[1][`CH${res.scenarioMm}`] = res.summary["Basah <=45 %"]; forecastSummaryRows[2][`CH${res.scenarioMm}`] = res.summary["Kering >60 Count"]; forecastSummaryRows[3][`CH${res.scenarioMm}`] = res.summary["Kering >60 %"]; forecastSummaryRows[4][`CH${res.scenarioMm}`] = res.summary.Total; });
 
-    return { rawRows: rows, detectedCols, weeks, rainfallMap, scenarios, baselineWeek: effectiveBaselineWeek, weeklyCounts, weeklyPct, weeklySummaryRecords, fit, baselineCounts, baselinePct, baselineTotal, baselineAvgTMAT, scenarioResults, forecastRows, forecastSummaryRows };
+    return { 
+        rawRows: rows, detectedCols, weeks, rainfallMap, scenarios, 
+        baselineWeek: effectiveBaselineWeek, 
+        weeklySummaryRecords: allWeeklySummary.map(s => ({ ...s, "Avg TMAT (cm)": s["Avg TMAT (cm)"], "Rain (mm)": s["Rain (mm)"] })), 
+        fit, baselineCounts, baselinePct, baselineTotal, baselineAvgTMAT, scenarioResults, forecastRows, forecastSummaryRows 
+    };
 }
+
 
 function ensureAllClasses(counts) { const out = {}; CLASS_ORDER.forEach(c => out[c] = Number(counts[c] || 0)); return out; }
 function classifyTMAT(val) { if (!Number.isFinite(val)) return "No Data"; if (val < 0) return "Banjir (<0)"; if (val <= 40) return "Tergenang (0-40)"; if (val <= 45) return "A Tergenang (41-45)"; if (val <= 60) return "Normal (46-60)"; if (val <= 65) return "A Kering (61-65)"; return "Kering (>65)"; }
@@ -466,15 +538,32 @@ function min(arr) { return arr.length ? Math.min(...arr) : NaN; }
 function max(arr) { return arr.length ? Math.max(...arr) : NaN; }
 function stddev(arr) { if (arr.length < 2) return NaN; const m = mean(arr); return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / (arr.length - 1)); }
 
-function fitRainResponse(records) {
+function fitRainResponse(records, modelType = 'simple') {
     const lastN = records.slice(-4); 
     const fitRows = [];
+    
     for (let i = 1; i < lastN.length; i++) { 
-        if (Number.isFinite(lastN[i - 1]["Avg TMAT (cm)"]) && Number.isFinite(lastN[i]["Avg TMAT (cm)"]) && Number.isFinite(lastN[i]["Rain (mm)"])) {
-            fitRows.push({ 
-                x: lastN[i]["Rain (mm)"], 
-                y: lastN[i]["Avg TMAT (cm)"] - lastN[i - 1]["Avg TMAT (cm)"] 
-            }); 
+        const currentTmat = lastN[i]["Avg TMAT (cm)"];
+        const prevTmat = lastN[i - 1]["Avg TMAT (cm)"];
+        const currentRain = lastN[i]["Rain (mm)"];
+        
+        if (Number.isFinite(currentTmat) && Number.isFinite(prevTmat)) {
+            let xValue = currentRain;
+            
+            if (modelType === 'weighted') {
+                const prevRain = lastN[i-1]["Rain (mm)"];
+                if (Number.isFinite(prevRain)) {
+                    // Weighted Lag: 70% current week, 30% previous week
+                    xValue = (0.7 * currentRain) + (0.3 * prevRain);
+                }
+            }
+
+            if (Number.isFinite(xValue)) {
+                fitRows.push({ 
+                    x: xValue, 
+                    y: currentTmat - prevTmat 
+                }); 
+            }
         }
     }
 
@@ -493,25 +582,20 @@ function fitRainResponse(records) {
             const tempB = (n * sumXY - sumX * sumY) / denom;
             const tempA = (sumY - tempB * sumX) / n;
             
-            // Calculate R2
             const numR = (n * sumXY - sumX * sumY);
             const denR = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
             const tempR2 = denR !== 0 ? Math.pow(numR / denR, 2) : 0;
 
-            // Sanity check for peatland hydrology: b must be negative (rain makes it wetter)
-            // If b is positive, it's likely noise, use fallback or cap it.
             if (tempB < 0) {
                 a = tempA;
-                b = Math.max(tempB, -0.8); // Cap b to -0.8 (extreme response)
+                b = Math.max(tempB, -0.8);
                 r2 = tempR2;
                 method = "fit";
             }
         }
     }
 
-    // Double sanity check for 'a' (natural drop): should usually be positive 
-    // unless the estate is actively flooding from groundwater rise.
-    return { a, b: Math.min(b, -0.001), r2, fitRows, method };
+    return { a, b: Math.min(b, -0.001), r2, fitRows, method, modelType };
 }
 
 function forecastCountsFromBaseline(counts, dAvg, total) {
@@ -548,20 +632,24 @@ function toNumber(v) { if (v == null) return NaN; if (typeof v === "number") ret
 
 // Rendering UI Shadcn Tables
 function renderModelSummary(p) {
-    const accuracy = p.fit.method === 'fit' ? Math.round(p.fit.r2 * 100) : 0;
-    const accuracyLabel = p.fit.method === 'fit' ? `${accuracy}%` : 'Low (N/A)';
+    let methodLabel = "Linear";
+    if (p.fit.method === 'estate-agg') methodLabel = "Estate-Based (Agg)";
+    else if (p.fit.modelType === 'weighted') methodLabel = "Weighted Lag";
+
+    const accuracy = Math.round(p.fit.r2 * 100);
+    const accuracyLabel = p.fit.method === 'fallback' ? 'Low (Fallback)' : `${accuracy}%`;
 
     modelSummaryEl.innerHTML = [
+        ["Metode", methodLabel],
         ["Baseline Week", p.baselineWeek], 
-        ["Baseline Avg TMAT", formatNumber(p.baselineAvgTMAT, 2)], 
-        ["Koefisien a", formatNumber(p.fit.a, 3)], 
-        ["Koefisien b", formatNumber(p.fit.b, 4)], 
+        ["Koefisien a (Avg)", formatNumber(p.fit.a, 3)], 
+        ["Koefisien b (Avg)", formatNumber(p.fit.b, 4)], 
         ["Akurasi (R²)", accuracyLabel]
     ]
         .map(([l, v]) => `
           <div class="flex flex-col gap-1 p-4 rounded-xl border bg-muted/50">
             <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">${escapeHtml(l)}</span>
-            <span class="text-xl font-bold ${l.includes('R²') && accuracy < 50 ? 'text-yellow-600' : ''}">${escapeHtml(String(v))}</span>
+            <span class="text-xl font-bold ${l.includes('R²') && accuracy < 50 && p.fit.method !== 'fallback' ? 'text-yellow-600' : ''}">${escapeHtml(String(v))}</span>
           </div>`).join("");
 }
 
