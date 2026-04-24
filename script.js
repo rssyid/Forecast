@@ -32,6 +32,7 @@ const forecastSummaryWrapEl = document.getElementById("forecastSummaryWrap");
 const modelSummaryEl = document.getElementById("modelSummary");
 const downloadTemplateBtnEl = document.getElementById("downloadTemplateBtn");
 const syncPiezometerBtnEl = document.getElementById("syncPiezometerBtn");
+const syncRainfallBtnEl = document.getElementById("syncRainfallBtn");
 const syncStatusTextEl = document.getElementById("syncStatusText");
 
 // DB Mode Elements
@@ -150,6 +151,7 @@ processBtnEl.addEventListener("click", handleProcess);
 exportExcelBtnEl.addEventListener("click", handleExportExcel);
 downloadTemplateBtnEl.addEventListener("click", handleDownloadTemplate);
 syncPiezometerBtnEl?.addEventListener("click", handleSyncPiezometer);
+syncRainfallBtnEl?.addEventListener("click", handleSyncRainfall);
 generateAiBtnEl?.addEventListener("click", handleGenerateAIReport);
 translateBtnEl?.addEventListener("click", handleTranslateReport);
 
@@ -979,11 +981,47 @@ async function handleSyncPiezometer() {
         syncPiezometerBtnEl.disabled = false;
         syncPiezometerBtnEl.classList.remove("opacity-50", "pointer-events-none");
         syncPiezometerBtnEl.querySelector("svg")?.classList.remove("animate-spin");
-        setTimeout(() => {
-            syncStatusTextEl.classList.add("hidden");
-            syncStatusTextEl.classList.remove("text-green-600", "text-red-500");
-            syncStatusTextEl.textContent = "";
         }, 8000);
+    }
+}
+
+async function handleSyncRainfall() {
+    const adminKey = getAdminKey();
+    if (!adminKey) return;
+
+    syncRainfallBtnEl.disabled = true;
+    syncRainfallBtnEl.querySelector("svg").classList.add("animate-spin");
+    syncStatusTextEl.classList.remove("hidden");
+    syncStatusTextEl.textContent = "⌛ Syncing Rainfall (Last 4 weeks)...";
+
+    try {
+        const response = await fetch('/api/sync-rainfall', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-admin-key': adminKey
+            }
+        });
+
+        if (response.status === 401) {
+            state.adminKey = '';
+            throw new Error("Admin Key salah atau tidak valid.");
+        }
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Gagal sinkronisasi curah hujan.");
+
+        syncStatusTextEl.textContent = `✅ Rainfall Sync sukses! (${data.inserted} dpt).`;
+        setTimeout(() => syncStatusTextEl.classList.add("hidden"), 5000);
+        await showModal("Sukses", `Berhasil sinkronisasi ${data.inserted} data curah hujan harian.`, true);
+
+    } catch (error) {
+        console.error(error);
+        syncStatusTextEl.textContent = "❌ Sync Rainfall Gagal.";
+        await showModal("Error", error.message, true);
+    } finally {
+        syncRainfallBtnEl.disabled = false;
+        syncRainfallBtnEl.querySelector("svg").classList.remove("animate-spin");
     }
 }
 
