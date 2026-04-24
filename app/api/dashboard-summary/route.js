@@ -4,29 +4,6 @@ import { NextResponse } from 'next/server';
 
 const WEEK_LIMIT = 8;
 
-const DEFAULT_COMPANIES = [
-    'PT.THIP', 'PT.PTW', 'PT.SUMS', 'PT.WKN', 'PT.PANPS', 
-    'PT.SAM', 'PT.NJP', 'PT.PLDK', 'PT.SUMK', 'PT.BAS', 
-    'PT.AAN', 'PT.GAN', 'PT.AJP', 'PT.JJP', 'PT.SIP', 'PT.WSM'
-];
-
-async function ensureCompaniesTable(pool) {
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS companies (
-            code TEXT PRIMARY KEY,
-            is_active BOOLEAN DEFAULT true,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-    
-    const checkRes = await pool.query('SELECT COUNT(*) FROM companies');
-    if (parseInt(checkRes.rows[0].count) === 0) {
-        for (const code of DEFAULT_COMPANIES) {
-            await pool.query('INSERT INTO companies (code, is_active) VALUES ($1, true) ON CONFLICT DO NOTHING', [code]);
-        }
-    }
-}
-
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const companyFilter = searchParams.get('company') || 'Semua';
@@ -38,12 +15,12 @@ export async function GET(request) {
     });
 
     try {
-        // 0. Ensure table exists and fetch active companies
-        await ensureCompaniesTable(pool);
-        const activeRes = await pool.query('SELECT code FROM companies WHERE is_active = true');
+        // 0. Fetch active companies
+        const activeRes = await pool.query('SELECT code FROM companies WHERE "isActive" = true');
         const activeCodes = activeRes.rows.length > 0 
             ? activeRes.rows.map(r => r.code)
-            : DEFAULT_COMPANIES; // Fallback to all if somehow empty
+            : ['PT.THIP', 'PT.PTW', 'PT.SUMS', 'PT.WKN', 'PT.PANPS', 'PT.SAM', 'PT.NJP', 'PT.PLDK', 'PT.SUMK', 'PT.BAS', 'PT.AAN', 'PT.GAN', 'PT.AJP', 'PT.JJP', 'PT.SIP', 'PT.WSM']; // Fallback
+
 
         const companyWhere = companyFilter !== 'Semua' 
             ? `AND p.company_code = $1` 

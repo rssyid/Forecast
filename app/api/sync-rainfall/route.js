@@ -22,12 +22,12 @@ export async function POST(request) {
     // Determine target companies (only active ones)
     let targetCompanies = COMPANIES;
     try {
-        const activeRes = await pool.query('SELECT code FROM companies WHERE is_active = true');
+        const activeRes = await pool.query('SELECT code FROM companies WHERE "isActive" = true');
         if (activeRes.rows.length > 0) {
             targetCompanies = activeRes.rows.map(r => r.code);
         }
     } catch (e) {
-        console.warn('Companies table not found or error, using default list.');
+        console.warn('Companies table not found or error, using default list.', e.message);
     }
 
     let body = {};
