@@ -14,8 +14,19 @@ export async function GET(request) {
     });
 
     try {
-        const companyWhere = companyFilter !== 'Semua' ? `AND p.company_code = $1` : '';
-        const queryParams = companyFilter !== 'Semua' ? [companyFilter] : [];
+        // 0. Fetch active companies
+        const activeRes = await pool.query('SELECT code FROM companies WHERE is_active = true');
+        const activeCodes = activeRes.rows.map(r => r.code);
+
+        const companyWhere = companyFilter !== 'Semua' 
+            ? `AND p.company_code = $1` 
+            : `AND p.company_code = ANY($1)`;
+        
+        const queryParams = companyFilter !== 'Semua' 
+            ? [companyFilter] 
+            : [activeCodes];
+        
+        const paramIdx = queryParams.length;
 
         // 1. Resolve anchor week start_date from calendar_weeks
         let anchorStartDate = null;
@@ -63,7 +74,7 @@ export async function GET(request) {
         const selectedWeekName = currentWeek?.week || null;
         let estateBreakdown = [];
         if (selectedWeekName) {
-            const estP = companyFilter !== 'Semua' ? [companyFilter, selectedWeekName] : [selectedWeekName];
+            const estateWhere = companyFilter !== 'Semua' ? 'AND p.company_code = $1' : 'AND p.company_code = ANY($1)';
             const estateRes = await pool.query(`
                 SELECT 
                     p.est_code AS estate, p.company_code AS company,
@@ -72,12 +83,12 @@ export async function GET(request) {
                     SUM(CASE WHEN p.ketinggian <= 45 THEN 1 ELSE 0 END)::int AS cnt_basah,
                     ROUND(AVG(p.ketinggian)::numeric, 1) AS avg_tmat
                 FROM piezometer_data p
-                WHERE p.month_name = $${companyFilter !== 'Semua' ? 2 : 1}
-                ${companyFilter !== 'Semua' ? 'AND p.company_code = $1' : ''}
+                WHERE p.month_name = $2
+                ${estateWhere}
                 GROUP BY p.est_code, p.company_code
                 ORDER BY cnt_kering DESC
                 LIMIT 10
-            `, estP);
+            `, [queryParams[0], selectedWeekName]);
             estateBreakdown = estateRes.rows;
         }
 
@@ -87,11 +98,7 @@ export async function GET(request) {
         let rainfallData = [];
 
         if (rainStart && rainEnd) {
-            const rainCompanyWhere = companyFilter !== 'Semua' ? 'AND r.company_code = $3' : '';
-            const rainParams = companyFilter !== 'Semua'
-                ? [rainStart, rainEnd, companyFilter]
-                : [rainStart, rainEnd];
-
+            const rainWhere = companyFilter !== 'Semua' ? 'AND r.company_code = $1' : 'AND r.company_code = ANY($1)';
             const rainRes = await pool.query(`
                 SELECT 
                     r.est_code, r.company_code,
@@ -102,41 +109,39 @@ export async function GET(request) {
                     MIN(r.record_date)::text AS week_start,
                     MAX(r.record_date)::text AS week_end
                 FROM daily_rainfall r
-                WHERE r.record_date BETWEEN $1 AND $2 ${rainCompanyWhere}
+                WHERE r.record_date BETWEEN $2 AND $3 ${rainWhere}
                 GROUP BY r.est_code, r.company_code
                 ORDER BY total_mm DESC
                 LIMIT 10
-            `, rainParams);
+            `, [queryParams[0], rainStart, rainEnd]);
             rainfallData = rainRes.rows;
         }
 
         // 5. Last Rain Analysis (Real-time: Days since last rain relative to TODAY)
         let lastRainData = [];
-        const lastRainCompanyWhere = companyFilter !== 'Semua' ? 'AND r.company_code = $1' : '';
-        const lastRainParams = companyFilter !== 'Semua' ? [companyFilter] : [];
-
+        const lastRainWhere = companyFilter !== 'Semua' ? 'WHERE r.company_code = $1' : 'WHERE r.company_code = ANY($1)';
         const lastRainRes = await pool.query(`
             SELECT 
                 r.est_code, r.company_code,
                 MAX(r.record_date)::text AS last_rain_date,
                 (CURRENT_DATE - MAX(r.record_date)::date)::int AS days_since_rain
             FROM daily_rainfall r
-            WHERE r.rainfall_mm > 0 
-            ${lastRainCompanyWhere}
+            ${lastRainWhere} AND r.rainfall_mm > 0 
             GROUP BY r.est_code, r.company_code
             ORDER BY days_since_rain DESC
             LIMIT 10
-        `, lastRainParams);
+        `, [queryParams[0]]);
         lastRainData = lastRainRes.rows;
 
         // 6. DB sync status
+        const syncWhere = companyFilter !== 'Semua' ? 'WHERE company_code = $1' : 'WHERE company_code = ANY($1)';
         const syncRes = await pool.query(`
             SELECT COUNT(*)::int AS total_records,
                    COUNT(DISTINCT company_code)::int AS total_companies,
                    COUNT(DISTINCT est_code)::int AS total_estates
             FROM piezometer_data
-            ${companyFilter !== 'Semua' ? 'WHERE company_code = $1' : ''}
-        `, companyFilter !== 'Semua' ? [companyFilter] : []);
+            ${syncWhere}
+        `, [queryParams[0]]);
         const syncInfo = syncRes.rows[0];
 
         return Response.json({
