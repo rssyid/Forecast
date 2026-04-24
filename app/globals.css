@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-green: #B6FA82;
+  --color-brand-orange: #FB6D39;
+  --color-brand-dark: #000000;
+  --color-brand-light: #EFEDEE;
+  
+  --font-sans: 'Inter', 'Helvetica Neue', sans-serif;
+}
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-color: var(--color-brand-light);
+    font-family: var(--font-sans);
+  }
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+}
+
+.glass-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 100%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border-radius: var(--radius);
+}
+
+/* Gradients for specific cards */
+.bg-gradient-green {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(182, 250, 130, 0.15) 100%);
+}
+
+.bg-gradient-orange {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(251, 109, 57, 0.1) 100%);
+}
+
+.brand-bg-green {
+  background-color: var(--color-brand-green);
+}
+
+.brand-bg-orange {
+  background-color: var(--color-brand-orange);
+}
+
+.brand-bg-dark {
+  background-color: var(--color-brand-dark);
+}

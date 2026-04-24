@@ -3,13 +3,22 @@
     "version": "1.0.0",
     "type": "module",
     "scripts": {
-        "dev": "node server.js",
-        "build:css": "npx @tailwindcss/cli -i ./style.css -o ./output.css --minify"
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint"
     },
     "dependencies": {
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
         "dotenv": "^17.4.2",
+        "lucide-react": "^1.9.0",
+        "next": "^16.2.4",
         "openai": "latest",
-        "pg": "^8.20.0"
+        "pg": "^8.20.0",
+        "react": "^19.2.5",
+        "react-dom": "^19.2.5",
+        "tailwind-merge": "^3.5.0"
     },
     "devDependencies": {
         "@tailwindcss/cli": "^4.2.2",
