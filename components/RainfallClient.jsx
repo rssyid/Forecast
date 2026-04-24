@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { CloudRain, Building2, CalendarDays, RefreshCw, AlertTriangle, TrendingUp, Map, Filter } from 'lucide-react';
+import { CloudRain, Building2, CalendarDays, RefreshCw, AlertTriangle, TrendingUp, Map, Filter, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler, LineController, BarController } from 'chart.js';
 import { Line } from 'react-chartjs-2';
@@ -132,7 +132,6 @@ function CalendarHeatmap({ yearTrend, loading, onEstateChange, selectedEstate, e
 
 export default function RainfallClient() {
     const [company, setCompany] = useState('Semua');
-    
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
         d.setDate(d.getDate() - 30);
@@ -141,10 +140,12 @@ export default function RainfallClient() {
     const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [showDatePicker, setShowDatePicker] = useState(false);
 
-    // Pagination
+    // Table States
     const [currentPage, setCurrentPage] = useState(1);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState({ key: 'total_mm', direction: 'desc' });
 
-    // Heatmap Local Filter (Estate only, Company follows Global)
+    // Heatmap Local Filter
     const [heatmapEstate, setHeatmapEstate] = useState('Semua');
 
     const [loading, setLoading] = useState(true);
@@ -159,7 +160,7 @@ export default function RainfallClient() {
                 company: selectedCompany,
                 start: start,
                 end: end,
-                hmCompany: selectedCompany, // Always use global company for heatmap too
+                hmCompany: selectedCompany,
                 hmEstate: hmEstate
             });
             const res = await fetch(`/api/rainfall-history?${params}`);
@@ -177,18 +178,44 @@ export default function RainfallClient() {
         fetchData(company, startDate, endDate, heatmapEstate);
     }, [company, startDate, endDate, heatmapEstate, fetchData]);
 
-    // Reset heatmap estate and pagination when global company changes
     useEffect(() => {
         setHeatmapEstate('Semua');
         setCurrentPage(1);
+        setSearchTerm('');
     }, [company]);
 
-    // Extract estates for heatmap filter - Filtered by global company
     const availableEstates = useMemo(() => {
         if (!data?.summary) return [];
-        // If global company is not 'Semua', the data.summary already contains only those estates
         return [...new Set(data.summary.map(r => r.est_code))].sort();
     }, [data]);
+
+    // Filtered and Sorted Table Data
+    const filteredAndSortedData = useMemo(() => {
+        if (!data?.summary) return [];
+        
+        let processed = data.summary.filter(r => 
+            r.est_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            r.company_code.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        if (sortConfig.key) {
+            processed.sort((a, b) => {
+                const aVal = parseFloat(a[sortConfig.key]) || 0;
+                const bVal = parseFloat(b[sortConfig.key]) || 0;
+                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return processed;
+    }, [data, searchTerm, sortConfig]);
+
+    const handleSort = (key) => {
+        setSortConfig(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+        }));
+    };
 
     const trendData = data?.trend ? {
         labels: data.trend.map(t => {
@@ -206,7 +233,7 @@ export default function RainfallClient() {
         }]
     } : null;
 
-    const sortedRainDays = data?.summary ? [...data.summary].sort((a, b) => b.hari_hujan - a.hari_hujan) : [];
+    const sortedRainDaysSummary = data?.summary ? [...data.summary].sort((a, b) => b.hari_hujan - a.hari_hujan) : [];
 
     return (
         <div className="space-y-6">
@@ -323,7 +350,7 @@ export default function RainfallClient() {
                 />
             </div>
 
-            {/* Calendar Heatmap (Independent with Local Filters) */}
+            {/* Calendar Heatmap */}
             <CalendarHeatmap 
                 yearTrend={data?.yearTrend} 
                 loading={loading} 
@@ -364,9 +391,9 @@ export default function RainfallClient() {
                             <div className="h-48 flex items-center justify-center">
                                 <RefreshCw className="animate-spin text-gray-200" size={32} />
                             </div>
-                        ) : sortedRainDays.length > 0 ? (
+                        ) : sortedRainDaysSummary.length > 0 ? (
                             <div className="space-y-4">
-                                {sortedRainDays.map((r, i) => (
+                                {sortedRainDaysSummary.map((r, i) => (
                                     <div key={i} className="space-y-1">
                                         <div className="flex justify-between text-[11px] font-semibold text-gray-600">
                                             <span>{r.est_code}</span>
@@ -388,38 +415,83 @@ export default function RainfallClient() {
 
             {/* Estate Detail Table */}
             <div className="glass-card overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gray-50/30 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-gray-800">Detail Curah Hujan per Estate</h3>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase">Total: {data?.summary?.length || 0} Estate</div>
+                <div className="p-6 border-b border-gray-100 bg-gray-50/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-800">Detail Curah Hujan per Estate</h3>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Total: {filteredAndSortedData.length} Estate</p>
+                    </div>
+                    
+                    {/* Search / Typeahead */}
+                    <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                        <input 
+                            type="text" 
+                            value={searchTerm}
+                            onChange={e => {
+                                setSearchTerm(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            placeholder="Cari Estate atau PT..."
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:border-blue-400 transition-all shadow-sm"
+                        />
+                    </div>
                 </div>
+
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="text-xs text-gray-500 uppercase bg-gray-50">
+                        <thead className="text-[10px] text-gray-500 uppercase bg-gray-50 font-black">
                             <tr>
-                                <th className="px-6 py-3">Estate</th>
-                                <th className="px-6 py-3">Company</th>
-                                <th className="px-6 py-3 text-right">Total (mm)</th>
-                                <th className="px-6 py-3 text-right">Hari Hujan</th>
-                                <th className="px-6 py-3 text-right">Rata-rata Harian</th>
+                                <th className="px-6 py-4">Estate</th>
+                                <th className="px-6 py-4">Company</th>
+                                <th 
+                                    className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                                    onClick={() => handleSort('total_mm')}
+                                >
+                                    <div className="flex items-center justify-end gap-1">
+                                        Total (mm)
+                                        {sortConfig.key === 'total_mm' && (sortConfig.direction === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />)}
+                                    </div>
+                                </th>
+                                <th 
+                                    className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                                    onClick={() => handleSort('hari_hujan')}
+                                >
+                                    <div className="flex items-center justify-end gap-1">
+                                        Hari Hujan
+                                        {sortConfig.key === 'hari_hujan' && (sortConfig.direction === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />)}
+                                    </div>
+                                </th>
+                                <th 
+                                    className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                                    onClick={() => handleSort('avg_daily_mm')}
+                                >
+                                    <div className="flex items-center justify-end gap-1">
+                                        Rata-rata Harian
+                                        {sortConfig.key === 'avg_daily_mm' && (sortConfig.direction === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />)}
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white">
-                            {data?.summary?.slice((currentPage - 1) * 5, currentPage * 5).map((r, i) => (
-                                <tr key={i} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 font-semibold text-gray-900">{r.est_code}</td>
-                                    <td className="px-6 py-4 text-gray-500 text-xs">{r.company_code}</td>
-                                    <td className="px-6 py-4 text-right font-medium text-blue-600">{r.total_mm} mm</td>
+                            {filteredAndSortedData.slice((currentPage - 1) * 5, currentPage * 5).map((r, i) => (
+                                <tr key={i} className="hover:bg-gray-50 transition-colors group">
+                                    <td className="px-6 py-4 font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{r.est_code}</td>
+                                    <td className="px-6 py-4 text-gray-500 text-[10px] font-bold">{r.company_code}</td>
+                                    <td className="px-6 py-4 text-right font-black text-blue-600 bg-blue-50/30">{r.total_mm} mm</td>
                                     <td className="px-6 py-4 text-right">
-                                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold">
+                                        <span className="px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-[10px] font-black uppercase">
                                             {r.hari_hujan} Hari
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-right text-gray-500">{r.avg_daily_mm} mm/hari</td>
+                                    <td className="px-6 py-4 text-right text-gray-500 font-medium">{r.avg_daily_mm} mm/hari</td>
                                 </tr>
                             ))}
-                            {(!data?.summary || data.summary.length === 0) && (
+                            {filteredAndSortedData.length === 0 && (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-10 text-center text-gray-400 italic">Data tidak ditemukan</td>
+                                    <td colSpan="5" className="px-6 py-12 text-center">
+                                        <Search className="mx-auto text-gray-200 mb-2" size={32} />
+                                        <p className="text-gray-400 text-xs italic">Data tidak ditemukan untuk pencarian "{searchTerm}"</p>
+                                    </td>
                                 </tr>
                             )}
                         </tbody>
@@ -427,23 +499,23 @@ export default function RainfallClient() {
                 </div>
 
                 {/* Pagination Controls */}
-                {data?.summary?.length > 5 && (
+                {filteredAndSortedData.length > 5 && (
                     <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
                         <div className="text-[10px] font-bold text-gray-400 uppercase">
-                            Halaman {currentPage} dari {Math.ceil(data.summary.length / 5)}
+                            Halaman {currentPage} dari {Math.ceil(filteredAndSortedData.length / 5)}
                         </div>
                         <div className="flex items-center gap-2">
                             <button 
                                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                 disabled={currentPage === 1}
-                                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 transition-all"
+                                className="px-3 py-2 text-[10px] font-black uppercase rounded-xl border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 transition-all shadow-sm"
                             >
                                 Sebelumnya
                             </button>
                             <button 
-                                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(data.summary.length / 5), prev + 1))}
-                                disabled={currentPage === Math.ceil(data.summary.length / 5)}
-                                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 transition-all"
+                                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredAndSortedData.length / 5), prev + 1))}
+                                disabled={currentPage === Math.ceil(filteredAndSortedData.length / 5)}
+                                className="px-3 py-2 text-[10px] font-black uppercase rounded-xl border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 transition-all shadow-sm"
                             >
                                 Berikutnya
                             </button>
