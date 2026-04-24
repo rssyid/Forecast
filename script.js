@@ -981,6 +981,10 @@ async function handleSyncPiezometer() {
         syncPiezometerBtnEl.disabled = false;
         syncPiezometerBtnEl.classList.remove("opacity-50", "pointer-events-none");
         syncPiezometerBtnEl.querySelector("svg")?.classList.remove("animate-spin");
+        setTimeout(() => {
+            syncStatusTextEl.classList.add("hidden");
+            syncStatusTextEl.classList.remove("text-green-600", "text-red-500");
+            syncStatusTextEl.textContent = "";
         }, 8000);
     }
 }
