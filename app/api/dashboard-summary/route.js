@@ -1,4 +1,5 @@
 import pool from '../../../lib/db.js';
+import { NextResponse } from 'next/server';
 
 const WEEK_LIMIT = 8;
 
@@ -162,7 +163,7 @@ export async function GET(request) {
         `, [queryParams[0]]);
         const syncInfo = syncRes.rows[0];
 
-        return Response.json({
+        return NextResponse.json({
             weeklyData, currentWeek, prevWeek,
             estateBreakdown, rainfallData, lastRainData,
             rainfallWeekStart: rainStart, rainfallWeekEnd: rainEnd,
@@ -171,7 +172,7 @@ export async function GET(request) {
         });
 
     } catch (err) {
-        console.error('[Dashboard API Error]', err.message);
-        return Response.json({ error: err.message }, { status: 500 });
+        console.error('[Dashboard API Error]', err.message, err.stack);
+        return NextResponse.json({ error: err.message, stack: err.stack }, { status: 500 });
     }
 }
