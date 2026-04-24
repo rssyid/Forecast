@@ -112,7 +112,7 @@ export async function GET(request) {
 
         // 5. Last Rain Analysis (Real-time: Days since last rain relative to TODAY)
         let lastRainData = [];
-        const lastRainCompanyWhere = companyFilter !== 'Semua' ? 'WHERE r.company_code = $1' : '';
+        const lastRainCompanyWhere = companyFilter !== 'Semua' ? 'AND r.company_code = $1' : '';
         const lastRainParams = companyFilter !== 'Semua' ? [companyFilter] : [];
 
         const lastRainRes = await pool.query(`
