@@ -25,6 +25,7 @@ export default async function handler(req, res) {
 
     const targetWeeks = weeksResult.rows.map(r => r.month_name);
 
+    // 1. Fetch Piezometer Data
     let dataQuery = `
       SELECT data_taken, est_code, block, pie_record_id, ketinggian, 
              indicator_name, indicator_alias, month_name, date_timestamp, 
@@ -33,17 +34,42 @@ export default async function handler(req, res) {
       WHERE month_name = ANY($1)
     `;
     let params = [targetWeeks];
-
     if (companyCode && companyCode !== 'Semua') {
        dataQuery += ` AND company_code = $2`;
        params.push(companyCode);
     }
-    
     const dataResult = await pool.query(dataQuery, params);
+
+    // 2. Fetch Average Rainfall per Week
+    // We join daily_rainfall with calendar_weeks based on date range
+    let rainfallQuery = `
+        SELECT 
+            cw.formatted_name as week,
+            AVG(dr.rainfall_mm) as avg_rainfall
+        FROM daily_rainfall dr
+        JOIN calendar_weeks cw ON dr.record_date >= cw.start_date AND dr.record_date <= cw.end_date
+        WHERE cw.formatted_name = ANY($1)
+    `;
+    let rainParams = [targetWeeks];
+    
+    if (companyCode && companyCode !== 'Semua') {
+        rainfallQuery += ` AND dr.company_code = $2`;
+        rainParams.push(companyCode);
+    }
+    
+    rainfallQuery += ` GROUP BY cw.formatted_name`;
+    const rainResult = await pool.query(rainfallQuery, rainParams);
+
+    // Map rainfall to object for easier lookup
+    const rainfallMap = {};
+    rainResult.rows.forEach(r => {
+        rainfallMap[r.week] = parseFloat(r.avg_rainfall) || 0;
+    });
 
     res.status(200).json({ 
         data: dataResult.rows, 
-        weeks: targetWeeks 
+        weeks: targetWeeks,
+        rainfall: rainfallMap
     });
 
   } catch (err) {

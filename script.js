@@ -338,9 +338,12 @@ function renderBaselineOptions(weeks) {
     baselineWeekEl.disabled = !weeks.length;
 }
 
-function renderRainfallInputs(weeks) {
+function renderRainfallInputs(weeks, rainfallMap = {}) {
     if (!weeks.length) { rainfallTableWrapEl.innerHTML = '<div class="p-6 text-sm text-muted-foreground italic">Week Name tidak ditemukan.</div>'; return; }
-    const rows = weeks.map((week) => `<tr class="border-b transition-colors hover:bg-muted/50"><td class="p-4 align-middle font-medium">${escapeHtml(week)}</td><td class="p-4 align-middle"><input type="number" class="rain-input flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" step="any" data-week="${escapeHtmlAttr(week)}" placeholder="0" /></td></tr>`).join("");
+    const rows = weeks.map((week) => {
+        const val = rainfallMap[week] !== undefined ? rainfallMap[week].toFixed(2) : "";
+        return `<tr class="border-b transition-colors hover:bg-muted/50"><td class="p-4 align-middle font-medium">${escapeHtml(week)}</td><td class="p-4 align-middle"><input type="number" class="rain-input flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" step="any" data-week="${escapeHtmlAttr(week)}" placeholder="0" value="${val}" /></td></tr>`;
+    }).join("");
     rainfallTableWrapEl.innerHTML = `<table class="w-full caption-bottom text-sm"><thead class="[&_tr]:border-b"><tr class="border-b transition-colors hover:bg-muted/50"><th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">Week Name</th><th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">Rainfall (mm)</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
@@ -385,7 +388,7 @@ async function handleFetchFromDB(companyCode, lookbackWeeks) {
         const params = new URLSearchParams({ companyCode, lookbackWeeks });
         const res = await fetch(`/api/get-piezometer?${params}`);
         if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-        const { data } = await res.json();
+        const { data, rainfall } = await res.json();
 
         if (!data || data.length === 0) throw new Error(`Tidak ada data untuk company "${companyCode}".`);
 
@@ -397,7 +400,7 @@ async function handleFetchFromDB(companyCode, lookbackWeeks) {
         state.lastFetch = { company: companyCode, range: lookbackWeeks };
 
         if (mappingSummaryEl) renderColumnMapping(DB_COL_MAP, Object.values(DB_COL_MAP));
-        renderRainfallInputs(state.weeks);
+        renderRainfallInputs(state.weeks, rainfall || {});
         renderBaselineOptions(state.weeks);
 
         // Tampilkan input rainfall dan aktifkan tombol proses
