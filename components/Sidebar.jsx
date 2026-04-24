@@ -103,7 +103,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       </nav>
 
       <div className={`mt-auto px-3 overflow-hidden transition-all duration-300 ${isCollapsed ? 'opacity-0 h-0' : 'opacity-100 h-auto'}`}>
-        <div className="px-4 py-4 bg-gradient-to-br from-blue-50 to-transparent rounded-2xl border border-blue-100">
+        <div className="px-4 py-4 bg-linear-to-br from-blue-50 to-transparent rounded-2xl border border-blue-100">
           <p className="text-xs font-semibold text-gray-800 mb-1 whitespace-nowrap">Forecast Model Active</p>
           <p className="text-[10px] text-gray-500 whitespace-nowrap">Granular Estate-Based is running.</p>
         </div>
