@@ -52,26 +52,40 @@ export default function RainfallDailyClient() {
     const handleCopy = () => {
         if (!data) return;
         const header1 = `\t${monthLabel}\n`;
-        const header2 = `Estate\t${daysArray.join('\t')}\n`;
+        const header2 = `Estate\t${daysArray.join('\t')}\tTotal\n`;
         let body = '';
         Object.entries(data.matrix)
             .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' }))
             .forEach(([est, days]) => {
-                body += `${est}\t${daysArray.map(d => Math.round(days[d] || 0)).join('\t')}\n`;
+                const total = daysArray.reduce((acc, d) => acc + (days[d] || 0), 0);
+                body += `${est}\t${daysArray.map(d => Math.round(days[d] || 0)).join('\t')}\t${Math.round(total)}\n`;
             });
-        navigator.clipboard.writeText(header1 + header2 + body);
+        
+        // Add footer rows to copy
+        const footerTotal = `Total (mm)\t${daysArray.map(d => Math.round(Object.values(data.matrix).reduce((acc, est) => acc + (est[d] || 0), 0))).join('\t')}\n`;
+        const footerAvg = `Average (mm)\t${daysArray.map(d => Math.round(Object.values(data.matrix).reduce((acc, est) => acc + (est[d] || 0), 0) / (Object.keys(data.matrix).length || 1))).join('\t')}\n`;
+        const footerHH = `Hari Hujan (Est)\t${daysArray.map(d => Object.values(data.matrix).filter(est => (est[d] || 0) > 0).length).join('\t')}\n`;
+        
+        navigator.clipboard.writeText(header1 + header2 + body + footerTotal + footerAvg + footerHH);
         alert('Tabel berhasil disalin ke clipboard!');
     };
 
     const handleExportCSV = () => {
         if (!data) return;
         let content = `Laporan Curah Hujan Harian - ${company} - ${monthLabel} 2026\n\n`;
-        content += `Estate,${daysArray.map(d => String(d).padStart(2, '0')).join(',')}\n`;
+        content += `Estate,${daysArray.map(d => String(d).padStart(2, '0')).join(',')},Total\n`;
         Object.entries(data.matrix)
             .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' }))
             .forEach(([est, days]) => {
-                content += `${est},${daysArray.map(d => Math.round(days[d] || 0)).join(',')}\n`;
+                const total = daysArray.reduce((acc, d) => acc + (days[d] || 0), 0);
+                content += `${est},${daysArray.map(d => Math.round(days[d] || 0)).join(',')},${Math.round(total)}\n`;
             });
+        
+        // Add footer rows to CSV
+        content += `Total (mm),${daysArray.map(d => Math.round(Object.values(data.matrix).reduce((acc, est) => acc + (est[d] || 0), 0))).join(',')}\n`;
+        content += `Average (mm),${daysArray.map(d => Math.round(Object.values(data.matrix).reduce((acc, est) => acc + (est[d] || 0), 0) / (Object.keys(data.matrix).length || 1))).join(',')}\n`;
+        content += `Hari Hujan (Est),${daysArray.map(d => Object.values(data.matrix).filter(est => (est[d] || 0) > 0).length).join(',')}\n`;
+
         const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
@@ -235,6 +249,9 @@ export default function RainfallDailyClient() {
                                         <th className="bg-blue-600 text-white border border-blue-700 p-2 text-center font-black uppercase tracking-widest" colSpan={data.lastDay}>
                                             {monthLabel} 2026
                                         </th>
+                                        <th className="bg-gray-800 text-white border border-gray-900 p-2 text-center font-black uppercase tracking-widest sticky right-0 z-10" rowSpan={2}>
+                                            Total
+                                        </th>
                                     </tr>
                                     {/* Days Header */}
                                     <tr>
@@ -248,22 +265,60 @@ export default function RainfallDailyClient() {
                                 <tbody className="bg-white">
                                     {Object.entries(data.matrix)
                                         .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' }))
-                                        .map(([est, days]) => (
-                                        <tr key={est} className="hover:bg-blue-50/50 transition-colors group">
-                                            <td className="bg-gray-50 border border-gray-200 p-2 font-black text-gray-900 sticky left-0 group-hover:bg-blue-100/50">
-                                                {est}
-                                            </td>
-                                            {daysArray.map(d => {
-                                                const val = days[d] || 0;
-                                                return (
-                                                    <td key={d} className={`border border-gray-100 p-2 text-center font-medium ${val > 0 ? 'text-blue-600 font-bold' : 'text-gray-300'}`}>
-                                                        {val > 0 ? Math.round(val) : '0'}
+                                        .map(([est, days]) => {
+                                            const estateTotal = daysArray.reduce((acc, d) => acc + (days[d] || 0), 0);
+                                            return (
+                                                <tr key={est} className="hover:bg-blue-50/50 transition-colors group">
+                                                    <td className="bg-gray-50 border border-gray-200 p-2 font-black text-gray-900 sticky left-0 group-hover:bg-blue-100/50 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                                                        {est}
                                                     </td>
-                                                );
-                                            })}
-                                        </tr>
-                                    ))}
+                                                    {daysArray.map(d => {
+                                                        const val = days[d] || 0;
+                                                        return (
+                                                            <td key={d} className={`border border-gray-100 p-2 text-center font-medium ${val > 0 ? 'text-blue-600 font-bold' : 'text-gray-300'}`}>
+                                                                {val > 0 ? Math.round(val) : '0'}
+                                                            </td>
+                                                        );
+                                                    })}
+                                                    <td className="bg-gray-50 border border-gray-200 p-2 text-center font-black text-gray-900 sticky right-0 z-10 group-hover:bg-blue-100/50 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
+                                                        {Math.round(estateTotal)}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                 </tbody>
+                                <tfoot className="bg-gray-50 font-bold text-gray-900">
+                                    {/* Row: Total */}
+                                    <tr>
+                                        <td className="border border-gray-200 p-2 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Total (mm)</td>
+                                        {daysArray.map(d => {
+                                            const dayTotal = Object.values(data.matrix).reduce((acc, estDays) => acc + (estDays[d] || 0), 0);
+                                            return <td key={d} className="border border-gray-200 p-2 text-center bg-blue-50/30">{Math.round(dayTotal)}</td>;
+                                        })}
+                                        <td className="border border-gray-200 p-2 text-center sticky right-0 bg-gray-800 text-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
+                                            {Math.round(Object.values(data.matrix).reduce((totalAcc, estDays) => totalAcc + Object.values(estDays).reduce((acc, val) => acc + val, 0), 0))}
+                                        </td>
+                                    </tr>
+                                    {/* Row: Average */}
+                                    <tr>
+                                        <td className="border border-gray-200 p-2 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Average (mm)</td>
+                                        {daysArray.map(d => {
+                                            const values = Object.values(data.matrix).map(estDays => estDays[d] || 0);
+                                            const dayAvg = values.reduce((acc, v) => acc + v, 0) / (values.length || 1);
+                                            return <td key={d} className="border border-gray-200 p-2 text-center text-gray-500 font-medium">{Math.round(dayAvg)}</td>;
+                                        })}
+                                        <td className="border border-gray-200 p-2 text-center sticky right-0 bg-gray-100 z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">-</td>
+                                    </tr>
+                                    {/* Row: Hari Hujan */}
+                                    <tr>
+                                        <td className="border border-gray-200 p-2 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Hari Hujan (Est)</td>
+                                        {daysArray.map(d => {
+                                            const rainyEstCount = Object.values(data.matrix).filter(estDays => (estDays[d] || 0) > 0).length;
+                                            return <td key={d} className="border border-gray-200 p-2 text-center text-blue-700 font-black">{rainyEstCount}</td>;
+                                        })}
+                                        <td className="border border-gray-200 p-2 text-center sticky right-0 bg-gray-100 z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">-</td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>
