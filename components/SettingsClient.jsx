@@ -26,17 +26,32 @@ export default function SettingsClient() {
     }, []);
 
     const handleToggleCompany = async (code, currentStatus) => {
+        if (!adminKey) {
+            setError('Admin Key wajib diisi untuk mengubah status unit.');
+            return;
+        }
+        setError(null);
+
         try {
             const nextStatus = !currentStatus;
             const res = await fetch('/api/companies', {
                 method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-key': adminKey
+                },
                 body: JSON.stringify({ code, is_active: nextStatus })
             });
+            
             if (res.ok) {
                 setCompanies(prev => prev.map(c => c.code === code ? { ...c, is_active: nextStatus } : c));
+            } else {
+                const json = await res.json();
+                setError(json.error || 'Gagal mengubah status unit');
             }
         } catch (e) {
             console.error(e);
+            setError(e.message);
         }
     };
 

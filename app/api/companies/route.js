@@ -37,6 +37,15 @@ export async function GET(request) {
 }
 
 export async function PATCH(request) {
+    // Security: Check for ADMIN_KEY
+    const adminKey = process.env.ADMIN_KEY;
+    if (adminKey) {
+        const providedKey = request.headers.get('x-admin-key');
+        if (providedKey !== adminKey) {
+            return NextResponse.json({ error: 'Otentikasi gagal: Admin Key tidak valid.' }, { status: 401 });
+        }
+    }
+
     const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: { rejectUnauthorized: false }
