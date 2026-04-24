@@ -19,10 +19,19 @@ export async function POST(request) {
         }
     }
 
+    let body = {};
+    try {
+        body = await request.json();
+    } catch (e) {}
+
     const today = new Date();
-    const endingDateStr = today.toISOString().split('T')[0];
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth() + 1;
+    const endingDateStr = body.endingDate || today.toISOString().split('T')[0];
+    const weeksToFetch = body.weeks || "7";
+    
+    // Use year/month from the endingDateStr to ensure correct mapping
+    const anchorDate = new Date(endingDateStr);
+    const anchorYear = anchorDate.getFullYear();
+    const anchorMonth = anchorDate.getMonth() + 1;
 
     let totalInserted = 0;
     const errors = [];
@@ -33,7 +42,7 @@ export async function POST(request) {
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ companycode: company, endingdate: endingDateStr, arsiran: "7" })
+                    body: JSON.stringify({ companycode: company, endingdate: endingDateStr, arsiran: weeksToFetch })
                 });
 
                 if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
@@ -69,12 +78,12 @@ export async function POST(request) {
                             if (isNaN(rainfallMm)) continue;
 
                             // Calculate Correct Year (Handle Jan rollover)
-                            let year = currentYear;
-                            if (currentMonth === 1 && month === 12) {
-                                year = currentYear - 1;
-                            } else if (currentMonth === 12 && month === 1) {
+                            let year = anchorYear;
+                            if (anchorMonth === 1 && month === 12) {
+                                year = anchorYear - 1;
+                            } else if (anchorMonth === 12 && month === 1) {
                                 // Just in case endingDate is late Dec and we get Jan data (unlikely but safe)
-                                year = currentYear + 1; 
+                                year = anchorYear + 1; 
                             }
 
                             const recordDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
