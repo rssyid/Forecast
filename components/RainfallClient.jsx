@@ -186,6 +186,54 @@ export default function RainfallClient() {
                 </div>
             </div>
 
+            {/* Estate Intensity Heatmap */}
+            <div className="glass-card p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-800">Estate Intensity Heatmap</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Distribusi spasial intensitas hujan per estate.</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-[10px] text-gray-500 font-medium">
+                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-gray-100"></div> 0mm</div>
+                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-200"></div> 1-20mm</div>
+                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-400"></div> 21-50mm</div>
+                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-600"></div> 51-100mm</div>
+                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-indigo-800"></div> >100mm</div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+                    {loading ? (
+                        Array.from({ length: 12 }).map((_, i) => (
+                            <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-xl" />
+                        ))
+                    ) : data?.rainfallData?.length > 0 ? (
+                        data.rainfallData.map((r, i) => {
+                            const val = parseFloat(r.total_mm) || 0;
+                            let colorClass = 'bg-gray-100 text-gray-400';
+                            if (val > 100) colorClass = 'bg-indigo-800 text-white shadow-lg shadow-indigo-200';
+                            else if (val > 50) colorClass = 'bg-blue-600 text-white shadow-lg shadow-blue-200';
+                            else if (val > 20) colorClass = 'bg-blue-400 text-white';
+                            else if (val > 0)  colorClass = 'bg-blue-100 text-blue-700';
+
+                            return (
+                                <div key={i} className={`${colorClass} p-3 rounded-xl flex flex-col justify-between h-20 transition-all hover:scale-105 cursor-default`}>
+                                    <span className="text-[10px] font-bold uppercase tracking-tight opacity-80">{r.est_code}</span>
+                                    <div className="flex items-baseline gap-0.5">
+                                        <span className="text-lg font-black">{val.toFixed(0)}</span>
+                                        <span className="text-[10px] font-medium opacity-70">mm</span>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <div className="col-span-full py-12 text-center text-gray-400 text-sm italic">
+                            Belum ada data heatmap untuk filter ini.
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* Estate Detail Table */}
             <div className="glass-card overflow-hidden">
                 <div className="p-6 border-b border-gray-100 bg-gray-50/30">
