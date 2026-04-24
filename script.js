@@ -59,6 +59,10 @@ const userContextEl = document.getElementById("userContext");
 const wmActionsEl = document.getElementById("wmActions");
 const aiOutputWrapEl = document.getElementById("aiOutputWrap");
 const aiOutputContentEl = document.getElementById("aiOutputContent") || document.getElementById("aiOutputWrap");
+const toggleRainfallBtnEl = document.getElementById("toggleRainfallBtn");
+const rainfallContentEl = document.getElementById("rainfallContent");
+const toggleRainfallIconEl = document.getElementById("toggleRainfallIcon");
+const autoLabelEl = document.getElementById("autoLabel");
 
 // Translation Elements
 const translateModuleEl = document.getElementById("translateModule");
@@ -150,7 +154,13 @@ fetchDbBtnEl?.addEventListener("click", () => {
     const currentRange = dbRangeEl?.value || "4";
     handleFetchFromDB(currentCompany, currentRange);
 });
-forecastModelEl?.addEventListener("change", (e) => { state.selectedModel = e.target.value; });
+forecastModelEl?.addEventListener("change", (e) => { 
+    state.selectedModel = e.target.value; 
+    handleModelChangeVisibility(state.selectedModel);
+});
+
+toggleRainfallBtnEl?.addEventListener("click", toggleRainfallSection);
+
 processBtnEl.addEventListener("click", handleProcess);
 exportExcelBtnEl.addEventListener("click", handleExportExcel);
 downloadTemplateBtnEl.addEventListener("click", handleDownloadTemplate);
@@ -361,6 +371,31 @@ function parseScenarioInput(text) {
     const validValues = [...new Set(String(text || "").split(",").map(i => Number(i.trim())).filter(v => Number.isFinite(v) && v >= 0))];
     if (!validValues.length) throw new Error("Scenario rainfall harus diisi, misalnya 0,50.");
     return validValues;
+}
+
+function toggleRainfallSection() {
+    const isHidden = rainfallContentEl.classList.contains("hidden");
+    if (isHidden) {
+        rainfallContentEl.classList.remove("hidden");
+        toggleRainfallIconEl.style.transform = "rotate(0deg)";
+    } else {
+        rainfallContentEl.classList.add("hidden");
+        toggleRainfallIconEl.style.transform = "rotate(-90deg)";
+    }
+}
+
+function handleModelChangeVisibility(model) {
+    if (model === 'estate') {
+        // Hide content and show "Auto Mode" label
+        rainfallContentEl.classList.add("hidden");
+        toggleRainfallIconEl.style.transform = "rotate(-90deg)";
+        autoLabelEl?.classList.remove("hidden");
+    } else {
+        // Show content for other models
+        rainfallContentEl.classList.remove("hidden");
+        toggleRainfallIconEl.style.transform = "rotate(0deg)";
+        autoLabelEl?.classList.add("hidden");
+    }
 }
 
 async function handleProcess() {
