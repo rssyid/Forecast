@@ -424,7 +424,7 @@ export default function DashboardClient() {
                 <div className="glass-card overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-gray-100">
                         <h3 className="text-sm font-bold text-gray-800">Tanpa Hujan Terlama</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Hari sejak kejadian hujan terakhir</p>
+                        <p className="text-xs text-blue-500 font-semibold mt-0.5">Hari sejak hujan terakhir (Kondisi Terkini)</p>
                     </div>
                     <div className="overflow-auto flex-1 max-h-80">
                         {loading ? (

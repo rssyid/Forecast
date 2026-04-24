@@ -110,27 +110,24 @@ export async function GET(request) {
             rainfallData = rainRes.rows;
         }
 
-        // 5. Last Rain Analysis (Days since last rain relative to week_end)
+        // 5. Last Rain Analysis (Real-time: Days since last rain relative to TODAY)
         let lastRainData = [];
-        if (rainEnd) {
-            const lastRainCompanyWhere = companyFilter !== 'Semua' ? 'AND r.company_code = $2' : '';
-            const lastRainParams = companyFilter !== 'Semua' ? [rainEnd, companyFilter] : [rainEnd];
+        const lastRainCompanyWhere = companyFilter !== 'Semua' ? 'WHERE r.company_code = $1' : '';
+        const lastRainParams = companyFilter !== 'Semua' ? [companyFilter] : [];
 
-            const lastRainRes = await pool.query(`
-                SELECT 
-                    r.est_code, r.company_code,
-                    MAX(r.record_date)::text AS last_rain_date,
-                    ($1::date - MAX(r.record_date)::date)::int AS days_since_rain
-                FROM daily_rainfall r
-                WHERE r.rainfall_mm > 0 
-                  AND r.record_date <= $1
-                  ${lastRainCompanyWhere}
-                GROUP BY r.est_code, r.company_code
-                ORDER BY days_since_rain DESC
-                LIMIT 10
-            `, lastRainParams);
-            lastRainData = lastRainRes.rows;
-        }
+        const lastRainRes = await pool.query(`
+            SELECT 
+                r.est_code, r.company_code,
+                MAX(r.record_date)::text AS last_rain_date,
+                (CURRENT_DATE - MAX(r.record_date)::date)::int AS days_since_rain
+            FROM daily_rainfall r
+            WHERE r.rainfall_mm > 0 
+            ${lastRainCompanyWhere}
+            GROUP BY r.est_code, r.company_code
+            ORDER BY days_since_rain DESC
+            LIMIT 10
+        `, lastRainParams);
+        lastRainData = lastRainRes.rows;
 
         // 6. DB sync status
         const syncRes = await pool.query(`
