@@ -3,10 +3,10 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Building2, Calendar, FileDown, Copy, FileSpreadsheet, FileText, AlertTriangle, RefreshCw, TrendingUp } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
 const COMPANIES = ['PT.THIP', 'PT.PTW', 'PT.SUMS', 'PT.WKN', 'PT.PANPS', 'PT.SAM', 'PT.NJP', 'PT.PLDK', 'PT.SUMK', 'PT.BAS', 'PT.AAN', 'PT.GAN', 'PT.AJP', 'PT.JJP', 'PT.SIP', 'PT.WSM'];
 
@@ -95,12 +95,10 @@ export default function RainfallDailyClient() {
             .map(([est, days], idx) => ({
                 label: est,
                 data: daysArray.map(d => days[d] || 0),
+                backgroundColor: colors[idx % colors.length],
                 borderColor: colors[idx % colors.length],
-                backgroundColor: 'transparent',
-                borderWidth: 2,
-                tension: 0.3,
-                pointRadius: 2,
-                pointHoverRadius: 5
+                borderWidth: 1,
+                borderRadius: 2
             }));
 
         return { labels, datasets };
@@ -166,7 +164,7 @@ export default function RainfallDailyClient() {
                             </div>
                         </div>
                         <div className="h-[300px]">
-                            <Line 
+                            <Bar 
                                 data={chartData} 
                                 options={{
                                     responsive: true,
