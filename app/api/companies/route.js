@@ -1,4 +1,5 @@
-import pool from '../../../lib/db.js';
+import pg from 'pg';
+const { Pool } = pg;
 import { NextResponse } from 'next/server';
 
 const DEFAULT_COMPANIES = [
@@ -8,6 +9,10 @@ const DEFAULT_COMPANIES = [
 ];
 
 export async function GET(request) {
+    const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+    });
     try {
         const { searchParams } = new URL(request.url);
         const onlyActive = searchParams.get('active') === 'true';
@@ -24,7 +29,6 @@ export async function GET(request) {
         // 2. Check if empty, then seed
         const checkRes = await pool.query('SELECT COUNT(*) FROM companies');
         if (parseInt(checkRes.rows[0].count) === 0) {
-            console.log('Seeding default companies...');
             for (const code of DEFAULT_COMPANIES) {
                 await pool.query('INSERT INTO companies (code, is_active) VALUES ($1, true) ON CONFLICT DO NOTHING', [code]);
             }
@@ -42,10 +46,16 @@ export async function GET(request) {
     } catch (err) {
         console.error('Error in companies API:', err);
         return NextResponse.json({ error: err.message, stack: err.stack }, { status: 500 });
+    } finally {
+        await pool.end();
     }
 }
 
 export async function PATCH(request) {
+    const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+    });
     try {
         const { code, is_active } = await request.json();
         
@@ -63,5 +73,7 @@ export async function PATCH(request) {
     } catch (err) {
         console.error('Error updating company status:', err);
         return NextResponse.json({ error: err.message }, { status: 500 });
+    } finally {
+        await pool.end();
     }
 }

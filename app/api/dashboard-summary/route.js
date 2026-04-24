@@ -1,4 +1,5 @@
-import pool from '../../../lib/db.js';
+import pg from 'pg';
+const { Pool } = pg;
 import { NextResponse } from 'next/server';
 
 const WEEK_LIMIT = 8;
@@ -9,7 +10,7 @@ const DEFAULT_COMPANIES = [
     'PT.AAN', 'PT.GAN', 'PT.AJP', 'PT.JJP', 'PT.SIP', 'PT.WSM'
 ];
 
-async function ensureCompaniesTable() {
+async function ensureCompaniesTable(pool) {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS companies (
             code TEXT PRIMARY KEY,
@@ -31,9 +32,14 @@ export async function GET(request) {
     const companyFilter = searchParams.get('company') || 'Semua';
     const weekFilter = searchParams.get('week') || null;
 
+    const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+    });
+
     try {
         // 0. Ensure table exists and fetch active companies
-        await ensureCompaniesTable();
+        await ensureCompaniesTable(pool);
         const activeRes = await pool.query('SELECT code FROM companies WHERE is_active = true');
         const activeCodes = activeRes.rows.length > 0 
             ? activeRes.rows.map(r => r.code)
@@ -174,5 +180,7 @@ export async function GET(request) {
     } catch (err) {
         console.error('[Dashboard API Error]', err.message, err.stack);
         return NextResponse.json({ error: err.message, stack: err.stack }, { status: 500 });
+    } finally {
+        await pool.end();
     }
 }
