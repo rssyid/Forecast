@@ -198,7 +198,7 @@ export default function RainfallClient() {
                         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-200"></div> 1-20mm</div>
                         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-400"></div> 21-50mm</div>
                         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-600"></div> 51-100mm</div>
-                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-indigo-800"></div> >100mm</div>
+                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-indigo-800"></div> &gt;100mm</div>
                     </div>
                 </div>
 
