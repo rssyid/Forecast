@@ -12,7 +12,8 @@ const state = {
     charts: { trend: null, dist: null }, 
     lastFetch: { company: '', range: '' },
     adminKey: '',
-    selectedModel: 'simple'
+    selectedModel: 'simple',
+    estateRainfall: {}
 };
 
 // DOM Elements
@@ -372,7 +373,7 @@ function runProcessing() {
         if (!isDbMode && (!state.rawRows.length || !state.detectedCols)) throw new Error("Upload CSV terlebih dahulu.");
         if (isDbMode && !state.rawRows.length) throw new Error("Ambil data database terlebih dahulu.");
 
-        const p = processData(state.rawRows, state.detectedCols, getRainfallMapFromInputs(), parseScenarioInput(scenarioInputEl.value), baselineWeekEl.value, state.selectedModel);
+        const p = processData(state.rawRows, state.detectedCols, getRainfallMapFromInputs(), parseScenarioInput(scenarioInputEl.value), baselineWeekEl.value, state.selectedModel, state.estateRainfall);
         state.processed = p;
         renderModelSummary(p); renderTables(p); renderCharts(p);
         resultsSectionEl.classList.remove("hidden"); exportExcelBtnEl.disabled = false;
@@ -391,7 +392,7 @@ async function handleFetchFromDB(companyCode, lookbackWeeks) {
         const params = new URLSearchParams({ companyCode, lookbackWeeks });
         const res = await fetch(`/api/get-piezometer?${params}`);
         if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-        const { data, rainfall } = await res.json();
+        const { data, rainfall, estateRainfall } = await res.json();
 
         if (!data || data.length === 0) throw new Error(`Tidak ada data untuk company "${companyCode}".`);
 
@@ -401,6 +402,7 @@ async function handleFetchFromDB(companyCode, lookbackWeeks) {
         state.detectedCols = DB_COL_MAP;
         state.weeks = getSortedDistinctWeeks(data, DB_COL_MAP.week);
         state.lastFetch = { company: companyCode, range: lookbackWeeks };
+        state.estateRainfall = estateRainfall || {};
 
         if (mappingSummaryEl) renderColumnMapping(DB_COL_MAP, Object.values(DB_COL_MAP));
         renderRainfallInputs(state.weeks, rainfall || {});
@@ -419,7 +421,7 @@ async function handleFetchFromDB(companyCode, lookbackWeeks) {
 }
 
 
-function processData(rawRows, detectedCols, rainfallMap, scenarios, baselineWeek, modelType = 'simple') {
+function processData(rawRows, detectedCols, rainfallMap, scenarios, baselineWeek, modelType = 'simple', estateRainfall = {}) {
     const rows = rawRows.map((row) => {
         const tmatValue = toNumber(row[detectedCols.tmat]);
         return { ...row, __TMAT_NUM__: tmatValue, TMAT_Class: classifyTMAT(tmatValue) };
@@ -429,7 +431,7 @@ function processData(rawRows, detectedCols, rainfallMap, scenarios, baselineWeek
     const effectiveBaselineWeek = baselineWeek || weeks[weeks.length - 1];
 
     // Helper: Summarize a set of rows into weekly summary (for regression)
-    const getWeeklySummary = (subsetRows) => {
+    const getWeeklySummary = (subsetRows, specificRainMap = null) => {
         const countsByWeek = {};
         subsetRows.forEach(r => {
             const w = String(r[detectedCols.week] || "").trim();
@@ -443,13 +445,14 @@ function processData(rawRows, detectedCols, rainfallMap, scenarios, baselineWeek
             const counts = ensureAllClasses(countsByWeek[week] || {});
             const values = subsetRows.filter(r => String(r[detectedCols.week] || "").trim() === week).map(r => r.__TMAT_NUM__).filter(Number.isFinite);
             const total = sumValues(counts);
-            const basah = (counts["Tergenang (0-40)"] || 0) + (counts["A Tergenang (41-45)"] || 0);
-            const kering60 = (counts["A Kering (61-65)"] || 0) + (counts["Kering (>65)"] || 0);
+            // Use specific rainfall if provided (estate specific), otherwise use company-wide rainfallMap
+            const rainValue = (specificRainMap && specificRainMap[week] !== undefined) ? specificRainMap[week] : (rainfallMap[week] ?? NaN);
+            
             return {
                 Week: week,
                 "Total Records": total,
                 "Avg TMAT (cm)": mean(values),
-                "Rain (mm)": rainfallMap[week] ?? NaN,
+                "Rain (mm)": rainValue,
                 counts
             };
         });
@@ -467,8 +470,9 @@ function processData(rawRows, detectedCols, rainfallMap, scenarios, baselineWeek
         const estates = [...new Set(rows.map(r => String(r[detectedCols.estate] || "Unknown").trim()))];
         const estateModels = estates.map(est => {
             const estRows = rows.filter(r => String(r[detectedCols.estate] || "").trim() === est);
-            const estWeeklySummary = getWeeklySummary(estRows);
-            const estFit = fitRainResponse(estWeeklySummary, 'simple'); // Estate level use simple rain
+            const estRain = estateRainfall[est] || null; // Use estate-specific rain from DB
+            const estWeeklySummary = getWeeklySummary(estRows, estRain);
+            const estFit = fitRainResponse(estWeeklySummary, 'simple'); 
             const estBaseline = ensureAllClasses(estWeeklySummary.find(r => r.Week === effectiveBaselineWeek)?.counts || {});
             const estBaselineAvg = estWeeklySummary.find(r => r.Week === effectiveBaselineWeek)?.["Avg TMAT (cm)"] ?? NaN;
             return { est, fit: estFit, baselineCounts: estBaseline, baselineAvg: estBaselineAvg, total: sumValues(estBaseline) };

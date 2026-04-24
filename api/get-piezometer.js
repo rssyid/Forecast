@@ -77,16 +77,46 @@ export default async function handler(req, res) {
     
     const rainResult = await pool.query(rainfallQuery, rainParams);
 
-    // Map rainfall to object for easier lookup
+    // 3. Fetch Specific Rainfall per Estate (for Granular Model)
+    let estateRainQuery = `
+        WITH daily_est_avg AS (
+            SELECT 
+                est_code,
+                record_date,
+                AVG(rainfall_mm) as daily_avg
+            FROM daily_rainfall
+            WHERE company_code = $2
+            GROUP BY est_code, record_date
+        )
+        SELECT 
+            da.est_code,
+            cw.formatted_name as week,
+            SUM(da.daily_avg) as total_rain
+        FROM daily_est_avg da
+        JOIN calendar_weeks cw ON da.record_date >= cw.start_date AND da.record_date <= cw.end_date
+        WHERE cw.formatted_name = ANY($1)
+        GROUP BY da.est_code, cw.formatted_name
+    `;
+    const estateRainResult = await pool.query(estateRainQuery, [targetWeeks, companyCode]);
+
+    // Map company rainfall
     const rainfallMap = {};
     rainResult.rows.forEach(r => {
         rainfallMap[r.week] = parseFloat(r.total_rain) || 0;
     });
 
+    // Map estate-specific rainfall
+    const estateRainfallMap = {}; // { EST1: { week1: 10, week2: 20 }, ... }
+    estateRainResult.rows.forEach(r => {
+        if (!estateRainfallMap[r.est_code]) estateRainfallMap[r.est_code] = {};
+        estateRainfallMap[r.est_code][r.week] = parseFloat(r.total_rain) || 0;
+    });
+
     res.status(200).json({ 
         data: dataResult.rows, 
         weeks: targetWeeks,
-        rainfall: rainfallMap
+        rainfall: rainfallMap,
+        estateRainfall: estateRainfallMap
     });
 
   } catch (err) {
