@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, Droplets, Activity, Building2, CloudRain, AlertTriangle, CheckCircle, Database, CalendarDays } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, LineController, BarController, DoughnutController } from 'chart.js';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, LineController, BarController, DoughnutController);
-
-const COMPANIES = ['Semua', 'PT.THIP', 'PT.PTW', 'PT.SUMS', 'PT.WKN', 'PT.PANPS', 'PT.SAM', 'PT.NJP', 'PT.PLDK', 'PT.SUMK', 'PT.BAS', 'PT.AAN', 'PT.GAN', 'PT.AJP', 'PT.JJP', 'PT.SIP', 'PT.WSM'];
 
 // Format YYYY-MM-DD → DD-MM-YYYY
 function fmtDate(str) {
@@ -76,9 +74,23 @@ export default function DashboardClient() {
     const [company, setCompany] = useState('Semua');
     const [week, setWeek] = useState(''); // formatted_name, empty = latest
     const [weekList, setWeekList] = useState([]); // list from calendar_weeks
+    const [companyList, setCompanyList] = useState(['Semua']);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Fetch active companies
+    useEffect(() => {
+        fetch('/api/companies?active=true')
+            .then(r => r.json())
+            .then(json => {
+                if (json.companies) {
+                    const codes = json.companies.map(c => c.code);
+                    setCompanyList(['Semua', ...codes]);
+                }
+            })
+            .catch(() => {});
+    }, []);
 
     // Fetch available weeks from calendar_weeks
     useEffect(() => {
@@ -204,7 +216,7 @@ export default function DashboardClient() {
                     {/* Company Filter */}
                     <SearchableSelect
                         icon={<Building2 size={14} />}
-                        options={COMPANIES}
+                        options={companyList}
                         value={company}
                         onChange={setCompany}
                         placeholder="Pilih Company..."
