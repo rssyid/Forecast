@@ -429,7 +429,7 @@ export default function DashboardClient() {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    <span className="text-[11px] font-bold text-blue-700">{r.hari_hujan}<span className="text-gray-300 font-normal">/{r.total_hari}</span></span>
+                                                    <span className="text-[11px] font-bold text-blue-700">{r.hari_hujan}<span className="text-gray-300 font-normal">/7</span></span>
                                                 </td>
                                             </tr>
                                         );
