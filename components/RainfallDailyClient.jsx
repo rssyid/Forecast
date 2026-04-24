@@ -8,6 +8,13 @@ import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
+/**
+ * RainfallDailyClient - Features:
+ * - Matrix view (Estates vs Days)
+ * - Monthly Total column (Right)
+ * - Daily Summaries (Total, Average, Hari Hujan Unit >1, Estate Hujan Qty)
+ */
+
 const COMPANIES = ['PT.THIP', 'PT.PTW', 'PT.SUMS', 'PT.WKN', 'PT.PANPS', 'PT.SAM', 'PT.NJP', 'PT.PLDK', 'PT.SUMK', 'PT.BAS', 'PT.AAN', 'PT.GAN', 'PT.AJP', 'PT.JJP', 'PT.SIP', 'PT.WSM'];
 
 const MONTHS = [
