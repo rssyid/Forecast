@@ -35,7 +35,7 @@ export async function GET(request) {
         const matrix = {};
         rows.forEach(row => {
             if (!matrix[row.est_code]) matrix[row.est_code] = {};
-            matrix[row.est_code][row.day] = row.rainfall;
+            matrix[row.est_code][row.day] = Number(row.rainfall || 0);
         });
 
         return Response.json({

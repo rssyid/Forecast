@@ -275,7 +275,7 @@ export default function RainfallDailyClient() {
                                     {Object.entries(data.matrix)
                                         .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' }))
                                         .map(([est, days]) => {
-                                            const estateTotal = daysArray.reduce((acc, d) => acc + (days[d] || 0), 0);
+                                            const estateTotal = daysArray.reduce((acc, d) => acc + Number(days[d] || 0), 0);
                                             return (
                                                 <tr key={est} className="hover:bg-blue-50/50 transition-colors group">
                                                     <td className="bg-gray-50 border border-gray-200 p-2 font-black text-gray-900 sticky left-0 group-hover:bg-blue-100/50 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
@@ -301,19 +301,20 @@ export default function RainfallDailyClient() {
                                     <tr>
                                         <td className="border border-gray-200 p-2 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Total (mm)</td>
                                         {daysArray.map(d => {
-                                            const dayTotal = Object.values(data.matrix).reduce((acc, estDays) => acc + (estDays[d] || 0), 0);
+                                            const dayTotal = Object.values(data.matrix).reduce((acc, estDays) => acc + Number(estDays[d] || 0), 0);
                                             return <td key={d} className="border border-gray-200 p-2 text-center bg-blue-50/30">{Math.round(dayTotal)}</td>;
                                         })}
                                         <td className="border border-gray-200 p-2 text-center sticky right-0 bg-gray-800 text-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
-                                            {Math.round(Object.values(data.matrix).reduce((totalAcc, estDays) => totalAcc + Object.values(estDays).reduce((acc, val) => acc + val, 0), 0))}
+                                            {Math.round(Object.values(data.matrix).reduce((totalAcc, estDays) => totalAcc + Object.values(estDays).reduce((acc, val) => acc + Number(val || 0), 0), 0))}
                                         </td>
                                     </tr>
                                     {/* Row: Average */}
                                     <tr>
                                         <td className="border border-gray-200 p-2 sticky left-0 bg-gray-100 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Average (mm)</td>
                                         {daysArray.map(d => {
-                                            const values = Object.values(data.matrix).map(estDays => estDays[d] || 0);
-                                            const dayAvg = values.reduce((acc, v) => acc + v, 0) / (values.length || 1);
+                                            const values = Object.values(data.matrix).map(estDays => Number(estDays[d] || 0));
+                                            const daySum = values.reduce((acc, v) => acc + v, 0);
+                                            const dayAvg = daySum / (values.length || 1);
                                             return <td key={d} className="border border-gray-200 p-2 text-center text-gray-500 font-medium">{Math.round(dayAvg)}</td>;
                                         })}
                                         <td className="border border-gray-200 p-2 text-center sticky right-0 bg-gray-100 z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">-</td>
