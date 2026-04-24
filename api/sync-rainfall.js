@@ -6,7 +6,7 @@ const COMPANIES = [
     "PT.AJP", "PT.JJP", "PT.SIP", "PT.WSM"
 ];
 
-const API_URL = "https://app.gis-div.com/iot/Service/webservice.asmx/GetArsStation4WeeksRequest";
+const API_URL = "https://app.gis-div.com/iot/Service/webservice.asmx/GetArsStation4Weeks";
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -42,8 +42,17 @@ export default async function handler(req, res) {
                 if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
                 const json = await response.json();
                 
-                // API returns data in d[0]
-                const records = json.d && json.d[0] ? json.d[0] : [];
+                // API returns stringified JSON in d[0]
+                let records = [];
+                if (json.d && json.d[0]) {
+                    try {
+                        records = JSON.parse(json.d[0]);
+                    } catch (e) {
+                        console.error(`Error parsing JSON for ${company}:`, e.message);
+                        continue;
+                    }
+                }
+                
                 if (!Array.isArray(records)) continue;
 
                 for (const item of records) {
