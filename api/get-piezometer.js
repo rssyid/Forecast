@@ -40,30 +40,46 @@ export default async function handler(req, res) {
     }
     const dataResult = await pool.query(dataQuery, params);
 
-    // 2. Fetch Average Rainfall per Week
-    // We join daily_rainfall with calendar_weeks based on date range
+    // 2. Fetch Total Weekly Rainfall (Sum of Daily Company Averages)
     let rainfallQuery = `
+        WITH daily_company_avg AS (
+            SELECT 
+                record_date,
+                AVG(rainfall_mm) as daily_avg
+            FROM daily_rainfall
+            WHERE company_code = $2
+            GROUP BY record_date
+        )
         SELECT 
             cw.formatted_name as week,
-            AVG(dr.rainfall_mm) as avg_rainfall
-        FROM daily_rainfall dr
-        JOIN calendar_weeks cw ON dr.record_date >= cw.start_date AND dr.record_date <= cw.end_date
+            SUM(da.daily_avg) as total_rain
+        FROM daily_company_avg da
+        JOIN calendar_weeks cw ON da.record_date >= cw.start_date AND da.record_date <= cw.end_date
         WHERE cw.formatted_name = ANY($1)
+        GROUP BY cw.formatted_name
     `;
-    let rainParams = [targetWeeks];
+    let rainParams = [targetWeeks, companyCode];
     
-    if (companyCode && companyCode !== 'Semua') {
-        rainfallQuery += ` AND dr.company_code = $2`;
-        rainParams.push(companyCode);
+    // Fallback if companyCode is 'Semua' (though dashboard usually selects one)
+    if (!companyCode || companyCode === 'Semua') {
+        rainfallQuery = `
+            SELECT 
+                cw.formatted_name as week,
+                AVG(dr.rainfall_mm) * 7 as total_rain
+            FROM daily_rainfall dr
+            JOIN calendar_weeks cw ON dr.record_date >= cw.start_date AND dr.record_date <= cw.end_date
+            WHERE cw.formatted_name = ANY($1)
+            GROUP BY cw.formatted_name
+        `;
+        rainParams = [targetWeeks];
     }
     
-    rainfallQuery += ` GROUP BY cw.formatted_name`;
     const rainResult = await pool.query(rainfallQuery, rainParams);
 
     // Map rainfall to object for easier lookup
     const rainfallMap = {};
     rainResult.rows.forEach(r => {
-        rainfallMap[r.week] = parseFloat(r.avg_rainfall) || 0;
+        rainfallMap[r.week] = parseFloat(r.total_rain) || 0;
     });
 
     res.status(200).json({ 
