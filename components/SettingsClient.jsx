@@ -107,6 +107,56 @@ export default function SettingsClient() {
                 </div>
             </div>
 
+            {/* Company Management Section */}
+            <div className="glass-card overflow-hidden">
+                <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                    <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                        <Building2 size={16} className="text-blue-500" />
+                        Manajemen Unit (Company) Aktif
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                        Pilih unit mana saja yang ingin diaktifkan dan ditampilkan di dashboard serta laporan.
+                    </p>
+                </div>
+                <div className="p-6">
+                    {compLoading ? (
+                        <div className="flex items-center justify-center p-8">
+                            <RefreshCw className="animate-spin text-gray-300" size={24} />
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {companies.map(comp => (
+                                <label 
+                                    key={comp.code} 
+                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all
+                                        ${comp.is_active 
+                                            ? 'bg-blue-50/50 border-blue-200 shadow-sm' 
+                                            : 'bg-gray-50 border-gray-200 opacity-60 hover:opacity-100'}
+                                    `}
+                                >
+                                    <input 
+                                        type="checkbox" 
+                                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                                        checked={comp.is_active || false}
+                                        onChange={() => handleToggleCompany(comp.code, comp.is_active)}
+                                    />
+                                    <div className="flex flex-col">
+                                        <span className={`text-xs font-bold ${comp.is_active ? 'text-blue-900' : 'text-gray-600'}`}>
+                                            {comp.code}
+                                        </span>
+                                    </div>
+                                </label>
+                            ))}
+                            {companies.length === 0 && (
+                                <div className="col-span-full text-center p-4 text-xs text-gray-500">
+                                    Tidak ada data unit yang ditemukan.
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Historical Sync Card */}
                 <div className="glass-card overflow-hidden flex flex-col">
