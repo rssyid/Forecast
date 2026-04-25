@@ -46,24 +46,28 @@ export async function POST(request) {
             }
 
             if (flattenedRows.length > 0) {
-                // Construct a single multi-row insert query
-                // ($1, $2, $3, $4, $5, $6), ($7, $8, $9, $10, $11, $12), ...
-                const valuesTemplate = flattenedRows.map((_, i) => 
-                    `($${i * 6 + 1}, $${i * 6 + 2}, $${i * 6 + 3}, $${i * 6 + 4}, $${i * 6 + 5}, $${i * 6 + 6})`
-                ).join(', ');
+                // Process in chunks of 200 rows to avoid parameter limits and timeouts
+                const chunkSize = 200;
+                for (let i = 0; i < flattenedRows.length; i += chunkSize) {
+                    const chunk = flattenedRows.slice(i, i + chunkSize);
+                    const valuesTemplate = chunk.map((_, j) => 
+                        `($${j * 6 + 1}, $${j * 6 + 2}, $${j * 6 + 3}, $${j * 6 + 4}, $${j * 6 + 5}, $${j * 6 + 6})`
+                    ).join(', ');
 
-                const query = `
-                    INSERT INTO pzo_master_mapping (pie_record_id, block_id, company_code, est_code, is_active, device_name_iot)
-                    VALUES ${valuesTemplate}
-                    ON CONFLICT (pie_record_id, block_id) DO UPDATE SET
-                        company_code = EXCLUDED.company_code,
-                        est_code = EXCLUDED.est_code,
-                        is_active = EXCLUDED.is_active,
-                        device_name_iot = EXCLUDED.device_name_iot
-                `;
+                    const query = `
+                        INSERT INTO pzo_master_mapping (pie_record_id, block_id, company_code, est_code, is_active, device_name_iot)
+                        VALUES ${valuesTemplate}
+                        ON CONFLICT (pie_record_id, block_id) DO UPDATE SET
+                            company_code = EXCLUDED.company_code,
+                            est_code = EXCLUDED.est_code,
+                            is_active = EXCLUDED.is_active,
+                            device_name_iot = EXCLUDED.device_name_iot
+                    `;
 
-                const flatParams = flattenedRows.flat();
-                await client.query(query, flatParams);
+                    const flatParams = chunk.flat();
+                    await client.query(query, flatParams);
+                    console.log(`Uploaded chunk ${Math.floor(i/chunkSize) + 1}...`);
+                }
             }
 
             await client.query('COMMIT');
