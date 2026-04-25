@@ -6,9 +6,8 @@ export async function POST(request) {
         const adminKey = process.env.ADMIN_KEY;
 
         if (!adminKey) {
-            // If no admin key is configured in the environment, we might want to either allow all or deny all.
-            // Denying is safer, but for development sometimes it's allowed. We'll deny.
-            return NextResponse.json({ error: 'Konfigurasi server tidak lengkap (ADMIN_KEY hilang).' }, { status: 500 });
+            // Bypass authentication if no admin key is configured (useful for local development)
+            return NextResponse.json({ success: true, bypassed: true });
         }
 
         if (key === adminKey) {
