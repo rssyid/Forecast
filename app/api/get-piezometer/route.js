@@ -25,17 +25,21 @@ export async function GET(request) {
 
     const targetWeeks = weeksResult.rows.map(r => r.month_name);
 
-    // 1. Fetch Piezometer Data
+    // 1. Fetch Piezometer Data with Master Mapping (to handle multi-block and active status)
     let dataQuery = `
-      SELECT data_taken, est_code, block, pie_record_id, ketinggian, 
-             indicator_name, indicator_alias, month_name, date_timestamp, 
-             banyak, url_images, company_code
-      FROM piezometer_data
-      WHERE month_name = ANY($1)
+      SELECT p.data_taken, p.est_code, 
+             COALESCE(m.block_id, p.block) as block, 
+             p.pie_record_id, p.ketinggian, 
+             p.indicator_name, p.indicator_alias, p.month_name, p.date_timestamp, 
+             p.banyak, p.url_images, p.company_code
+      FROM piezometer_data p
+      LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
+      WHERE p.month_name = ANY($1)
+      AND (m.is_active IS NULL OR m.is_active = true)
     `;
     let params = [targetWeeks];
     if (companyCode && companyCode !== 'Semua') {
-       dataQuery += ` AND company_code = $2`;
+       dataQuery += ` AND p.company_code = $2`;
        params.push(companyCode);
     }
     const dataResult = await pool.query(dataQuery, params);
