@@ -488,10 +488,11 @@ export default function ForecastPage() {
               {activeTab === 'dashboard' && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                       {/* Model Summary Cards */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                           {[
                               { label: "Metode AI", val: 'Granular Estate-Based' },
                               { label: "Baseline Week", val: processed.baselineWeek },
+                              { label: "Estate Valid", val: `${processed.fit.validEstates || '?'}/${processed.fit.totalEstates || '?'}` },
                               { label: "Akurasi (r²)", val: processed.fit.method === 'fallback' ? 'Low' : `${Math.round(processed.fit.r2 * 100)}%` },
                               { label: "Error (MAE)", val: processed.fit.method === 'fallback' ? '-' : `± ${formatNumber(processed.fit.mae, 1)} cm` },
                               { label: "Max Error (RMSE)", val: processed.fit.method === 'fallback' ? '-' : `± ${formatNumber(processed.fit.rmse, 1)} cm` }
