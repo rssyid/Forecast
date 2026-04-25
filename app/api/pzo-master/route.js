@@ -24,34 +24,50 @@ export async function POST(request) {
             
             // Clear existing mapping to refresh? Or just upsert?
             // Usually, a full refresh is safer for master data like this.
+            // Clear existing mapping to refresh (Full Sync)
             await client.query('DELETE FROM pzo_master_mapping');
-
+            
+            // Prepare flattened data for batch insert
+            const flattenedRows = [];
             for (const item of data) {
                 const pieId = item.pie_record_id;
                 const mappingStr = item.Mapping || '';
-                const companyCode = item.EstNewCode || item.company_code;
-                const estCode = item.EstCode;
-                const deviceName = item.deviceNameIOT;
+                const companyCode = item.EstNewCode || item.company_code || null;
+                const estCode = item.EstCode || null;
+                const deviceName = item.deviceNameIOT || null;
                 const isActive = item.IsActive !== undefined ? item.IsActive : true;
 
                 if (!pieId) continue;
 
                 const blocks = mappingStr.split(',').map(b => b.trim()).filter(b => b !== '');
                 for (const block of blocks) {
-                    await client.query(`
-                        INSERT INTO pzo_master_mapping (pie_record_id, block_id, company_code, est_code, is_active, device_name_iot)
-                        VALUES ($1, $2, $3, $4, $5, $6)
-                        ON CONFLICT (pie_record_id, block_id) DO UPDATE SET
-                            company_code = EXCLUDED.company_code,
-                            est_code = EXCLUDED.est_code,
-                            is_active = EXCLUDED.is_active,
-                            device_name_iot = EXCLUDED.device_name_iot
-                    `, [pieId, block, companyCode, estCode, isActive, deviceName]);
+                    flattenedRows.push([pieId, block, companyCode, estCode, isActive, deviceName]);
                 }
             }
 
+            if (flattenedRows.length > 0) {
+                // Construct a single multi-row insert query
+                // ($1, $2, $3, $4, $5, $6), ($7, $8, $9, $10, $11, $12), ...
+                const valuesTemplate = flattenedRows.map((_, i) => 
+                    `($${i * 6 + 1}, $${i * 6 + 2}, $${i * 6 + 3}, $${i * 6 + 4}, $${i * 6 + 5}, $${i * 6 + 6})`
+                ).join(', ');
+
+                const query = `
+                    INSERT INTO pzo_master_mapping (pie_record_id, block_id, company_code, est_code, is_active, device_name_iot)
+                    VALUES ${valuesTemplate}
+                    ON CONFLICT (pie_record_id, block_id) DO UPDATE SET
+                        company_code = EXCLUDED.company_code,
+                        est_code = EXCLUDED.est_code,
+                        is_active = EXCLUDED.is_active,
+                        device_name_iot = EXCLUDED.device_name_iot
+                `;
+
+                const flatParams = flattenedRows.flat();
+                await client.query(query, flatParams);
+            }
+
             await client.query('COMMIT');
-            return NextResponse.json({ success: true, count: data.length });
+            return NextResponse.json({ success: true, count: flattenedRows.length });
         } catch (err) {
             await client.query('ROLLBACK');
             throw err;
