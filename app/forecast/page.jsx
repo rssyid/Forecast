@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { processData, parseScenarioInput, detectColumns, getSortedDistinctWeeks, CLASS_ORDER, CLASS_COLORS, formatNumber } from '../../lib/forecastEngine';
+import { processData, parseScenarioInput, parseWeekName, detectColumns, getSortedDistinctWeeks, CLASS_ORDER, CLASS_COLORS, formatNumber } from '../../lib/forecastEngine';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import { Database, UploadCloud, Download, Play, RefreshCw, BarChart2, FileText, Table2, DatabaseZap, ChevronDown, ChevronUp } from 'lucide-react';
+import { Database, UploadCloud, Download, Play, RefreshCw, BarChart2, FileText, Table2, DatabaseZap, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 
@@ -38,6 +38,7 @@ export default function ForecastPage() {
   const [processed, setProcessed] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showRainfall, setShowRainfall] = useState(false);
+  const [dataStale, setDataStale] = useState(false);
 
   // AI Laporan States
   const [userContext, setUserContext] = useState('');
@@ -68,10 +69,20 @@ export default function ForecastPage() {
             initialRainMap[w] = rainfall?.[w] !== undefined ? rainfall[w].toFixed(2) : "";
         });
         setRainfallMap(initialRainMap);
-        setBaselineWeek(foundWeeks[foundWeeks.length - 1] || '');
+        const latestWeek = foundWeeks[foundWeeks.length - 1] || '';
+        setBaselineWeek(latestWeek);
+        
+        // Check data freshness: is the latest week the current calendar week?
+        const now = new Date();
+        const parsed = parseWeekName(latestWeek);
+        const currentMonth = now.getMonth() + 1; // 1-indexed
+        const currentYear = now.getFullYear();
+        const currentWeekOfMonth = Math.ceil(now.getDate() / 7);
+        const isStale = parsed.year < currentYear || parsed.month < currentMonth || (parsed.month === currentMonth && parsed.week < currentWeekOfMonth);
+        setDataStale(isStale);
         
         setShowRainfall(true);
-        setStatus({ msg: `Data berhasil diambil: ${data.length} baris. Silakan isi rainfall lalu klik 'Proses Data'.`, type: 'success' });
+        setStatus({ msg: `Data berhasil diambil: ${data.length} baris.${isStale ? ' ⚠️ Data belum ter-update minggu ini.' : ' ✅ Data sudah terbaru.'}`, type: isStale ? 'warning' : 'success' });
     } catch (err) {
         setStatus({ msg: err.message, type: 'error' });
     } finally {
@@ -116,6 +127,17 @@ export default function ForecastPage() {
   const handleProcess = () => {
     try {
         if (!rawRows.length) throw new Error("Tidak ada data untuk diproses.");
+        
+        // Data freshness warning
+        if (dataStale) {
+            const proceed = window.confirm(
+                'Data piezometer & curah hujan belum ter-update untuk minggu ini.\n\n'
+                + 'Hasil prediksi mungkin tidak akurat karena menggunakan data lama.\n\n'
+                + 'Disarankan klik "Update (Minggu Ini)" terlebih dahulu di header halaman ini.\n\n'
+                + 'Tetap lanjutkan dengan data lama?'
+            );
+            if (!proceed) return;
+        }
         
         const numericRainMap = {};
         Object.keys(rainfallMap).forEach(k => {
@@ -322,7 +344,8 @@ export default function ForecastPage() {
 
       {/* Input Section */}
       <section className="glass-card p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Row 1: Sumber Data, Company, Rentang Historis */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700">Sumber Data</label>
                 <div className="relative">
@@ -352,28 +375,20 @@ export default function ForecastPage() {
                     </div>
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-gray-700">Rentang Historis</label>
-                        <div className="flex gap-2">
-                            <select 
-                                value={dbRange} onChange={(e) => setDbRange(e.target.value)}
-                                className="flex-1 h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50"
-                            >
-                                <option value="8">8 Minggu Terakhir</option>
-                                <option value="12">12 Minggu Terakhir</option>
-                                <option value="24">24 Minggu Terakhir (6 Bulan)</option>
-                                <option value="52">52 Minggu Terakhir (1 Tahun)</option>
-                                <option value="999">Seluruh Data (All Time)</option>
-                            </select>
-                            <button 
-                                onClick={handleFetchDB} disabled={isFetching}
-                                className="bg-black text-white px-4 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
-                            >
-                                {isFetching ? <RefreshCw size={16} className="animate-spin" /> : "Ambil"}
-                            </button>
-                        </div>
+                        <select 
+                            value={dbRange} onChange={(e) => setDbRange(e.target.value)}
+                            className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50"
+                        >
+                            <option value="8">8 Minggu Terakhir</option>
+                            <option value="12">12 Minggu Terakhir</option>
+                            <option value="24">24 Minggu Terakhir (6 Bulan)</option>
+                            <option value="52">52 Minggu Terakhir (1 Tahun)</option>
+                            <option value="999">Seluruh Data (All Time)</option>
+                        </select>
                     </div>
                 </>
             ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-2">
                     <label className="text-sm font-semibold text-gray-700">CSV Piezometer</label>
                     <input 
                         type="file" accept=".csv" onChange={handleFileUpload}
@@ -381,9 +396,20 @@ export default function ForecastPage() {
                     />
                 </div>
             )}
+        </div>
 
+        {/* Row 2: Ambil Data Button + Baseline Week + Data Freshness */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            {sourceType === 'db' && (
+                <button 
+                    onClick={handleFetchDB} disabled={isFetching}
+                    className="w-full inline-flex items-center justify-center gap-2 bg-black text-white h-10 px-6 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                >
+                    {isFetching ? <><RefreshCw size={16} className="animate-spin" /> Memuat...</> : <><Database size={16} /> Ambil Data dari Server</>}
+                </button>
+            )}
             <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Baseline Week</label>
+                <label className="text-sm font-semibold text-gray-700">Baseline Week (Minggu Acuan)</label>
                 <select 
                     disabled={!weeks.length}
                     value={baselineWeek} onChange={(e) => setBaselineWeek(e.target.value)}
@@ -392,6 +418,12 @@ export default function ForecastPage() {
                     {weeks.map(w => <option key={w} value={w}>{w}</option>)}
                 </select>
             </div>
+            {dataStale && weeks.length > 0 && (
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
+                    <AlertTriangle size={16} className="shrink-0" />
+                    <span>Data belum ter-update minggu ini. Klik <b>"Update (Minggu Ini)"</b> di atas terlebih dahulu.</span>
+                </div>
+            )}
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6">
