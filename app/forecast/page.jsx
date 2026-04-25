@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { processData, parseScenarioInput, parseWeekName, detectColumns, getSortedDistinctWeeks, CLASS_ORDER, CLASS_COLORS, formatNumber } from '../../lib/forecastEngine';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import { Database, UploadCloud, Download, Play, RefreshCw, BarChart2, FileText, Table2, DatabaseZap, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { Database, UploadCloud, Download, Play, RefreshCw, BarChart2, FileText, Table2, DatabaseZap, ChevronDown, ChevronUp, AlertTriangle, ClipboardCopy, Check } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 
@@ -39,6 +39,7 @@ export default function ForecastPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showRainfall, setShowRainfall] = useState(false);
   const [dataStale, setDataStale] = useState(false);
+  const [tableCopied, setTableCopied] = useState(false);
 
   // AI Laporan States
   const [userContext, setUserContext] = useState('');
@@ -555,8 +556,32 @@ export default function ForecastPage() {
               {activeTab === 'forecast' && (
                   <div className="space-y-6 animate-in fade-in duration-300">
                       <div className="glass-card overflow-hidden">
-                          <div className="bg-gray-50/50 p-4 border-b border-gray-100">
+                          <div className="bg-gray-50/50 p-4 border-b border-gray-100 flex items-center justify-between">
                               <h3 className="font-bold text-gray-800">Tabel Forecast Distribusi</h3>
+                              <button
+                                  onClick={() => {
+                                      if (!processed) return;
+                                      const headers = Object.keys(processed.forecastRows[0]);
+                                      const rows = processed.forecastRows.map(r => 
+                                          headers.map(h => {
+                                              const v = r[h];
+                                              return typeof v === 'number' && h.includes('%') ? v.toFixed(1) : v;
+                                          }).join('\t')
+                                      );
+                                      const tsv = [headers.join('\t'), ...rows].join('\n');
+                                      navigator.clipboard.writeText(tsv).then(() => {
+                                          setTableCopied(true);
+                                          setTimeout(() => setTableCopied(false), 2000);
+                                      });
+                                  }}
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                      tableCopied 
+                                          ? 'bg-green-100 text-green-700 border border-green-200' 
+                                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900'
+                                  }`}
+                              >
+                                  {tableCopied ? <><Check size={14} /> Tersalin!</> : <><ClipboardCopy size={14} /> Copy Tabel</>}
+                              </button>
                           </div>
                           <div className="overflow-x-auto p-4">
                               <table className="w-full text-sm text-left">
