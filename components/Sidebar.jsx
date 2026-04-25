@@ -3,15 +3,24 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CalendarDays, BarChart2, Settings, ChevronLeft, ChevronDown, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, BarChart2, Settings, ChevronLeft, ChevronDown, ChevronRight, Waves } from 'lucide-react';
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   const pathname = usePathname();
-  const [openSub, setOpenSub] = useState('rainfall');
+  const [openSub, setOpenSub] = useState('piezometer');
 
   const menuItems = [
     { href: '/', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
     { href: '/forecast', icon: <BarChart2 size={18} />, label: 'Forecast & AI' },
+    { 
+      id: 'piezometer',
+      icon: <Waves size={18} />, 
+      label: 'Piezometer',
+      items: [
+        { href: '/piezometer', label: 'Overview' },
+        { href: '/piezometer/comparison', label: 'Perbandingan' }
+      ]
+    },
     { 
       id: 'rainfall',
       icon: <CalendarDays size={18} />, 
