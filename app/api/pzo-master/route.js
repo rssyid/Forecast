@@ -28,6 +28,8 @@ export async function POST(request) {
             }
 
             const flattenedRows = [];
+            const seenKeys = new Set();
+
             for (const item of data) {
                 const pieId = item.pie_record_id;
                 const mappingStr = item.Mapping || '';
@@ -38,7 +40,11 @@ export async function POST(request) {
                 if (!pieId) continue;
                 const blocks = mappingStr.split(',').map(b => b.trim()).filter(b => b !== '');
                 for (const block of blocks) {
-                    flattenedRows.push([pieId, block, companyCode, estCode, isActive, deviceName]);
+                    const key = `${pieId}|${block}`;
+                    if (!seenKeys.has(key)) {
+                        flattenedRows.push([pieId, block, companyCode, estCode, isActive, deviceName]);
+                        seenKeys.add(key);
+                    }
                 }
             }
 
