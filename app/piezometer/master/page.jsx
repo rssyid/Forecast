@@ -25,19 +25,36 @@ export default function PzoMasterPage() {
         const wb = XLSX.read(bstr, { type: 'binary' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
+        
+        // Use header: 1 to get raw rows, then normalize headers
+        const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        if (rawData.length < 2) throw new Error("File excel kosong atau tidak memiliki data.");
 
-        if (data.length === 0) {
-          throw new Error("File excel kosong atau tidak valid.");
+        const headers = rawData[0].map(h => String(h || '').trim().toLowerCase());
+        const rows = rawData.slice(1).map(row => {
+          const obj = {};
+          row.forEach((cell, idx) => {
+            if (headers[idx]) obj[headers[idx]] = cell;
+          });
+          return obj;
+        });
+
+        // Mapping logical keys to normalized lowercase keys
+        const cleanData = rows.map(r => ({
+          pie_record_id: r.pie_record_id || r['pie record id'] || r['pie record_id'] || r.pierecordid,
+          Mapping: r.mapping || r.maping || r.block_mapping,
+          EstCode: r.estcode || r.est_code || r['est code'],
+          EstNewCode: r.estnewcode || r.est_new_code || r['est new code'],
+          deviceNameIOT: r.devicenameiot || r['device name iot'] || r.device_name,
+          IsActive: r.isactive !== undefined ? r.isactive : true
+        }));
+
+        if (!cleanData[0].pie_record_id) {
+          console.error("Available headers:", headers);
+          throw new Error(`Kolom 'pie_record_id' tidak terdeteksi. Header yang terbaca: ${headers.join(', ')}`);
         }
 
-        // Verify some columns
-        const sample = data[0];
-        if (!sample.pie_record_id) {
-          throw new Error("Kolom 'pie_record_id' tidak ditemukan di file Excel.");
-        }
-
-        console.log(`Parsed ${data.length} rows. Uploading...`);
+        console.log(`Parsed ${cleanData.length} rows. Uploading...`);
         
         const res = await fetch('/api/pzo-master', {
           method: 'POST',
@@ -45,7 +62,7 @@ export default function PzoMasterPage() {
             'Content-Type': 'application/json',
             'x-admin-key': adminKey || localStorage.getItem('adminKey') || ''
           },
-          body: JSON.stringify(data)
+          body: JSON.stringify(cleanData)
         });
 
         const json = await res.json();
