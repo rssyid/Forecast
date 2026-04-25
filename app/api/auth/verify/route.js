@@ -3,12 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
     try {
         const { key } = await request.json();
-        const adminKey = process.env.ADMIN_KEY;
-
-        if (!adminKey) {
-            // Bypass authentication if no admin key is configured (useful for local development)
-            return NextResponse.json({ success: true, bypassed: true });
-        }
+        const adminKey = process.env.ADMIN_KEY || 'admin123';
 
         if (key === adminKey) {
             return NextResponse.json({ success: true });

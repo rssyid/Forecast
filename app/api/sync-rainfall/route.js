@@ -11,12 +11,10 @@ const API_URL = "https://app.gis-div.com/iot/Service/webservice.asmx/GetArsStati
 
 export async function POST(request) {
     // Security: Check for ADMIN_KEY
-    const adminKey = process.env.ADMIN_KEY;
-    if (adminKey) {
-        const providedKey = request.headers.get('x-admin-key');
-        if (providedKey !== adminKey) {
-            return NextResponse.json({ error: 'Unauthorized: Invalid Admin Key.' }, { status: 401 });
-        }
+    const adminKey = process.env.ADMIN_KEY || 'admin123';
+    const providedKey = request.headers.get('x-admin-key');
+    if (providedKey !== adminKey) {
+        return NextResponse.json({ error: 'Unauthorized: Invalid Admin Key.' }, { status: 401 });
     }
 
     // Determine target companies (only active ones)
