@@ -109,38 +109,40 @@ export default function PzoComparisonPage() {
           <Loader2 className="animate-spin text-gray-400" size={32} />
         </div>
       ) : data?.rows?.length > 0 ? (
-        <div className="glass-card overflow-hidden">
-          <div className="bg-gray-50/50 p-4 border-b border-gray-100 text-center">
-            <h3 className="font-bold text-gray-800">Table Summary CH & PZO</h3>
-            <p className="text-xs text-gray-400 mt-1">Last Update: {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+        <div className="glass-card overflow-hidden border-2 border-gray-800">
+          <div className="bg-[#B91C1C] p-3 text-center border-b-2 border-gray-800">
+            <h3 className="font-bold text-white text-base">Table Summary CH & PZO (Last Update: {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })})</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-center border-collapse">
               <thead>
-                <tr className="bg-gray-100 border-b-2 border-gray-300">
-                  <th rowSpan={2} className="p-2 border border-gray-200 font-bold w-10">No</th>
-                  <th rowSpan={2} className="p-2 border border-gray-200 font-bold w-24">Company</th>
-                  <th rowSpan={2} className="p-2 border border-gray-200 font-bold w-28">TMAT PZO</th>
+                <tr className="bg-[#B91C1C] text-white border-b-2 border-gray-800">
+                  <th rowSpan={3} className="p-2 border border-gray-800 font-bold w-10">No</th>
+                  <th rowSpan={3} className="p-2 border border-gray-800 font-bold w-24">Company</th>
+                  <th rowSpan={3} className="p-2 border border-gray-800 font-bold w-32 uppercase tracking-tighter">THIP PZO</th>
+                  <th colSpan={6} className="p-1 border border-gray-800 font-bold text-xs uppercase tracking-widest bg-[#991B1B]">26-Apr</th>
+                </tr>
+                <tr className="bg-[#B91C1C] text-white border-b-2 border-gray-800">
                   {data.prevWeek && (
-                    <th colSpan={3} className="p-2 border border-gray-200 font-bold bg-blue-50 text-blue-800">
+                    <th colSpan={3} className="p-2 border border-gray-800 font-bold">
                       {data.prevWeek}
                     </th>
                   )}
-                  <th colSpan={3} className="p-2 border border-gray-200 font-bold bg-green-50 text-green-800">
+                  <th colSpan={3} className="p-2 border border-gray-800 font-bold">
                     {data.selectedWeek}
                   </th>
                 </tr>
-                <tr className="bg-gray-50 border-b border-gray-200">
+                <tr className="bg-[#B91C1C] text-white border-b-2 border-gray-800">
                   {data.prevWeek && (
                     <>
-                      <th className="p-2 border border-gray-200 text-xs font-semibold text-gray-600 w-24">CH</th>
-                      <th className="p-2 border border-gray-200 text-xs font-semibold text-gray-600 w-16">Blok</th>
-                      <th className="p-2 border border-gray-200 text-xs font-semibold text-gray-600 w-12">%</th>
+                      <th className="p-2 border border-gray-800 text-xs font-bold w-24">CH</th>
+                      <th className="p-2 border border-gray-800 text-xs font-bold w-16">Blok</th>
+                      <th className="p-2 border border-gray-800 text-xs font-bold w-12">%</th>
                     </>
                   )}
-                  <th className="p-2 border border-gray-200 text-xs font-semibold text-gray-600 w-24">CH</th>
-                  <th className="p-2 border border-gray-200 text-xs font-semibold text-gray-600 w-16">Blok</th>
-                  <th className="p-2 border border-gray-200 text-xs font-semibold text-gray-600 w-12">%</th>
+                  <th className="p-2 border border-gray-800 text-xs font-bold w-24">CH</th>
+                  <th className="p-2 border border-gray-800 text-xs font-bold w-16">Blok</th>
+                  <th className="p-2 border border-gray-800 text-xs font-bold w-12">%</th>
                 </tr>
               </thead>
               <tbody>
@@ -154,16 +156,16 @@ export default function PzoComparisonPage() {
                     const prevPct = prevTotal > 0 ? Math.round((prevBlok / prevTotal) * 100) : 0;
                     
                     return (
-                      <tr key={`${row.companyCode}-${cls.key}`} className={`border-b ${ci === CLASS_ROWS.length - 1 ? 'border-gray-300' : 'border-gray-100'} hover:bg-gray-50/50`}>
+                      <tr key={`${row.companyCode}-${cls.key}`} className={`border-b ${ci === CLASS_ROWS.length - 1 ? 'border-b-2 border-gray-800' : 'border-gray-300'} hover:bg-gray-50/50`}>
                         {ci === 0 && (
                           <>
-                            <td rowSpan={CLASS_ROWS.length} className="p-2 border border-gray-200 font-bold text-gray-700 align-middle">{row.no}</td>
-                            <td rowSpan={CLASS_ROWS.length} className="p-2 border border-gray-200 font-bold text-gray-900 align-middle">{row.company}</td>
+                            <td rowSpan={CLASS_ROWS.length} className="p-2 border border-gray-400 font-bold text-gray-700 align-middle">{row.no}</td>
+                            <td rowSpan={CLASS_ROWS.length} className="p-2 border border-gray-400 font-bold text-gray-900 align-middle">{row.company}</td>
                           </>
                         )}
-                        <td className="p-1.5 border border-gray-200">
+                        <td className="p-1.5 border border-gray-400">
                           <span 
-                            className="inline-block w-full px-2 py-1 rounded text-xs font-bold text-white"
+                            className="inline-block w-full px-2 py-1 text-xs font-black text-white"
                             style={{ backgroundColor: cls.bg }}
                           >
                             {cls.label}
@@ -172,21 +174,21 @@ export default function PzoComparisonPage() {
                         {data.prevWeek && (
                           <>
                             {ci === 0 ? (
-                              <td rowSpan={CLASS_ROWS.length} className="p-2 border border-gray-200 text-xs font-medium text-gray-700 align-middle bg-blue-50/30">
-                                {row.previous ? `${row.previous.ch}/${row.previous.hh} HH` : '-'}
+                              <td rowSpan={CLASS_ROWS.length} className="p-2 border border-gray-400 text-xs font-medium text-gray-900 align-middle">
+                                {row.previous ? `${row.previous.ch}/${row.previous.hh} HH` : '0 mm/0 HH'}
                               </td>
                             ) : null}
-                            <td className="p-2 border border-gray-200 text-sm font-medium">{prevBlok}</td>
-                            <td className="p-2 border border-gray-200 text-sm font-medium text-gray-500">{prevPct}</td>
+                            <td className="p-2 border border-gray-400 text-sm font-medium">{prevBlok}</td>
+                            <td className="p-2 border border-gray-400 text-sm font-medium text-gray-700">{prevPct}</td>
                           </>
                         )}
                         {ci === 0 ? (
-                          <td rowSpan={CLASS_ROWS.length} className="p-2 border border-gray-200 text-xs font-medium text-gray-700 align-middle bg-green-50/30">
+                          <td rowSpan={CLASS_ROWS.length} className="p-2 border border-gray-400 text-xs font-medium text-gray-900 align-middle">
                             {`${row.selected.ch}/${row.selected.hh} HH`}
                           </td>
                         ) : null}
-                        <td className="p-2 border border-gray-200 text-sm font-bold">{selBlok}</td>
-                        <td className="p-2 border border-gray-200 text-sm font-bold text-gray-500">{selPct}</td>
+                        <td className="p-2 border border-gray-400 text-sm font-medium">{selBlok}</td>
+                        <td className="p-2 border border-gray-400 text-sm font-medium text-gray-700">{selPct}</td>
                       </tr>
                     );
                   })

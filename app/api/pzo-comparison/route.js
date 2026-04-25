@@ -52,31 +52,40 @@ export async function GET(request) {
             SELECT 
                 p.company_code,
                 p.month_name AS week,
-                COUNT(*)::int AS total,
-                SUM(CASE WHEN p.ketinggian < 0 THEN 1 ELSE 0 END)::int AS cnt_banjir,
-                SUM(CASE WHEN p.ketinggian BETWEEN 0 AND 40 THEN 1 ELSE 0 END)::int AS cnt_tergenang,
-                SUM(CASE WHEN p.ketinggian BETWEEN 61 AND 65 THEN 1 ELSE 0 END)::int AS cnt_a_kering,
-                SUM(CASE WHEN p.ketinggian > 65 THEN 1 ELSE 0 END)::int AS cnt_kering
+                COUNT(DISTINCT p.est_code || p.block || p.indicator_alias)::int AS total,
+                COUNT(DISTINCT CASE WHEN p.ketinggian < 0 THEN p.est_code || p.block || p.indicator_alias END)::int AS cnt_banjir,
+                COUNT(DISTINCT CASE WHEN p.ketinggian >= 0 AND p.ketinggian <= 40 THEN p.est_code || p.block || p.indicator_alias END)::int AS cnt_tergenang,
+                COUNT(DISTINCT CASE WHEN p.ketinggian > 60 AND p.ketinggian <= 65 THEN p.est_code || p.block || p.indicator_alias END)::int AS cnt_a_kering,
+                COUNT(DISTINCT CASE WHEN p.ketinggian > 65 THEN p.est_code || p.block || p.indicator_alias END)::int AS cnt_kering
             FROM piezometer_data p
             WHERE p.month_name = ANY($1) AND p.company_code = ANY($2)
             AND p.ketinggian IS NOT NULL
             GROUP BY p.company_code, p.month_name
         `, [targetWeeks, companyCodes]);
 
-        // 4. Rainfall per company for these weeks (average mm and rain days)
+        // 4. Rainfall per company: Sum of (Daily Average across all estates)
         const rainRes = await pool.query(`
+            WITH daily_co_avg AS (
+                SELECT 
+                    r.company_code,
+                    r.record_date,
+                    AVG(r.rainfall_mm) as daily_avg
+                FROM daily_rainfall r
+                WHERE r.company_code = ANY($2)
+                GROUP BY r.company_code, r.record_date
+            )
             SELECT 
-                r.company_code,
+                da.company_code,
                 cw.formatted_name AS week,
-                ROUND(AVG(r.rainfall_mm)::numeric, 1) AS avg_mm,
-                COUNT(DISTINCT CASE WHEN r.rainfall_mm > 0 THEN r.record_date END)::int AS hari_hujan
-            FROM daily_rainfall r
-            JOIN calendar_weeks cw ON r.record_date >= cw.start_date AND r.record_date <= cw.end_date
-            WHERE cw.formatted_name = ANY($1) AND r.company_code = ANY($2)
-            GROUP BY r.company_code, cw.formatted_name
+                ROUND(SUM(da.daily_avg)::numeric, 1) AS total_ch,
+                COUNT(DISTINCT CASE WHEN da.daily_avg > 0 THEN da.record_date END)::int AS hari_hujan
+            FROM daily_co_avg da
+            JOIN calendar_weeks cw ON da.record_date >= cw.start_date AND da.record_date <= cw.end_date
+            WHERE cw.formatted_name = ANY($1)
+            GROUP BY da.company_code, cw.formatted_name
         `, [targetWeeks, companyCodes]);
 
-        // 5. Build the comparison table rows (one per company)
+        // Build the comparison table rows (one per company)
         const rows = companyCodes.map((code, idx) => {
             const companyName = companies.find(c => c.code === code)?.name || code;
             
@@ -93,7 +102,7 @@ export async function GET(request) {
                 company: code.replace('PT.', ''),
                 companyCode: code,
                 selected: {
-                    ch: swRain ? `${swRain.avg_mm} mm` : '-',
+                    ch: swRain ? `${swRain.total_ch} mm` : '0 mm',
                     hh: swRain ? swRain.hari_hujan : 0,
                     banjir: sw?.cnt_banjir || 0,
                     tergenang: sw?.cnt_tergenang || 0,
@@ -102,7 +111,7 @@ export async function GET(request) {
                     total: sw?.total || 0
                 },
                 previous: pw ? {
-                    ch: pwRain ? `${pwRain.avg_mm} mm` : '-',
+                    ch: pwRain ? `${pwRain.total_ch} mm` : '0 mm',
                     hh: pwRain ? pwRain.hari_hujan : 0,
                     banjir: pw.cnt_banjir || 0,
                     tergenang: pw.cnt_tergenang || 0,
