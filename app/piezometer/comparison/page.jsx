@@ -120,7 +120,9 @@ export default function PzoComparisonPage() {
                   <th rowSpan={3} className="p-2 border border-gray-800 font-bold w-10">No</th>
                   <th rowSpan={3} className="p-2 border border-gray-800 font-bold w-24">Company</th>
                   <th rowSpan={3} className="p-2 border border-gray-800 font-bold w-32 uppercase tracking-tighter">THIP PZO</th>
-                  <th colSpan={6} className="p-1 border border-gray-800 font-bold text-xs uppercase tracking-widest bg-[#991B1B]">26-Apr</th>
+                  <th colSpan={6} className="p-1 border border-gray-800 font-bold text-xs uppercase tracking-widest bg-[#991B1B]">
+                    {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                  </th>
                 </tr>
                 <tr className="bg-[#B91C1C] text-white border-b-2 border-gray-800">
                   {data.prevWeek && (
