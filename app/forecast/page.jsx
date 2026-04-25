@@ -28,7 +28,7 @@ export default function ForecastPage() {
   const [rainfallMap, setRainfallMap] = useState({}); // user inputs
   
   const [baselineWeek, setBaselineWeek] = useState('');
-  const [forecastModel, setForecastModel] = useState('simple');
+  const [forecastModel, setForecastModel] = useState('estate');
   const [scenarioInput, setScenarioInput] = useState('0,50');
   
   const [status, setStatus] = useState({ msg: 'Pilih sumber data dan klik Ambil Data.', type: 'neutral' });
@@ -357,9 +357,11 @@ export default function ForecastPage() {
                                 value={dbRange} onChange={(e) => setDbRange(e.target.value)}
                                 className="flex-1 h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50"
                             >
-                                <option value="4">4 Minggu Terakhir</option>
                                 <option value="8">8 Minggu Terakhir</option>
                                 <option value="12">12 Minggu Terakhir</option>
+                                <option value="24">24 Minggu Terakhir (6 Bulan)</option>
+                                <option value="52">52 Minggu Terakhir (1 Tahun)</option>
+                                <option value="999">Seluruh Data (All Time)</option>
                             </select>
                             <button 
                                 onClick={handleFetchDB} disabled={isFetching}
@@ -392,78 +394,30 @@ export default function ForecastPage() {
             </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="mt-6 grid grid-cols-1 gap-6">
             <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Metode Forecast</label>
-                <select 
-                    value={forecastModel} onChange={(e) => setForecastModel(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50"
-                >
-                    <option value="simple">Simple Linear (Company)</option>
-                    <option value="weighted">Weighted Lag (Hujan Lalu)</option>
-                    <option value="estate">Granular Estate-Based (High Acc)</option>
-                </select>
-            </div>
-            <div className="col-span-1 md:col-span-3 space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Scenario Rainfall (mm)</label>
+                <label className="text-sm font-semibold text-gray-700">Scenario Rainfall (mm) untuk Diprediksi (Bisa diisi banyak skenario, pisahkan dengan koma)</label>
                 <input 
                     type="text" value={scenarioInput} onChange={(e) => setScenarioInput(e.target.value)}
-                    placeholder="0,50,100"
+                    placeholder="0, 50, 100"
                     className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50"
                 />
             </div>
         </div>
 
-        {/* Rainfall Inputs Collapse Section */}
-        {weeks.length > 0 && (
+        {/* Rainfall Inputs Collapse Section Removed */}
+        {weeks.length > 0 && forecastModel === 'estate' && (
             <div className="mt-6 pt-6 border-t border-gray-100">
                 <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-3">
-                        <h3 className="text-md font-semibold text-gray-800">Input Rainfall per Week</h3>
-                        {forecastModel === 'estate' && (
-                            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-green-200">Auto Mode</span>
-                        )}
+                        <h3 className="text-md font-semibold text-gray-800">Skenario Hujan Masa Depan</h3>
+                        <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-green-200">Auto Database Mode</span>
                     </div>
-                    <button 
-                        onClick={() => setShowRainfall(!showRainfall)}
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-500"
-                    >
-                        {showRainfall ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                    </button>
                 </div>
-
-                {showRainfall && forecastModel !== 'estate' && (
-                    <div className="bg-white/40 rounded-xl border border-gray-100 overflow-hidden">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-gray-50/50 text-gray-500">
-                                <tr>
-                                    <th className="px-4 py-3 font-medium">Week Name</th>
-                                    <th className="px-4 py-3 font-medium">Rainfall (mm)</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {weeks.map(w => (
-                                    <tr key={w} className="hover:bg-white/60 transition-colors">
-                                        <td className="px-4 py-2 font-medium text-gray-700">{w}</td>
-                                        <td className="px-4 py-2">
-                                            <input 
-                                                type="number" step="any"
-                                                value={rainfallMap[w] !== undefined ? rainfallMap[w] : ''}
-                                                onChange={(e) => setRainfallMap({...rainfallMap, [w]: e.target.value})}
-                                                className="w-full h-8 px-2 rounded-lg border border-gray-200 bg-white focus:ring-2 focus:ring-brand-orange/30 outline-none transition-shadow"
-                                            />
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-                {showRainfall && forecastModel === 'estate' && (
-                    <p className="text-sm text-gray-500 italic p-4 bg-white/40 rounded-xl border border-gray-100">
-                        Pada mode Granular Estate-Based, data curah hujan historis ditarik secara spesifik untuk masing-masing estate langsung dari database. Anda tidak perlu menginputnya secara manual.
-                    </p>
-                )}
+                <p className="text-sm text-gray-500 italic p-4 bg-white/40 rounded-xl border border-gray-100">
+                    Sistem secara otomatis telah memuat seluruh data riwayat Curah Hujan untuk setiap Estate/Kebun secara spesifik dari database untuk melatih model matematis.<br/><br/>
+                    Masukkan "Scenario Rainfall (mm)" di atas, lalu klik <b>Proses Data AI</b> untuk melihat probabilitas kondisi di minggu berikutnya.
+                </p>
             </div>
         )}
 
@@ -504,11 +458,11 @@ export default function ForecastPage() {
                       {/* Model Summary Cards */}
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                           {[
-                              { label: "Metode", val: processed.fit.method === 'estate-agg' ? 'Estate-Based' : (processed.fit.modelType === 'weighted' ? 'Weighted Lag' : 'Linear') },
+                              { label: "Metode AI", val: 'Granular Estate-Based' },
                               { label: "Baseline Week", val: processed.baselineWeek },
-                              { label: "Koef. a (Avg)", val: formatNumber(processed.fit.a, 3) },
-                              { label: "Koef. b (Avg)", val: formatNumber(processed.fit.b, 4) },
-                              { label: "Akurasi (R²)", val: processed.fit.method === 'fallback' ? 'Low' : `${Math.round(processed.fit.r2 * 100)}%` }
+                              { label: "Akurasi (r²)", val: processed.fit.method === 'fallback' ? 'Low' : `${Math.round(processed.fit.r2 * 100)}%` },
+                              { label: "Error (MAE)", val: processed.fit.method === 'fallback' ? '-' : `± ${formatNumber(processed.fit.mae, 1)} cm` },
+                              { label: "Max Error (RMSE)", val: processed.fit.method === 'fallback' ? '-' : `± ${formatNumber(processed.fit.rmse, 1)} cm` }
                           ].map(card => (
                               <div key={card.label} className="glass-card p-4 flex flex-col justify-center">
                                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{card.label}</span>

@@ -84,7 +84,7 @@ export async function GET(request) {
                 record_date,
                 AVG(rainfall_mm) as daily_avg
             FROM daily_rainfall
-            WHERE company_code = $2
+            ${companyCode && companyCode !== 'Semua' ? 'WHERE company_code = $2' : ''}
             GROUP BY est_code, record_date
         )
         SELECT 
@@ -96,7 +96,11 @@ export async function GET(request) {
         WHERE cw.formatted_name = ANY($1)
         GROUP BY da.est_code, cw.formatted_name
     `;
-    const estateRainResult = await pool.query(estateRainQuery, [targetWeeks, companyCode]);
+    let estRainParams = [targetWeeks];
+    if (companyCode && companyCode !== 'Semua') {
+        estRainParams.push(companyCode);
+    }
+    const estateRainResult = await pool.query(estateRainQuery, estRainParams);
 
     // Map company rainfall
     const rainfallMap = {};
