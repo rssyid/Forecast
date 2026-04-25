@@ -12,6 +12,8 @@ export default function PzoMasterPage() {
 
   const [progress, setProgress] = useState(0);
 
+  const [status, setStatus] = useState('');
+
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -20,15 +22,18 @@ export default function PzoMasterPage() {
     setError(null);
     setResult(null);
     setProgress(0);
+    setStatus('Membaca file Excel...');
 
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
-        const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
+        console.log('File loaded, starting parse...');
+        const dataArr = new Uint8Array(evt.target.result);
+        const wb = XLSX.read(dataArr, { type: 'array' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         
+        setStatus('Memproses struktur data...');
         const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 });
         if (rawData.length < 2) throw new Error("File excel kosong atau tidak memiliki data.");
 
@@ -55,10 +60,14 @@ export default function PzoMasterPage() {
         // CHUNKING ON CLIENT
         const chunkSize = 100;
         let processed = 0;
+        const totalChunks = Math.ceil(cleanData.length / chunkSize);
         
         for (let i = 0; i < cleanData.length; i += chunkSize) {
           const chunk = cleanData.slice(i, i + chunkSize);
           const isFirst = i === 0;
+          const currentChunkNum = Math.floor(i/chunkSize) + 1;
+          
+          setStatus(`Mengunggah batch ${currentChunkNum} dari ${totalChunks}...`);
           
           const res = await fetch(`/api/pzo-master?clear=${isFirst}`, {
             method: 'POST',
@@ -76,6 +85,7 @@ export default function PzoMasterPage() {
           setProgress(Math.round((processed / cleanData.length) * 100));
         }
 
+        setStatus('Selesai!');
         setResult({ count: cleanData.length });
       } catch (err) {
         setError(err.message);
@@ -83,7 +93,7 @@ export default function PzoMasterPage() {
         setLoading(false);
       }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   return (
@@ -141,7 +151,7 @@ export default function PzoMasterPage() {
           {loading && (
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
-                <span>Mengunggah Data...</span>
+                <span>{status}</span>
                 <span>{progress}%</span>
               </div>
               <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
