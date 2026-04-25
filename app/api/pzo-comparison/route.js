@@ -52,15 +52,16 @@ export async function GET(request) {
             SELECT 
                 p.company_code,
                 p.month_name AS week,
-                COUNT(DISTINCT COALESCE(m.block_id, p.block) || '-' || p.pie_record_id)::int AS total,
-                COUNT(DISTINCT CASE WHEN p.ketinggian < 0 THEN COALESCE(m.block_id, p.block) || '-' || p.pie_record_id END)::int AS cnt_banjir,
-                COUNT(DISTINCT CASE WHEN p.ketinggian >= 0 AND p.ketinggian <= 40 THEN COALESCE(m.block_id, p.block) || '-' || p.pie_record_id END)::int AS cnt_tergenang,
-                COUNT(DISTINCT CASE WHEN p.ketinggian > 60 AND p.ketinggian <= 65 THEN COALESCE(m.block_id, p.block) || '-' || p.pie_record_id END)::int AS cnt_a_kering,
-                COUNT(DISTINCT CASE WHEN p.ketinggian > 65 THEN COALESCE(m.block_id, p.block) || '-' || p.pie_record_id END)::int AS cnt_kering
+                COUNT(DISTINCT COALESCE(m.block_id, p.block))::int AS total,
+                COUNT(DISTINCT CASE WHEN p.ketinggian < 0 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_banjir,
+                COUNT(DISTINCT CASE WHEN p.ketinggian >= 0 AND p.ketinggian <= 40 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_tergenang,
+                COUNT(DISTINCT CASE WHEN p.ketinggian > 60 AND p.ketinggian <= 65 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_a_kering,
+                COUNT(DISTINCT CASE WHEN p.ketinggian > 65 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_kering
             FROM piezometer_data p
             LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
             WHERE p.month_name = ANY($1) AND p.company_code = ANY($2)
             AND p.ketinggian IS NOT NULL
+            AND (m.is_active IS NULL OR m.is_active = true)
             GROUP BY p.company_code, p.month_name
         `, [targetWeeks, companyCodes]);
 
