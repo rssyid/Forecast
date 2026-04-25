@@ -10,6 +10,8 @@ export default function PzoMasterPage() {
   const [error, setError] = useState(null);
   const [adminKey, setAdminKey] = useState('');
 
+  const [progress, setProgress] = useState(0);
+
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -17,6 +19,7 @@ export default function PzoMasterPage() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setProgress(0);
 
     const reader = new FileReader();
     reader.onload = async (evt) => {
@@ -26,7 +29,6 @@ export default function PzoMasterPage() {
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         
-        // Use header: 1 to get raw rows, then normalize headers
         const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 });
         if (rawData.length < 2) throw new Error("File excel kosong atau tidak memiliki data.");
 
@@ -39,7 +41,6 @@ export default function PzoMasterPage() {
           return obj;
         });
 
-        // Mapping logical keys to normalized lowercase keys
         const cleanData = rows.map(r => ({
           pie_record_id: r.pie_record_id || r['pie record id'] || r['pie record_id'] || r.pierecordid,
           Mapping: r.mapping || r.maping || r.block_mapping,
@@ -47,28 +48,35 @@ export default function PzoMasterPage() {
           EstNewCode: r.estnewcode || r.est_new_code || r['est new code'],
           deviceNameIOT: r.devicenameiot || r['device name iot'] || r.device_name,
           IsActive: r.isactive !== undefined ? r.isactive : true
-        }));
+        })).filter(r => r.pie_record_id);
 
-        if (!cleanData[0].pie_record_id) {
-          console.error("Available headers:", headers);
-          throw new Error(`Kolom 'pie_record_id' tidak terdeteksi. Header yang terbaca: ${headers.join(', ')}`);
+        if (cleanData.length === 0) throw new Error("Kolom 'pie_record_id' tidak ditemukan atau data kosong.");
+
+        // CHUNKING ON CLIENT
+        const chunkSize = 100;
+        let processed = 0;
+        
+        for (let i = 0; i < cleanData.length; i += chunkSize) {
+          const chunk = cleanData.slice(i, i + chunkSize);
+          const isFirst = i === 0;
+          
+          const res = await fetch(`/api/pzo-master?clear=${isFirst}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-key': adminKey || localStorage.getItem('adminKey') || ''
+            },
+            body: JSON.stringify(chunk)
+          });
+
+          const json = await res.json();
+          if (json.error) throw new Error(json.error);
+
+          processed += chunk.length;
+          setProgress(Math.round((processed / cleanData.length) * 100));
         }
 
-        console.log(`Parsed ${cleanData.length} rows. Uploading...`);
-        
-        const res = await fetch('/api/pzo-master', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-key': adminKey || localStorage.getItem('adminKey') || ''
-          },
-          body: JSON.stringify(cleanData)
-        });
-
-        const json = await res.json();
-        if (json.error) throw new Error(json.error);
-
-        setResult({ count: json.count, totalRows: data.length });
+        setResult({ count: cleanData.length });
       } catch (err) {
         setError(err.message);
       } finally {
@@ -129,6 +137,21 @@ export default function PzoMasterPage() {
               <p className="text-sm text-gray-400 mt-1">Format: .xlsx, .xls, .csv</p>
             </div>
           </div>
+
+          {loading && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                <span>Mengunggah Data...</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-brand-orange transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (
