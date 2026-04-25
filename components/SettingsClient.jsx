@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { Settings, Database, RefreshCw, AlertTriangle, CheckCircle2, Lock, CalendarDays, Building2 } from 'lucide-react';
 
 export default function SettingsClient() {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [authLoading, setAuthLoading] = useState(false);
+    const [authError, setAuthError] = useState(null);
+
     const [adminKey, setAdminKey] = useState('');
     const [endingDate, setEndingDate] = useState(new Date().toISOString().split('T')[0]);
     const [weeks, setWeeks] = useState('6');
@@ -14,8 +18,7 @@ export default function SettingsClient() {
     const [companies, setCompanies] = useState([]);
     const [compLoading, setCompLoading] = useState(false);
 
-    // Fetch companies list
-    useEffect(() => {
+    const fetchCompanies = () => {
         setCompLoading(true);
         fetch('/api/companies')
             .then(r => r.json())
@@ -23,7 +26,31 @@ export default function SettingsClient() {
                 if (json.companies) setCompanies(json.companies);
             })
             .finally(() => setCompLoading(false));
-    }, []);
+    };
+
+    const handleAuthenticate = async (e) => {
+        e.preventDefault();
+        setAuthLoading(true);
+        setAuthError(null);
+        try {
+            const res = await fetch('/api/auth/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: adminKey })
+            });
+            if (res.ok) {
+                setIsAuthenticated(true);
+                fetchCompanies();
+            } else {
+                const json = await res.json();
+                setAuthError(json.error || 'Otentikasi gagal');
+            }
+        } catch (err) {
+            setAuthError(err.message);
+        } finally {
+            setAuthLoading(false);
+        }
+    };
 
     const handleToggleCompany = async (code, currentStatus) => {
         if (!adminKey) {
@@ -89,8 +116,46 @@ export default function SettingsClient() {
         }
     };
 
+    if (!isAuthenticated) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/20 backdrop-blur-md px-4">
+                <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-300">
+                    <div className="flex flex-col items-center text-center space-y-4">
+                        <div className="p-4 bg-amber-50 border border-amber-100 rounded-full">
+                            <Lock size={32} className="text-amber-500" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Otentikasi Diperlukan</h2>
+                            <p className="text-xs text-gray-500 mt-2 leading-relaxed">Halaman pengaturan berisi kontrol sinkronisasi dan manajemen unit. Masukkan Admin Key untuk melanjutkan.</p>
+                        </div>
+                        <form onSubmit={handleAuthenticate} className="w-full space-y-4 pt-4">
+                            <input 
+                                type="password" 
+                                value={adminKey}
+                                onChange={e => setAdminKey(e.target.value)}
+                                placeholder="Masukkan Admin Key"
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-amber-500/20 transition-all text-sm text-center tracking-widest"
+                                autoFocus
+                            />
+                            {authError && <p className="text-[11px] font-bold text-red-500 bg-red-50 py-2 rounded-lg border border-red-100">{authError}</p>}
+                            <button 
+                                type="submit" 
+                                disabled={authLoading || !adminKey}
+                                className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wide transition-all
+                                    ${(authLoading || !adminKey) ? 'bg-gray-100 text-gray-400' : 'bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-200'}
+                                `}
+                            >
+                                {authLoading ? 'Memverifikasi...' : 'Buka Pengaturan'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-20">
+        <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in duration-500">
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
@@ -100,30 +165,8 @@ export default function SettingsClient() {
                 <p className="text-sm text-gray-500 mt-1">Kelola sinkronisasi data dan konfigurasi admin.</p>
             </div>
 
-            {/* Security Section */}
-            <div className="glass-card p-6 border-l-4 border-amber-400 bg-amber-50/30">
-                <div className="flex gap-4">
-                    <div className="p-2 bg-amber-100 rounded-lg shrink-0 h-fit">
-                        <Lock className="text-amber-600" size={20} />
-                    </div>
-                    <div className="space-y-1">
-                        <h3 className="text-sm font-bold text-amber-900">Otentikasi Admin</h3>
-                        <p className="text-xs text-amber-700/70">Masukkan Admin Key Anda untuk menjalankan perintah administratif sensitif.</p>
-                        <div className="pt-3">
-                            <input 
-                                type="password" 
-                                value={adminKey}
-                                onChange={e => setAdminKey(e.target.value)}
-                                placeholder="Masukkan Admin Key..."
-                                className="w-full max-w-sm px-4 py-2 rounded-xl border border-amber-200 bg-white/50 focus:bg-white outline-none focus:ring-2 focus:ring-amber-500/20 transition-all text-sm"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {/* Company Management Section */}
-            <div className="glass-card overflow-hidden">
+            <div className="glass-card overflow-hidden border-t-4 border-amber-400">
                 <div className="p-6 border-b border-gray-100 bg-gray-50/50">
                     <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                         <Building2 size={16} className="text-blue-500" />
