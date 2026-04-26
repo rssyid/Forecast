@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Loader2, TrendingUp, TrendingDown, Minus, Droplets, ThermometerSun } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Loader2, TrendingUp, TrendingDown, Minus, Droplets, ThermometerSun, Building2, CalendarDays, RefreshCw, Activity, CheckCircle, AlertTriangle } from 'lucide-react';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const CLASS_CONFIG = [
   { key: 'cnt_banjir', label: 'Banjir (<0)', color: '#71717A' },
@@ -12,19 +13,59 @@ const CLASS_CONFIG = [
   { key: 'cnt_kering', label: 'Kering (>65)', color: '#EF4444' },
 ];
 
+function fmtDate(str) {
+    if (!str) return '';
+    const [y, m, d] = str.split('-');
+    return `${d}-${m}-${y}`;
+}
+
 export default function PzoOverviewPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [company, setCompany] = useState('Semua');
+  const [week, setWeek] = useState('');
+  const [weekList, setWeekList] = useState([]);
+  const [companyList, setCompanyList] = useState(['Semua']);
 
+  // Fetch Filters
   useEffect(() => {
-    fetch('/api/dashboard-summary?company=Semua')
+    fetch('/api/companies?active=true')
       .then(r => r.json())
-      .then(json => setData(json))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .then(json => {
+        if (json.companies) setCompanyList(['Semua', ...json.companies.map(c => c.code)]);
+      });
+
+    fetch('/api/calendar-weeks')
+      .then(r => r.json())
+      .then(json => {
+        if (json.weeks?.length > 0) {
+          setWeekList(json.weeks);
+          // Default to latest
+          setWeek(json.weeks[json.weeks.length - 1].formatted_name);
+        }
+      });
   }, []);
 
-  if (loading) {
+  const fetchData = useCallback(async (selectedCompany, selectedWeek) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ company: selectedCompany });
+      if (selectedWeek) params.set('week', selectedWeek);
+      const res = await fetch(`/api/dashboard-summary?${params}`);
+      const json = await res.json();
+      setData(json);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (week !== '') fetchData(company, week);
+  }, [company, week, fetchData]);
+
+  if (!data && loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="animate-spin text-gray-400" size={32} />
@@ -32,20 +73,14 @@ export default function PzoOverviewPage() {
     );
   }
 
-  if (!data || !data.currentWeek) {
-    return <div className="glass-card p-12 text-center text-gray-400">Tidak ada data piezometer yang tersedia.</div>;
-  }
+  const cur = data?.currentWeek;
+  const prev = data?.prevWeek;
+  if (!cur) return <div className="glass-card p-12 text-center text-gray-400">Tidak ada data piezometer.</div>;
 
-  const cur = data.currentWeek;
-  const prev = data.prevWeek;
-  const total = cur.total || 1;
-  const prevTotal = prev?.total || 1;
-
+  const total = cur.total_block || 1;
   const tmatDiff = prev ? (parseFloat(cur.avg_tmat) - parseFloat(prev.avg_tmat)).toFixed(1) : null;
-  const TrendIcon = tmatDiff > 0 ? TrendingUp : tmatDiff < 0 ? TrendingDown : Minus;
   const trendColor = tmatDiff > 0 ? 'text-red-500' : tmatDiff < 0 ? 'text-blue-500' : 'text-gray-400';
 
-  // Basah & Kering percentages
   const basahCount = (cur.cnt_tergenang || 0) + (cur.cnt_a_tergenang || 0) + (cur.cnt_banjir || 0);
   const keringCount = (cur.cnt_a_kering || 0) + (cur.cnt_kering || 0);
   const basahPct = ((basahCount / total) * 100).toFixed(1);
@@ -53,28 +88,54 @@ export default function PzoOverviewPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Overview Piezometer</h1>
-        <p className="text-sm text-gray-500 mt-1">Ringkasan kondisi TMAT terkini untuk seluruh company aktif — Minggu: <b>{cur.week}</b></p>
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Overview Piezometer</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Kondisi TMAT terkini untuk {company} — {cur.week} {cur.week_start && cur.week_end ? `(${fmtDate(cur.week_start)} - ${fmtDate(cur.week_end)})` : ''}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+            <SearchableSelect
+                icon={<CalendarDays size={14} />}
+                options={weekList.map(w => ({ value: w.formatted_name, label: w.formatted_name }))}
+                value={week}
+                onChange={setWeek}
+                placeholder="Pilih Minggu..."
+                className="min-w-[180px]"
+                autoSort={false}
+            />
+            <SearchableSelect
+                icon={<Building2 size={14} />}
+                options={companyList}
+                value={company}
+                onChange={setCompany}
+                placeholder="Pilih Company..."
+                className="min-w-[150px]"
+            />
+            <button
+                onClick={() => fetchData(company, week)}
+                disabled={loading}
+                className="p-2 rounded-xl border border-gray-200 bg-white/70 hover:bg-white transition-colors"
+            >
+                <RefreshCw size={16} className={loading ? 'animate-spin text-gray-400' : 'text-gray-600'} />
+            </button>
+        </div>
       </header>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="glass-card p-4">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Minggu</span>
-          <p className="text-lg font-bold text-gray-900 mt-1">{cur.week}</p>
-        </div>
-        <div className="glass-card p-4">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Titik PZO</span>
-          <p className="text-lg font-bold text-gray-900 mt-1">{cur.total?.toLocaleString()}</p>
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Titik / Blok</span>
+          <p className="text-lg font-bold text-gray-900 mt-1">{cur.total_pzo} / {cur.total_block}</p>
         </div>
         <div className="glass-card p-4">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Avg TMAT</span>
           <div className="flex items-center gap-2 mt-1">
             <p className="text-lg font-bold text-gray-900">{cur.avg_tmat} cm</p>
             {tmatDiff !== null && (
-              <span className={`flex items-center gap-0.5 text-xs font-bold ${trendColor}`}>
-                <TrendIcon size={14} /> {tmatDiff > 0 ? '+' : ''}{tmatDiff}
+              <span className={`text-xs font-bold ${trendColor}`}>
+                {tmatDiff > 0 ? '↑' : '↓'} {Math.abs(tmatDiff)}
               </span>
             )}
           </div>
@@ -87,11 +148,15 @@ export default function PzoOverviewPage() {
           <span className="text-xs font-semibold text-red-600 uppercase tracking-wider flex items-center gap-1"><ThermometerSun size={12} /> Kering (&gt;60)</span>
           <p className="text-lg font-bold text-red-700 mt-1">{keringCount} <span className="text-sm font-normal text-red-400">({keringPct}%)</span></p>
         </div>
+        <div className="glass-card p-4 border-l-4 border-green-500">
+            <span className="text-xs font-semibold text-green-600 uppercase tracking-wider">Normal</span>
+            <p className="text-lg font-bold text-green-700 mt-1">{cur.cnt_normal || 0}</p>
+        </div>
       </div>
 
       {/* Distribution Bar */}
-      <div className="glass-card p-5">
-        <h3 className="text-sm font-bold text-gray-800 mb-4">Distribusi Kelas TMAT</h3>
+      <div className={`glass-card p-5 ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+        <h3 className="text-sm font-bold text-gray-800 mb-4">Distribusi Kondisi Blok</h3>
         <div className="flex rounded-xl overflow-hidden h-10 bg-gray-100">
           {CLASS_CONFIG.map(cls => {
             const count = cur[cls.key] || 0;
@@ -101,8 +166,8 @@ export default function PzoOverviewPage() {
               <div 
                 key={cls.key}
                 className="flex items-center justify-center text-white text-[10px] font-bold transition-all duration-500"
-                style={{ width: `${pct}%`, backgroundColor: cls.color, minWidth: pct > 3 ? 'auto' : '0' }}
-                title={`${cls.label}: ${count} (${pct.toFixed(1)}%)`}
+                style={{ width: `${pct}%`, backgroundColor: cls.color }}
+                title={`${cls.label}: ${count} blok (${pct.toFixed(1)}%)`}
               >
                 {pct > 5 && `${pct.toFixed(0)}%`}
               </div>
@@ -116,40 +181,16 @@ export default function PzoOverviewPage() {
               <div key={cls.key} className="flex items-center gap-1.5 text-xs">
                 <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: cls.color }}></span>
                 <span className="font-medium text-gray-700">{cls.label}</span>
-                <span className="text-gray-400">({count})</span>
+                <span className="text-gray-400">({count} blok)</span>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Comparison with Previous Week */}
-      {prev && (
-        <div className="glass-card p-5">
-          <h3 className="text-sm font-bold text-gray-800 mb-4">Perubahan dari {prev.week} → {cur.week}</h3>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-            {CLASS_CONFIG.map(cls => {
-              const curCount = cur[cls.key] || 0;
-              const prevCount = prev[cls.key] || 0;
-              const diff = curCount - prevCount;
-              return (
-                <div key={cls.key} className="rounded-xl border border-gray-100 p-3 text-center bg-white/40">
-                  <span className="block w-full h-1.5 rounded-full mb-2" style={{ backgroundColor: cls.color }}></span>
-                  <p className="text-lg font-bold text-gray-900">{curCount}</p>
-                  <p className={`text-xs font-bold ${diff > 0 ? 'text-red-500' : diff < 0 ? 'text-green-500' : 'text-gray-400'}`}>
-                    {diff > 0 ? `+${diff}` : diff === 0 ? '±0' : diff}
-                  </p>
-                  <p className="text-[10px] text-gray-400 mt-1">{cls.label.split(' ')[0]}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Top Estates Table */}
       {data.estateBreakdown?.length > 0 && (
-        <div className="glass-card overflow-hidden">
+        <div className={`glass-card overflow-hidden ${loading ? 'opacity-50' : ''}`}>
           <div className="bg-gray-50/50 p-4 border-b border-gray-100">
             <h3 className="font-bold text-gray-800">Top Estate — Blok Kering Terbanyak</h3>
           </div>
@@ -159,7 +200,7 @@ export default function PzoOverviewPage() {
                 <tr>
                   <th className="p-3">Estate</th>
                   <th className="p-3">Company</th>
-                  <th className="p-3 text-center">Total PZO</th>
+                  <th className="p-3 text-center">Titik PZO</th>
                   <th className="p-3 text-center">Blok</th>
                   <th className="p-3 text-center text-red-600">Kering</th>
                   <th className="p-3 text-center text-blue-600">Basah</th>
