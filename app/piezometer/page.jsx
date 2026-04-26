@@ -220,6 +220,18 @@ export default function PzoOverviewPage() {
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="bg-gray-50/50 font-bold border-t-2 border-gray-200">
+                <tr>
+                  <td className="p-3" colSpan={2}>TOTAL</td>
+                  <td className="p-3 text-center">{data.estateBreakdown.reduce((s, e) => s + (e.total_pzo || 0), 0)}</td>
+                  <td className="p-3 text-center">{data.estateBreakdown.reduce((s, e) => s + (e.total_block || 0), 0)}</td>
+                  <td className="p-3 text-center text-red-600">{data.estateBreakdown.reduce((s, e) => s + (e.cnt_kering || 0), 0)}</td>
+                  <td className="p-3 text-center text-blue-600">{data.estateBreakdown.reduce((s, e) => s + (e.cnt_basah || 0), 0)}</td>
+                  <td className="p-3 text-center">
+                    {(data.estateBreakdown.reduce((s, e) => s + parseFloat(e.avg_tmat || 0), 0) / data.estateBreakdown.length).toFixed(1)} cm
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
