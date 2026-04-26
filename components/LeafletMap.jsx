@@ -80,6 +80,11 @@ export default function LeafletMap({ data, baseLayer = 'dark' }) {
       </div>
     `);
 
+    layer.bindTooltip(`
+      <div class="font-bold text-[10px]">${props.pie_record_id}</div>
+      <div class="text-[9px] opacity-80">${props.status || 'N/A'}</div>
+    `, { sticky: true, direction: 'top', opacity: 0.9 });
+
     layer.on({
       mouseover: (e) => {
         const l = e.target;
@@ -100,11 +105,13 @@ export default function LeafletMap({ data, baseLayer = 'dark' }) {
     >
       {baseLayer === 'dark' ? (
         <TileLayer
+          key="dark-layer"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
       ) : (
         <TileLayer
+          key="satellite-layer"
           attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
           url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         />
@@ -116,14 +123,7 @@ export default function LeafletMap({ data, baseLayer = 'dark' }) {
           data={data} 
           style={style} 
           onEachFeature={onEachFeature}
-        >
-          {data.features.map((f, i) => (
-            <Tooltip key={i} sticky direction="top" opacity={0.9}>
-              <div className="font-bold text-[10px]">{f.properties.pie_record_id}</div>
-              <div className="text-[9px] opacity-80">{f.properties.status || 'N/A'}</div>
-            </Tooltip>
-          ))}
-        </GeoJSON>
+        />
       )}
       <ChangeView data={data} />
     </MapContainer>
