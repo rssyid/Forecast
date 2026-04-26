@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Chart as ChartJS, LinearScale, PointElement, LineElement, Tooltip, Legend } from 'chart.js';
 import { Scatter } from 'react-chartjs-2';
 import { Activity, CloudRain, Droplets, Filter, Info, TrendingDown, TrendingUp } from 'lucide-react';
-import SearchableSelect from '@/components/SearchableSelect';
+import SearchableSelect from '../../../components/SearchableSelect';
 
 ChartJS.register(LinearScale, PointElement, LineElement, Tooltip, Legend);
 
