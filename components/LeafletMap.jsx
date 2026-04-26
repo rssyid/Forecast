@@ -33,9 +33,9 @@ const getStatusColor = (status) => {
   const s = status?.toUpperCase() || '';
   if (s.includes('BANJIR')) return '#6b7280'; // Grey
   if (s === 'TERGENANG') return '#2563eb';    // Dark Blue
-  if (s.includes('A. TERGENANG')) return '#60a5fa'; // Light Blue
+  if (s.includes('A') && s.includes('TERGENANG')) return '#60a5fa'; // Light Blue (handles A. or A)
   if (s.includes('NORMAL')) return '#22c55e'; // Green
-  if (s.includes('A. KERING')) return '#f59e0b'; // Orange
+  if (s.includes('A') && s.includes('KERING')) return '#f59e0b'; // Orange (handles A. or A)
   if (s.includes('KERING')) return '#ef4444'; // Red
   return '#94a3b8'; // Slate
 };
