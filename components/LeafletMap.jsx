@@ -25,10 +25,13 @@ function ChangeView({ center, zoom }) {
 
 const getStatusColor = (status) => {
   const s = status?.toUpperCase() || '';
-  if (s.includes('BANJIR') || s.includes('TERGENANG')) return '#ef4444'; // Red-500 (Basah)
-  if (s.includes('NORMAL')) return '#10b981'; // Emerald-500 (Normal)
-  if (s.includes('KERING')) return '#f59e0b'; // Amber-500 (Kering)
-  return '#94a3b8'; // Slate-400 (No Data)
+  if (s.includes('BANJIR')) return '#6b7280'; // Grey
+  if (s === 'TERGENANG') return '#2563eb';    // Dark Blue
+  if (s.includes('A. TERGENANG')) return '#60a5fa'; // Light Blue
+  if (s.includes('NORMAL')) return '#22c55e'; // Green
+  if (s.includes('A. KERING')) return '#f59e0b'; // Orange
+  if (s.includes('KERING')) return '#ef4444'; // Red
+  return '#94a3b8'; // Slate
 };
 
 export default function LeafletMap({ data, center, zoom }) {

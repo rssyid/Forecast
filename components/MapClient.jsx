@@ -59,17 +59,20 @@ export default function MapClient() {
     const stats = useMemo(() => {
         if (!geoData) return null;
         const total = geoData.features.length;
-        let banjir = 0, normal = 0, kering = 0;
+        let banjir = 0, tergenang = 0, a_tergenang = 0, normal = 0, a_kering = 0, kering = 0;
         
         geoData.features.forEach(f => {
             const s = f.properties.status?.toUpperCase() || '';
-            if (s.includes('BANJIR') || s.includes('TERGENANG')) banjir++;
+            if (s.includes('BANJIR')) banjir++;
+            else if (s === 'TERGENANG') tergenang++;
+            else if (s.includes('A. TERGENANG')) a_tergenang++;
             else if (s.includes('NORMAL')) normal++;
+            else if (s.includes('A. KERING')) a_kering++;
             else if (s.includes('KERING')) kering++;
         });
 
-        const noData = total - (banjir + normal + kering);
-        return { total, banjir, normal, kering, noData };
+        const noData = total - (banjir + tergenang + a_tergenang + normal + a_kering + kering);
+        return { total, banjir, tergenang, a_tergenang, normal, a_kering, kering, noData };
     }, [geoData]);
 
     return (
@@ -121,43 +124,50 @@ export default function MapClient() {
                                     <p className="text-3xl font-black text-gray-900 mt-1">{stats.total}</p>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-3">
-                                    <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+                                <div className="grid grid-cols-1 gap-2">
+                                    <div className="flex items-center justify-between p-2.5 bg-red-50 border border-red-100 rounded-xl">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-                                            <span className="text-xs font-bold text-emerald-800 uppercase">Normal</span>
+                                            <div className="w-2 h-2 rounded-full bg-[#ef4444]"></div>
+                                            <span className="text-[10px] font-bold text-red-800">Kering (>65cm)</span>
                                         </div>
-                                        <span className="text-sm font-black text-emerald-900">{stats.normal}</span>
+                                        <span className="text-xs font-black text-red-900">{stats.kering}</span>
                                     </div>
-                                    <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-100 rounded-xl">
+                                    <div className="flex items-center justify-between p-2.5 bg-amber-50 border border-amber-100 rounded-xl">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
-                                            <span className="text-xs font-bold text-amber-800 uppercase">Kering</span>
+                                            <div className="w-2 h-2 rounded-full bg-[#f59e0b]"></div>
+                                            <span className="text-[10px] font-bold text-amber-800">A. Kering (61-65cm)</span>
                                         </div>
-                                        <span className="text-sm font-black text-amber-900">{stats.kering}</span>
+                                        <span className="text-xs font-black text-amber-900">{stats.a_kering}</span>
                                     </div>
-                                    <div className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-xl">
+                                    <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                                            <span className="text-xs font-bold text-red-800 uppercase">Banjir</span>
+                                            <div className="w-2 h-2 rounded-full bg-[#22c55e]"></div>
+                                            <span className="text-[10px] font-bold text-emerald-800">Normal (46-60cm)</span>
                                         </div>
-                                        <span className="text-sm font-black text-red-900">{stats.banjir}</span>
+                                        <span className="text-xs font-black text-emerald-900">{stats.normal}</span>
                                     </div>
-                                    <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-xl opacity-60">
+                                    <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-100 rounded-xl">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-gray-400"></div>
-                                            <span className="text-xs font-bold text-gray-500 uppercase">No Data</span>
+                                            <div className="w-2 h-2 rounded-full bg-[#60a5fa]"></div>
+                                            <span className="text-[10px] font-bold text-blue-800">A. Tergenang (41-45cm)</span>
                                         </div>
-                                        <span className="text-sm font-black text-gray-600">{stats.noData}</span>
+                                        <span className="text-xs font-black text-blue-900">{stats.a_tergenang}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-2.5 bg-blue-100/50 border border-blue-200 rounded-xl">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-[#2563eb]"></div>
+                                            <span className="text-[10px] font-bold text-blue-900">Tergenang (0-40cm)</span>
+                                        </div>
+                                        <span className="text-xs font-black text-blue-900">{stats.tergenang}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-2.5 bg-gray-100 border border-gray-200 rounded-xl">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-[#6b7280]"></div>
+                                            <span className="text-[10px] font-bold text-gray-700">Banjir (<0cm)</span>
+                                        </div>
+                                        <span className="text-xs font-black text-gray-900">{stats.banjir}</span>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-3">
-                                <Info size={16} className="text-blue-600 mt-0.5 shrink-0" />
-                                <p className="text-[10px] text-blue-800 leading-relaxed italic">
-                                    Warna pada peta menunjukkan status TMAT terbaru berdasarkan batas kritis yang telah ditetapkan di master data.
-                                </p>
                             </div>
                         </div>
                     )}
@@ -181,20 +191,32 @@ export default function MapClient() {
                             />
                             
                             {/* Legend Overlay */}
-                            <div className="absolute bottom-6 left-6 z-[1000] bg-gray-900/90 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-2xl space-y-3">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Legenda Status</p>
-                                <div className="flex items-center gap-4">
+                            <div className="absolute bottom-6 left-6 z-[1000] bg-gray-900/90 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-2xl">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Legenda TMAT</p>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20"></div>
-                                        <span className="text-[10px] font-bold text-white">NORMAL</span>
+                                        <div className="w-3 h-3 rounded-full bg-[#ef4444]"></div>
+                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">KERING (>65cm)</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded-full bg-amber-500 ring-4 ring-amber-500/20"></div>
-                                        <span className="text-[10px] font-bold text-white">KERING</span>
+                                        <div className="w-3 h-3 rounded-full bg-[#f59e0b]"></div>
+                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">A. KERING (61-65cm)</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded-full bg-red-500 ring-4 ring-red-500/20"></div>
-                                        <span className="text-[10px] font-bold text-white">BANJIR</span>
+                                        <div className="w-3 h-3 rounded-full bg-[#22c55e]"></div>
+                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">NORMAL (46-60cm)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-[#60a5fa]"></div>
+                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">A. TERGENANG (41-45cm)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-[#2563eb]"></div>
+                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">TERGENANG (0-40cm)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-[#6b7280]"></div>
+                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">BANJIR (<0cm)</span>
                                     </div>
                                 </div>
                             </div>
