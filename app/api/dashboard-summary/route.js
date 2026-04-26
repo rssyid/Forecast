@@ -151,8 +151,13 @@ export async function GET(request) {
             ${syncWhere}
         `, [queryParams[0]]);
         // 5. Get system metadata (last sync time)
-        const metaRes = await pool.query(`SELECT value FROM system_metadata WHERE key = 'last_sync_pzo_rain' LIMIT 1`);
-        let lastSync = metaRes.rows[0]?.value || null;
+        let lastSync = null;
+        try {
+            const metaRes = await pool.query(`SELECT value FROM system_metadata WHERE key = 'last_sync_pzo_rain' LIMIT 1`);
+            lastSync = metaRes.rows[0]?.value || null;
+        } catch (e) {
+            // Table might not exist yet
+        }
 
         // Fallback to daily_rainfall if metadata table doesn't exist or is empty
         if (!lastSync) {
