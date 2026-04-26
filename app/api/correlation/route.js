@@ -24,14 +24,17 @@ export async function GET(request) {
         }
 
         const query = `
-            WITH daily_tmat AS (
+            WITH latest_data AS (
+                SELECT MAX(date_timestamp) as max_date FROM piezometer_data
+            ),
+            daily_tmat AS (
                 SELECT 
                     company_code,
-                    est_code, 
+                    split_part(est_code, ' - ', 1) as est_code, 
                     date_trunc('day', date_timestamp)::date as day_date,
                     AVG(ketinggian) as avg_tmat
-                FROM piezometer_data p
-                WHERE date_timestamp >= NOW() - INTERVAL '${days} days'
+                FROM piezometer_data p, latest_data l
+                WHERE date_timestamp >= l.max_date - INTERVAL '${days} days'
                 ${whereClause}
                 GROUP BY 1, 2, 3
             ),
@@ -43,13 +46,16 @@ export async function GET(request) {
                     avg_tmat - LAG(avg_tmat) OVER (PARTITION BY est_code ORDER BY day_date) as delta_tmat
                 FROM daily_tmat
             ),
+            latest_rain AS (
+                SELECT MAX(record_date) as max_date FROM daily_rainfall
+            ),
             daily_rain AS (
                 SELECT 
-                    est_code, 
+                    split_part(est_code, ' - ', 1) as est_code, 
                     record_date,
                     SUM(rainfall_mm) as rainfall_mm
-                FROM daily_rainfall
-                WHERE record_date >= NOW() - INTERVAL '${days} days'
+                FROM daily_rainfall r, latest_rain lr
+                WHERE record_date >= lr.max_date - INTERVAL '${days} days'
                 GROUP BY 1, 2
             )
             SELECT 
