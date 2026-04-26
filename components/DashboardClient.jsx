@@ -159,8 +159,8 @@ export default function DashboardClient() {
             tension: 0.4, pointRadius: 4, yAxisID: 'y', order: 1
         }, {
             type: 'bar',
-            label: 'Total Records',
-            data: data.weeklyData.map(w => w.total),
+            label: 'Total Blok',
+            data: data.weeklyData.map(w => w.total_block),
             backgroundColor: 'rgba(34,197,94,0.2)', borderColor: 'rgba(34,197,94,0.5)',
             borderWidth: 1, yAxisID: 'y1', order: 2
         }]
@@ -257,8 +257,8 @@ export default function DashboardClient() {
                     loading={loading}
                 />
                 <StatCard
-                    label="Jumlah Piezometer"
-                    value={cw?.total?.toLocaleString('id-ID') ?? '–'}
+                    label="Jumlah Titik / Blok"
+                    value={cw ? `${cw.total_pzo?.toLocaleString('id-ID')} / ${cw.total_block?.toLocaleString('id-ID')}` : '–'}
                     sub={`${data?.syncInfo?.total_estates ?? '–'} Estate`}
                     icon={<Droplets size={16} />}
                     color="#1D4ED8"
@@ -266,8 +266,8 @@ export default function DashboardClient() {
                 />
                 <StatCard
                     label="Piezometer Kering (>65cm)"
-                    value={cw ? `${(((cw.cnt_kering) / cw.total) * 100).toFixed(1)}%` : '–'}
-                    sub={`${cw?.cnt_kering ?? 0} titik`}
+                    value={cw ? `${(((cw.cnt_kering) / cw.total_block) * 100).toFixed(1)}%` : '–'}
+                    sub={`${cw?.cnt_kering ?? 0} blok kering`}
                     icon={<AlertTriangle size={16} />}
                     color="#EF4444"
                     loading={loading}
@@ -347,13 +347,13 @@ export default function DashboardClient() {
                                 <tbody className="divide-y divide-gray-100">
                                     {data.estateBreakdown
                                         .sort((a, b) => {
-                                            const pctA = a.total > 0 ? (a.cnt_kering / a.total) : 0;
-                                            const pctB = b.total > 0 ? (b.cnt_kering / b.total) : 0;
+                                            const pctA = a.total_block > 0 ? (a.cnt_kering / a.total_block) : 0;
+                                            const pctB = b.total_block > 0 ? (b.cnt_kering / b.total_block) : 0;
                                             if (pctB !== pctA) return pctB - pctA;
                                             return a.estate.localeCompare(b.estate, undefined, { numeric: true, sensitivity: 'base' });
                                         })
                                         .map((e, i) => {
-                                            const pct = e.total > 0 ? ((e.cnt_kering / e.total) * 100).toFixed(0) : 0;
+                                            const pct = e.total_block > 0 ? ((e.cnt_kering / e.total_block) * 100).toFixed(0) : 0;
                                             const st = classifyStatus(e.avg_tmat);
                                             return (
                                                 <tr key={i} className="hover:bg-white/60 transition-colors">

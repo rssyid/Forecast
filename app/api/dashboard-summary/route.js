@@ -49,19 +49,22 @@ export async function GET(request) {
         const weeklyQ = `
             SELECT 
                 p.month_name AS week,
-                COUNT(*)::int AS total,
+                COUNT(DISTINCT p.pie_record_id)::int AS total_pzo,
+                COUNT(DISTINCT COALESCE(m.block_id, p.block))::int AS total_block,
                 ROUND(AVG(p.ketinggian)::numeric, 1) AS avg_tmat,
-                SUM(CASE WHEN p.ketinggian < 0 THEN 1 ELSE 0 END)::int AS cnt_banjir,
-                SUM(CASE WHEN p.ketinggian BETWEEN 0 AND 40 THEN 1 ELSE 0 END)::int AS cnt_tergenang,
-                SUM(CASE WHEN p.ketinggian BETWEEN 41 AND 45 THEN 1 ELSE 0 END)::int AS cnt_a_tergenang,
-                SUM(CASE WHEN p.ketinggian BETWEEN 46 AND 60 THEN 1 ELSE 0 END)::int AS cnt_normal,
-                SUM(CASE WHEN p.ketinggian BETWEEN 61 AND 65 THEN 1 ELSE 0 END)::int AS cnt_a_kering,
-                SUM(CASE WHEN p.ketinggian > 65 THEN 1 ELSE 0 END)::int AS cnt_kering,
+                COUNT(DISTINCT CASE WHEN p.ketinggian < 0 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_banjir,
+                COUNT(DISTINCT CASE WHEN p.ketinggian BETWEEN 0 AND 40 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_tergenang,
+                COUNT(DISTINCT CASE WHEN p.ketinggian BETWEEN 41 AND 45 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_a_tergenang,
+                COUNT(DISTINCT CASE WHEN p.ketinggian BETWEEN 46 AND 60 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_normal,
+                COUNT(DISTINCT CASE WHEN p.ketinggian BETWEEN 61 AND 65 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_a_kering,
+                COUNT(DISTINCT CASE WHEN p.ketinggian > 65 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_kering,
                 MIN(cw.start_date)::text AS week_start,
                 MAX(cw.end_date)::text AS week_end
             FROM piezometer_data p
+            LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
             LEFT JOIN calendar_weeks cw ON cw.formatted_name = p.month_name
             WHERE p.ketinggian IS NOT NULL ${companyWhere} ${weekCondition}
+            AND (m.is_active IS NULL OR m.is_active = true)
             GROUP BY p.month_name
             ORDER BY MIN(cw.start_date) DESC NULLS LAST
             LIMIT ${WEEK_LIMIT}
