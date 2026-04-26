@@ -40,7 +40,7 @@ const getStatusColor = (status) => {
   return '#94a3b8'; // Slate
 };
 
-export default function LeafletMap({ data }) {
+export default function LeafletMap({ data, baseLayer = 'dark' }) {
   useEffect(() => {
     fixLeafletIcon();
   }, []);
@@ -51,7 +51,7 @@ export default function LeafletMap({ data }) {
       weight: 1.5,
       opacity: 1,
       color: 'white',
-      fillOpacity: 0.7
+      fillOpacity: baseLayer === 'satellite' ? 0.4 : 0.7
     };
   };
 
@@ -67,11 +67,11 @@ export default function LeafletMap({ data }) {
           </div>
           <div class="flex justify-between">
             <span class="text-gray-500">TMAT:</span>
-            <span class="font-bold ${getStatusColor(props.status)}">${props.tmat !== null ? props.tmat + ' cm' : 'N/A'}</span>
+            <span class="font-bold" style="color: ${getStatusColor(props.status)}">${props.tmat !== null ? props.tmat + ' cm' : 'N/A'}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-500">Status:</span>
-            <span class="font-bold uppercase">${props.status || 'Unknown'}</span>
+            <span class="font-bold uppercase" style="color: ${getStatusColor(props.status)}">${props.status || 'Unknown'}</span>
           </div>
           <div class="mt-2 pt-1 border-t text-[9px] text-gray-400 italic">
             Update: ${props.last_update}
@@ -87,7 +87,7 @@ export default function LeafletMap({ data }) {
       },
       mouseout: (e) => {
         const l = e.target;
-        l.setStyle({ fillOpacity: 0.7, weight: 1.5 });
+        l.setStyle({ fillOpacity: baseLayer === 'satellite' ? 0.4 : 0.7, weight: 1.5 });
       }
     });
   };
@@ -98,17 +98,32 @@ export default function LeafletMap({ data }) {
       zoom={11} 
       style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-      />
+      {baseLayer === 'dark' ? (
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        />
+      ) : (
+        <TileLayer
+          attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        />
+      )}
+      
       {data && (
         <GeoJSON 
-          key={JSON.stringify(data.features?.length) + (data.features?.[0]?.properties?.last_update || '')} 
+          key={JSON.stringify(data.features?.length) + (data.features?.[0]?.properties?.last_update || '') + baseLayer} 
           data={data} 
           style={style} 
           onEachFeature={onEachFeature}
-        />
+        >
+          {data.features.map((f, i) => (
+            <Tooltip key={i} sticky direction="top" opacity={0.9}>
+              <div className="font-bold text-[10px]">{f.properties.pie_record_id}</div>
+              <div className="text-[9px] opacity-80">{f.properties.status || 'N/A'}</div>
+            </Tooltip>
+          ))}
+        </GeoJSON>
       )}
       <ChangeView data={data} />
     </MapContainer>

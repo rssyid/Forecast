@@ -24,6 +24,8 @@ export default function MapClient() {
     const [geoData, setGeoData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [baseLayer, setBaseLayer] = useState('dark'); // 'dark' or 'satellite'
 
     // Fetch weeks list
     useEffect(() => {
@@ -59,6 +61,20 @@ export default function MapClient() {
         if (week || company) fetchData();
     }, [company, week]);
 
+    // Derived data for search
+    const filteredGeoData = useMemo(() => {
+        if (!geoData) return null;
+        if (!searchTerm) return geoData;
+        const lower = searchTerm.toLowerCase();
+        return {
+            ...geoData,
+            features: geoData.features.filter(f => 
+                f.properties.pie_record_id.toLowerCase().includes(lower) ||
+                f.properties.est_code.toLowerCase().includes(lower)
+            )
+        };
+    }, [geoData, searchTerm]);
+
     const stats = useMemo(() => {
         if (!geoData) return null;
         const total = geoData.features.length;
@@ -80,7 +96,7 @@ export default function MapClient() {
 
     return (
         <div className="max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-700">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-100 text-blue-600">
                         <MapIcon size={24} />
@@ -92,7 +108,19 @@ export default function MapClient() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 bg-white/50 p-2 rounded-2xl backdrop-blur-sm border border-white/50">
-                    <div className="w-48">
+                    {/* Search Input */}
+                    <div className="relative w-full md:w-64">
+                        <input 
+                            type="text"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            placeholder="Cari ID PZO / Blok..."
+                            className="w-full h-11 pl-10 pr-4 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all font-medium"
+                        />
+                        <Filter className="absolute left-3.5 top-3.5 text-gray-400" size={14} />
+                    </div>
+
+                    <div className="w-44">
                         <SearchableSelect 
                             options={COMPANIES}
                             value={company}
@@ -101,15 +129,32 @@ export default function MapClient() {
                             icon={<Globe size={14} />}
                         />
                     </div>
-                    <div className="w-56">
+                    <div className="w-52">
                         <SearchableSelect 
                             options={weekList}
                             value={week}
                             onChange={setWeek}
-                            placeholder="Pilih Periode Minggu"
+                            placeholder="Pilih Minggu"
                             icon={<CalendarDays size={14} />}
                         />
                     </div>
+
+                    {/* Layer Toggle */}
+                    <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+                        <button 
+                            onClick={() => setBaseLayer('dark')}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${baseLayer === 'dark' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            DARK
+                        </button>
+                        <button 
+                            onClick={() => setBaseLayer('satellite')}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${baseLayer === 'satellite' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            SATELIT
+                        </button>
+                    </div>
+
                     <button 
                         onClick={fetchData}
                         disabled={loading}
@@ -140,7 +185,7 @@ export default function MapClient() {
                                     <div className="flex items-center justify-between p-2.5 bg-red-50 border border-red-100 rounded-xl">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 rounded-full bg-[#ef4444]"></div>
-                                            <span className="text-[10px] font-bold text-red-800">Kering (>65cm)</span>
+                                            <span className="text-[10px] font-bold text-red-800">Kering (&gt;65cm)</span>
                                         </div>
                                         <span className="text-xs font-black text-red-900">{stats.kering}</span>
                                     </div>
@@ -175,7 +220,7 @@ export default function MapClient() {
                                     <div className="flex items-center justify-between p-2.5 bg-gray-100 border border-gray-200 rounded-xl">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 rounded-full bg-[#6b7280]"></div>
-                                            <span className="text-[10px] font-bold text-gray-700">Banjir (<0cm)</span>
+                                            <span className="text-[10px] font-bold text-gray-700">Banjir (&lt;0cm)</span>
                                         </div>
                                         <span className="text-xs font-black text-gray-900">{stats.banjir}</span>
                                     </div>
@@ -197,7 +242,8 @@ export default function MapClient() {
                     ) : (
                         <div className="w-full h-full relative overflow-hidden rounded-2xl border border-gray-200 shadow-inner">
                             <LeafletMap 
-                                data={geoData} 
+                                data={filteredGeoData} 
+                                baseLayer={baseLayer}
                             />
                             
                             {/* Legend Overlay */}
@@ -206,7 +252,7 @@ export default function MapClient() {
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-[#ef4444]"></div>
-                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">KERING (>65cm)</span>
+                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">KERING (&gt;65cm)</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-[#f59e0b]"></div>
@@ -226,7 +272,7 @@ export default function MapClient() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-[#6b7280]"></div>
-                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">BANJIR (<0cm)</span>
+                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">BANJIR (&lt;0cm)</span>
                                     </div>
                                 </div>
                             </div>
