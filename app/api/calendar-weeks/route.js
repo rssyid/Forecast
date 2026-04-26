@@ -8,10 +8,10 @@ export async function GET() {
     });
     try {
         const res = await pool.query(`
-            SELECT formatted_name, start_date::text, end_date::text
-            FROM calendar_weeks
-            WHERE start_date >= '2026-01-01'
-            ORDER BY start_date DESC
+            SELECT DISTINCT cw.formatted_name, cw.start_date
+            FROM calendar_weeks cw
+            INNER JOIN piezometer_data p ON cw.formatted_name = p.month_name
+            ORDER BY cw.start_date DESC
         `);
         return Response.json({ weeks: res.rows });
     } catch (err) {
