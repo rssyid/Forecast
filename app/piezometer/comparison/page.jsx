@@ -25,7 +25,12 @@ export default function PzoComparisonPage() {
       const json = await res.json();
       setData(json);
       setAvailableWeeks(json.availableWeeks || []);
-      if (!week && json.selectedWeek) setSelectedWeek(json.selectedWeek);
+      
+      if (!week) {
+        // Default logic: find current calendar week if exists in availableWeeks
+        // The API now returns selectedWeek which already has some default logic
+        setSelectedWeek(json.selectedWeek);
+      }
     } catch (err) {
       console.error(err);
     } finally {

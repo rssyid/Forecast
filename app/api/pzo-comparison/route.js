@@ -23,17 +23,30 @@ export async function GET(request) {
             return NextResponse.json({ error: 'No active companies found' }, { status: 404 });
         }
 
-        // 2. Get available weeks
+        // 2. Get available weeks (only those that have piezometer data)
         const weeksRes = await pool.query(`
-            SELECT DISTINCT formatted_name, start_date, end_date 
-            FROM calendar_weeks 
-            WHERE formatted_name IN (SELECT DISTINCT month_name FROM piezometer_data WHERE company_code = ANY($1))
-            ORDER BY start_date DESC LIMIT 20
+            SELECT DISTINCT cw.formatted_name, cw.start_date, cw.end_date 
+            FROM calendar_weeks cw
+            WHERE cw.formatted_name IN (SELECT DISTINCT month_name FROM piezometer_data WHERE company_code = ANY($1))
+            ORDER BY cw.start_date DESC LIMIT 20
         `, [companyCodes]);
         const availableWeeks = weeksRes.rows;
 
-        // Resolve the selected week and previous week
-        const selectedWeek = weekFilter || (availableWeeks.length > 0 ? availableWeeks[0].formatted_name : null);
+        // Resolve the selected week:
+        // 1. If weekFilter is provided, use it.
+        // 2. Otherwise, try to find a week in availableWeeks that covers "today".
+        // 3. Otherwise, fallback to the latest available week (availableWeeks[0]).
+        let selectedWeek = weekFilter;
+        if (!selectedWeek && availableWeeks.length > 0) {
+            const now = new Date();
+            const currentWeekMeta = availableWeeks.find(w => {
+                const start = new Date(w.start_date);
+                const end = new Date(w.end_date);
+                return now >= start && now <= end;
+            });
+            selectedWeek = currentWeekMeta ? currentWeekMeta.formatted_name : availableWeeks[0].formatted_name;
+        }
+
         const selectedIdx = availableWeeks.findIndex(w => w.formatted_name === selectedWeek);
         const prevWeekName = selectedIdx >= 0 && selectedIdx + 1 < availableWeeks.length 
             ? availableWeeks[selectedIdx + 1].formatted_name : null;

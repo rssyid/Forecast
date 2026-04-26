@@ -70,11 +70,22 @@ export default function ForecastPage() {
             initialRainMap[w] = rainfall?.[w] !== undefined ? rainfall[w].toFixed(2) : "";
         });
         setRainfallMap(initialRainMap);
-        const latestWeek = foundWeeks[foundWeeks.length - 1] || '';
-        setBaselineWeek(latestWeek);
+        // Default to current week if available in data, else latest
+        const now = new Date();
+        const currentWeekObj = json.weeks.find(w => {
+          const start = new Date(w.start_date);
+          const end = new Date(w.end_date);
+          return now >= start && now <= end;
+        });
+
+        const currentWeekName = currentWeekObj ? currentWeekObj.formatted_name : '';
+        const hasCurrentData = foundWeeks.includes(currentWeekName);
+
+        const defaultWeek = hasCurrentData ? currentWeekName : (foundWeeks[foundWeeks.length - 1] || '');
+        setBaselineWeek(defaultWeek);
         
         // Check data freshness: is the latest week the current calendar week?
-        const now = new Date();
+        const latestWeek = foundWeeks[foundWeeks.length - 1] || '';
         const parsed = parseWeekName(latestWeek);
         const currentMonth = now.getMonth() + 1; // 1-indexed
         const currentYear = now.getFullYear();
