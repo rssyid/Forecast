@@ -26,6 +26,12 @@ export default function SettingsClient() {
     const [masterResult, setMasterResult] = useState(null);
     const [masterError, setMasterError] = useState(null);
 
+    // GeoJSON Upload State
+    const [geoLoading, setGeoLoading] = useState(false);
+    const [geoStatus, setGeoStatus] = useState('');
+    const [geoResult, setGeoResult] = useState(null);
+    const [geoError, setGeoError] = useState(null);
+
     const fetchCompanies = () => {
         setCompLoading(true);
         fetch('/api/companies')
@@ -234,6 +240,44 @@ export default function SettingsClient() {
         reader.readAsArrayBuffer(file);
     };
 
+    const handleGeoUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setGeoLoading(true);
+        setGeoError(null);
+        setGeoResult(null);
+        setGeoStatus('Membaca file GeoJSON...');
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const geojson = JSON.parse(evt.target.result);
+                setGeoStatus('Mengunggah data spasial ke server...');
+                
+                const res = await fetch('/api/pzo-geometries?clear=false', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-key': adminKey
+                    },
+                    body: JSON.stringify(geojson)
+                });
+
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.error || 'Gagal mengunggah GeoJSON');
+
+                setGeoStatus('Selesai!');
+                setGeoResult({ count: json.count });
+            } catch (err) {
+                setGeoError(err.message);
+            } finally {
+                setGeoLoading(false);
+            }
+        };
+        reader.readAsText(file);
+    };
+
     if (!isAuthenticated) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/20 backdrop-blur-md px-4">
@@ -412,6 +456,93 @@ export default function SettingsClient() {
                                 <div className="h-full flex flex-col items-center justify-center text-center opacity-30 py-10 border-2 border-dotted border-gray-200 rounded-2xl">
                                     <FileSpreadsheet size={48} className="text-gray-300 mb-2" />
                                     <p className="text-[10px] font-medium text-gray-500">Belum ada file yang diunggah.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* GIS / Map Data Section */}
+            <div className="glass-card overflow-hidden border-t-4 border-blue-500">
+                <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                    <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                        <Globe size={16} className="text-blue-600" />
+                        Manajemen Data Spasial (GIS)
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                        Upload file GeoJSON blok untuk visualisasi peta. Support: PT.JJP & PT.THIP.
+                    </p>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-[11px]">
+                                <Info size={18} className="shrink-0" />
+                                <div>
+                                    <p className="font-bold text-xs">Penyiapan GeoJSON</p>
+                                    <p className="opacity-90 italic">Pastikan setiap feature memiliki properti <b>PieRecordID</b>.</p>
+                                </div>
+                            </div>
+                            
+                            <div className="relative group">
+                                <input 
+                                    type="file" 
+                                    accept=".geojson, .json"
+                                    onChange={handleGeoUpload}
+                                    disabled={geoLoading}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                                />
+                                <div className={`flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-2xl transition-all ${
+                                    geoLoading ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-300 group-hover:border-blue-500 group-hover:bg-blue-50/30'
+                                }`}>
+                                    {geoLoading ? (
+                                        <Loader2 className="animate-spin text-blue-600 mb-2" size={32} />
+                                    ) : (
+                                        <Upload className="text-gray-400 group-hover:text-blue-600 mb-2 transition-colors" size={32} />
+                                    )}
+                                    <p className="text-sm font-bold text-gray-700">
+                                        {geoLoading ? 'Sedang Mengunggah...' : 'Upload GeoJSON Peta'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            {geoLoading && (
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-[10px] font-bold text-gray-500 uppercase">
+                                        <span>{geoStatus}</span>
+                                    </div>
+                                    <div className="h-2 w-full bg-blue-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-blue-500 animate-pulse w-full"></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {geoError && (
+                                <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-700 animate-in slide-in-from-top-2">
+                                    <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                                    <p className="text-[11px] font-medium">{geoError}</p>
+                                </div>
+                            )}
+
+                            {geoResult && (
+                                <div className="p-5 bg-green-50 border border-green-100 rounded-xl flex items-start gap-3 text-green-800 animate-in zoom-in-95">
+                                    <CheckCircle2 size={20} className="shrink-0 text-green-500" />
+                                    <div>
+                                        <p className="font-bold text-sm">Upload Spasial Berhasil!</p>
+                                        <p className="text-[11px] opacity-90 mt-1">
+                                            Berhasil menyimpan <b>{geoResult.count}</b> poligon blok ke database.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!geoLoading && !geoError && !geoResult && (
+                                <div className="h-full flex flex-col items-center justify-center text-center opacity-30 py-10 border-2 border-dotted border-gray-200 rounded-2xl">
+                                    <Globe size={48} className="text-gray-300 mb-2" />
+                                    <p className="text-[10px] font-medium text-gray-500">Gunakan file GeoJSON untuk mapping blok.</p>
                                 </div>
                             )}
                         </div>
