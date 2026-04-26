@@ -15,11 +15,17 @@ const fixLeafletIcon = () => {
   });
 };
 
-function ChangeView({ center, zoom }) {
+function ChangeView({ data }) {
   const map = useMap();
   useEffect(() => {
-    if (center) map.setView(center, zoom);
-  }, [center, zoom, map]);
+    if (data && data.features?.length > 0) {
+      const geojsonLayer = L.geoJSON(data);
+      const bounds = geojsonLayer.getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      }
+    }
+  }, [data, map]);
   return null;
 }
 
@@ -34,7 +40,7 @@ const getStatusColor = (status) => {
   return '#94a3b8'; // Slate
 };
 
-export default function LeafletMap({ data, center, zoom }) {
+export default function LeafletMap({ data }) {
   useEffect(() => {
     fixLeafletIcon();
   }, []);
@@ -88,8 +94,8 @@ export default function LeafletMap({ data, center, zoom }) {
 
   return (
     <MapContainer 
-      center={center || [-0.5, 101.5]} 
-      zoom={zoom || 11} 
+      center={[-0.5, 101.5]} 
+      zoom={11} 
       style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
     >
       <TileLayer
@@ -98,13 +104,13 @@ export default function LeafletMap({ data, center, zoom }) {
       />
       {data && (
         <GeoJSON 
-          key={JSON.stringify(data.features?.length)} 
+          key={JSON.stringify(data.features?.length) + (data.features?.[0]?.properties?.last_update || '')} 
           data={data} 
           style={style} 
           onEachFeature={onEachFeature}
         />
       )}
-      <ChangeView center={center} zoom={zoom} />
+      <ChangeView data={data} />
     </MapContainer>
   );
 }

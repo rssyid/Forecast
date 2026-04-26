@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { Globe, Map as MapIcon, Filter, Info, RefreshCw, Layers } from 'lucide-react';
+import { Globe, Map as MapIcon, Filter, Info, RefreshCw, Layers, CalendarDays } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
 const LeafletMap = dynamic(() => import('./LeafletMap'), { 
@@ -19,15 +19,32 @@ const COMPANIES = ['Semua', 'PT.JJP', 'PT.THIP', 'PT.GAN', 'PT.SML', 'PT.BNS', '
 
 export default function MapClient() {
     const [company, setCompany] = useState('Semua');
+    const [week, setWeek] = useState('');
+    const [weekList, setWeekList] = useState([]);
     const [geoData, setGeoData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Fetch weeks list
+    useEffect(() => {
+        fetch('/api/calendar-weeks')
+            .then(r => r.json())
+            .then(json => {
+                if (json.weeks) {
+                    setWeekList(json.weeks.map(w => w.formatted_name));
+                    // Default to latest week
+                    if (json.weeks.length > 0) setWeek(json.weeks[0].formatted_name);
+                }
+            });
+    }, []);
 
     const fetchData = async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`/api/map-data?company=${company}`);
+            const params = new URLSearchParams({ company });
+            if (week) params.set('week', week);
+            const res = await fetch(`/api/map-data?${params}`);
             const json = await res.json();
             if (!res.ok) throw new Error(json.error || 'Gagal memuat data peta');
             setGeoData(json);
@@ -39,22 +56,8 @@ export default function MapClient() {
     };
 
     useEffect(() => {
-        fetchData();
-    }, [company]);
-
-    // Calculate map center based on data
-    const mapConfig = useMemo(() => {
-        if (!geoData || geoData.features.length === 0) return { center: [-0.5, 101.5], zoom: 10 };
-        
-        // Simple center calculation from first feature
-        const firstGeom = geoData.features[0].geometry;
-        if (firstGeom.type === 'Polygon') {
-            return { center: [firstGeom.coordinates[0][0][1], firstGeom.coordinates[0][0][0]], zoom: 12 };
-        } else if (firstGeom.type === 'MultiPolygon') {
-            return { center: [firstGeom.coordinates[0][0][0][1], firstGeom.coordinates[0][0][0][0]], zoom: 12 };
-        }
-        return { center: [-0.5, 101.5], zoom: 10 };
-    }, [geoData]);
+        if (week || company) fetchData();
+    }, [company, week]);
 
     const stats = useMemo(() => {
         if (!geoData) return null;
@@ -96,6 +99,15 @@ export default function MapClient() {
                             onChange={setCompany}
                             placeholder="Pilih Company"
                             icon={<Globe size={14} />}
+                        />
+                    </div>
+                    <div className="w-56">
+                        <SearchableSelect 
+                            options={weekList}
+                            value={week}
+                            onChange={setWeek}
+                            placeholder="Pilih Periode Minggu"
+                            icon={<CalendarDays size={14} />}
                         />
                     </div>
                     <button 
@@ -186,8 +198,6 @@ export default function MapClient() {
                         <div className="w-full h-full relative overflow-hidden rounded-2xl border border-gray-200 shadow-inner">
                             <LeafletMap 
                                 data={geoData} 
-                                center={mapConfig.center} 
-                                zoom={mapConfig.zoom} 
                             />
                             
                             {/* Legend Overlay */}
