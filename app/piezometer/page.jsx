@@ -127,37 +127,49 @@ export default function PzoOverviewPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="glass-card p-4">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Titik / Blok</span>
-          <p className="text-lg font-bold text-gray-900 mt-1">{cur.total_pzo} / {cur.total_block}</p>
+        <div className="glass-card p-5">
+          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Populasi</span>
+          <p className="text-lg font-bold text-gray-900">{cur.total_pzo} / {cur.total_block}</p>
+          <span className="text-[10px] text-gray-400">Titik / Blok</span>
         </div>
-        <div className="glass-card p-4">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Avg TMAT</span>
-          <div className="flex items-center gap-2 mt-1">
+
+        <div className="glass-card p-5">
+          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Rata-rata</span>
+          <div className="flex items-center gap-2">
             <p className="text-lg font-bold text-gray-900">{cur.avg_tmat} cm</p>
             {tmatDiff !== null && parseFloat(tmatDiff) !== 0 && (
-              <span className={`flex items-center gap-0.5 text-xs font-bold ${trendColor}`}>
+              <span className={`flex items-center gap-0.5 text-[10px] font-bold ${trendColor}`}>
                 {isGood ? (
-                  <svg width="10" height="10" viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="currentColor"/></svg>
+                  <svg width="8" height="8" viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="currentColor"/></svg>
                 ) : (
-                  <svg width="10" height="10" viewBox="0 0 10 10"><polygon points="0,0 10,0 5,10" fill="currentColor"/></svg>
+                  <svg width="8" height="8" viewBox="0 0 10 10"><polygon points="0,0 10,0 5,10" fill="currentColor"/></svg>
                 )}
-                {tmatDiff > 0 ? '+' : ''}{tmatDiff}
+                {Math.abs(tmatDiff)}
               </span>
             )}
           </div>
+          <span className="text-[10px] text-gray-400">TMAT ({cur.week})</span>
         </div>
-        <div className="glass-card p-4 border-l-4 border-blue-500">
-          <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider flex items-center gap-1"><Droplets size={12} /> Basah (≤45)</span>
-          <p className="text-lg font-bold text-blue-700 mt-1">{basahCount} <span className="text-sm font-normal text-blue-400">({basahPct}%)</span></p>
+
+        <div className="glass-card p-5 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest block mb-1">Basah (≤45)</span>
+          <p className="text-lg font-bold text-blue-700">{basahCount} <span className="text-xs font-normal text-blue-400">({basahPct}%)</span></p>
+          <span className="text-[10px] text-gray-400">Kondisi Tergenang</span>
         </div>
-        <div className="glass-card p-4 border-l-4 border-red-500">
-          <span className="text-xs font-semibold text-red-600 uppercase tracking-wider flex items-center gap-1"><ThermometerSun size={12} /> Kering (&gt;60)</span>
-          <p className="text-lg font-bold text-red-700 mt-1">{keringCount} <span className="text-sm font-normal text-red-400">({keringPct}%)</span></p>
+
+        <div className="glass-card p-5 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+          <span className="text-[10px] font-bold text-red-600 uppercase tracking-widest block mb-1">Kering (&gt;60)</span>
+          <p className="text-lg font-bold text-red-700">{keringCount} <span className="text-xs font-normal text-red-400">({keringPct}%)</span></p>
+          <span className="text-[10px] text-gray-400">Resiko Kebakaran</span>
         </div>
-        <div className="glass-card p-4 border-l-4 border-green-500">
-            <span className="text-xs font-semibold text-green-600 uppercase tracking-wider">Normal</span>
-            <p className="text-lg font-bold text-green-700 mt-1">{cur.cnt_normal || 0}</p>
+
+        <div className="glass-card p-5 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
+          <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest block mb-1">Normal</span>
+          <p className="text-lg font-bold text-green-700">{cur.cnt_normal || 0}</p>
+          <span className="text-[10px] text-gray-400">Kondisi Ideal</span>
         </div>
       </div>
 
