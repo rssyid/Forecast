@@ -127,6 +127,7 @@ export default function MapClient() {
                             onChange={setCompany}
                             placeholder="Pilih Company"
                             icon={<Globe size={14} />}
+                            autoSort={false}
                         />
                     </div>
                     <div className="w-52">
@@ -136,6 +137,7 @@ export default function MapClient() {
                             onChange={setWeek}
                             placeholder="Pilih Minggu"
                             icon={<CalendarDays size={14} />}
+                            autoSort={false}
                         />
                     </div>
 
