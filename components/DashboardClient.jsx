@@ -111,8 +111,8 @@ export default function DashboardClient() {
                     if (currentWeek) {
                         setWeek(currentWeek.formatted_name);
                     } else {
-                        // Fallback: latest week (last item)
-                        setWeek(json.weeks[json.weeks.length - 1].formatted_name);
+                        // Fallback: latest week (first item in DESC list)
+                        setWeek(json.weeks[0].formatted_name);
                     }
                 }
             })
@@ -130,6 +130,11 @@ export default function DashboardClient() {
             const json = await res.json();
             if (json.error) throw new Error(json.error);
             setData(json);
+            
+            // Sync filter with actual data week (e.g. if requested week is empty and API falls back)
+            if (json.selectedWeek && json.selectedWeek !== week) {
+                setWeek(json.selectedWeek);
+            }
         } catch (e) {
             setError(e.message);
         } finally {

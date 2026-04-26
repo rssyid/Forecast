@@ -52,8 +52,8 @@ export default function PzoOverviewPage() {
           if (currentWeek) {
             setWeek(currentWeek.formatted_name);
           } else {
-            // Fallback: latest week
-            setWeek(json.weeks[json.weeks.length - 1].formatted_name);
+            // Fallback: latest week (first item in DESC list)
+            setWeek(json.weeks[0].formatted_name);
           }
         }
       });

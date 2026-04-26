@@ -11,7 +11,7 @@ export async function GET() {
             SELECT formatted_name, start_date::text, end_date::text
             FROM calendar_weeks
             WHERE start_date >= '2026-01-01'
-            ORDER BY start_date ASC
+            ORDER BY start_date DESC
         `);
         return Response.json({ weeks: res.rows });
     } catch (err) {
