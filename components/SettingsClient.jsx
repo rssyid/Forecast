@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Settings, Database, RefreshCw, AlertTriangle, CheckCircle2, Lock, CalendarDays, Building2, Activity, Upload, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Settings, Database, RefreshCw, AlertTriangle, CheckCircle2, Lock, CalendarDays, Building2, Activity, Upload, FileSpreadsheet, Loader2, Globe, Info } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function SettingsClient() {
