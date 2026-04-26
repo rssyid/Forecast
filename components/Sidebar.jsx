@@ -19,7 +19,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       items: [
         { href: '/piezometer', label: 'Overview' },
         { href: '/piezometer/comparison', label: 'Perbandingan' },
-        { href: '/analysis/correlation', label: 'Analisis Korelasi' }
+        { href: '/analysis/correlation', label: 'Analisis Korelasi' },
+        { href: '/analysis/map', label: 'Peta Interaktif' }
       ]
     },
     { 
