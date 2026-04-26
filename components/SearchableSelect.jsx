@@ -21,18 +21,27 @@ export default function SearchableSelect({ options = [], value, onChange, placeh
     const inputRef = useRef(null);
 
     // Normalize options to { value, label } and apply natural sorting if requested
-    let normalized = options.map(o => typeof o === 'string' ? { value: o, label: o } : o);
-    if (autoSort) {
-        normalized.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
-    }
+    const normalized = useMemo(() => {
+        if (!Array.isArray(options)) return [];
+        const items = options.map(o => typeof o === 'string' ? { value: o, label: o } : o);
+        if (autoSort) {
+            items.sort((a, b) => String(a.label || '').localeCompare(String(b.label || ''), undefined, { numeric: true, sensitivity: 'base' }));
+        }
+        return items;
+    }, [options, autoSort]);
 
     // Current label
-    const currentLabel = normalized.find(o => o.value === value)?.label ?? placeholder;
+    const currentLabel = useMemo(() => {
+        const found = normalized.find(o => String(o.value) === String(value));
+        return found ? found.label : placeholder;
+    }, [normalized, value, placeholder]);
 
     // Filtered options
-    const filtered = search.trim()
-        ? normalized.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
-        : normalized;
+    const filtered = useMemo(() => {
+        if (!search.trim()) return normalized;
+        const lower = search.toLowerCase();
+        return normalized.filter(o => String(o.label || '').toLowerCase().includes(lower));
+    }, [normalized, search]);
 
     // Close on outside click
     useEffect(() => {
@@ -79,7 +88,7 @@ export default function SearchableSelect({ options = [], value, onChange, placeh
 
             {/* Dropdown */}
             {open && (
-                <div className="absolute z-50 mt-1.5 right-0 min-w-full w-max max-w-[280px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                <div className="absolute z-[9999] mt-2 right-0 min-w-full w-max max-w-[320px] bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     {/* Search Input */}
                     <div className="px-3 py-2 border-b border-gray-100">
                         <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-1.5">
