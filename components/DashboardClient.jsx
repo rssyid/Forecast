@@ -15,6 +15,19 @@ function fmtDate(str) {
     return `${d}-${m}-${y}`;
 }
 
+// Format YYYY-MM-DD HH:mm
+const fmtDateTime = (str) => {
+    if (!str) return '–';
+    try {
+        const d = new Date(str);
+        if (isNaN(d.getTime())) return '–';
+        return d.toLocaleString('id-ID', { 
+            day: '2-digit', month: 'short', year: 'numeric', 
+            hour: '2-digit', minute: '2-digit' 
+        });
+    } catch { return '–'; }
+};
+
 const CLASS_COLORS = {
     'Banjir': '#71717A', 'Tergenang': '#1D4ED8', 'A Tergenang': '#60A5FA',
     'Normal': '#22C55E', 'A Kering': '#F59E0B', 'Kering': '#EF4444'
@@ -71,12 +84,12 @@ function classifyStatus(avgTmat) {
 }
 
 export default function DashboardClient() {
-    const [company, setCompany] = useState('Semua');
-    const [week, setWeek] = useState(''); // formatted_name, empty = latest
-    const [weekList, setWeekList] = useState([]); // list from calendar_weeks
-    const [companyList, setCompanyList] = useState(['Semua']);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [company, setCompany] = useState('Semua');
+    const [companyList, setCompanyList] = useState(['Semua']);
+    const [week, setWeek] = useState(null);
+    const [weekList, setWeekList] = useState([]);
     const [error, setError] = useState(null);
 
     // Fetch active companies
@@ -100,7 +113,6 @@ export default function DashboardClient() {
                 if (json.weeks && json.weeks.length > 0) {
                     setWeekList(json.weeks);
                     
-                    // Default to current week (where today is between start and end)
                     const now = new Date();
                     const currentWeek = json.weeks.find(w => {
                         const start = new Date(w.start_date);
@@ -111,7 +123,6 @@ export default function DashboardClient() {
                     if (currentWeek) {
                         setWeek(currentWeek.formatted_name);
                     } else {
-                        // Fallback: latest week (first item in DESC list)
                         setWeek(json.weeks[0].formatted_name);
                     }
                 }
@@ -131,7 +142,6 @@ export default function DashboardClient() {
             if (json.error) throw new Error(json.error);
             setData(json);
             
-            // Sync filter with actual data week (e.g. if requested week is empty and API falls back)
             if (json.selectedWeek && json.selectedWeek !== week) {
                 setWeek(json.selectedWeek);
             }
@@ -140,9 +150,8 @@ export default function DashboardClient() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [week]);
 
-    // Fetch whenever company or week changes (skip if week not yet loaded)
     useEffect(() => {
         if (week !== null) fetchData(company, week);
     }, [company, week, fetchData]);
@@ -153,7 +162,6 @@ export default function DashboardClient() {
     const tmatDelta = (cw && pw) ? (cw.avg_tmat - pw.avg_tmat).toFixed(1) : null;
     const status = classifyStatus(cw?.avg_tmat);
 
-    // --- Chart Datasets ---
     const trendChartData = data?.weeklyData ? {
         labels: data.weeklyData.map(w => w.week),
         datasets: [{
@@ -190,7 +198,6 @@ export default function DashboardClient() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-baseline gap-3 flex-wrap">
@@ -204,10 +211,17 @@ export default function DashboardClient() {
                             </span>
                         )}
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">Monitoring kondisi piezometer &amp; curah hujan secara real-time.</p>
+                    <div className="flex items-center gap-4 mt-1">
+                        <p className="text-sm text-gray-500">Monitoring kondisi piezometer &amp; curah hujan secara real-time.</p>
+                        {data?.syncInfo?.last_sync && (
+                            <span className="flex items-center gap-1.5 text-[10px] font-medium bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100">
+                                <RefreshCw size={10} className={loading ? 'animate-spin' : ''} />
+                                Update: {fmtDateTime(data.syncInfo.last_sync)}
+                            </span>
+                        )}
+                    </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                    {/* Week Filter */}
                     <SearchableSelect
                         icon={<CalendarDays size={14} />}
                         options={weekList.map(w => ({ value: w.formatted_name, label: w.formatted_name }))}

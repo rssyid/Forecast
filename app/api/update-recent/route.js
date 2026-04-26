@@ -108,6 +108,21 @@ async function runSync(send, pool) {
         }
         await new Promise(r => setTimeout(r, 50));
     }
+
+    // Update Last Sync Metadata
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS system_metadata (
+            key TEXT PRIMARY KEY,
+            value TEXT,
+            updated_at TIMESTAMP DEFAULT NOW()
+        );
+    `);
+    await pool.query(`
+        INSERT INTO system_metadata (key, value, updated_at)
+        VALUES ('last_sync_pzo_rain', NOW()::text, NOW())
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+    `);
+
     return { pTotal, rTotal };
 }
 

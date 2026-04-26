@@ -150,7 +150,23 @@ export async function GET(request) {
             FROM piezometer_data
             ${syncWhere}
         `, [queryParams[0]]);
-        const syncInfo = syncRes.rows[0];
+        // 5. Get system metadata (last sync time)
+        const metaRes = await pool.query(`SELECT value FROM system_metadata WHERE key = 'last_sync_pzo_rain' LIMIT 1`);
+        let lastSync = metaRes.rows[0]?.value || null;
+
+        // Fallback to daily_rainfall if metadata table doesn't exist or is empty
+        if (!lastSync) {
+            try {
+                const fallbackRes = await pool.query(`SELECT MAX(updated_at)::text as value FROM daily_rainfall`);
+                lastSync = fallbackRes.rows[0]?.value || null;
+            } catch (e) {}
+        }
+
+        const syncInfo = {
+            total_estates: estateBreakdown.length,
+            last_update: currentWeek?.week_end || null,
+            last_sync: lastSync
+        };
 
         return NextResponse.json({
             weeklyData, currentWeek, prevWeek,
@@ -159,7 +175,6 @@ export async function GET(request) {
             syncInfo, selectedCompany: companyFilter,
             selectedWeek: selectedWeekName,
         });
-
     } catch (err) {
         console.error('[Dashboard API Error]', err.message, err.stack);
         return NextResponse.json({ error: err.message, stack: err.stack }, { status: 500 });
