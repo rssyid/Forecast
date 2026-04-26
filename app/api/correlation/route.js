@@ -25,16 +25,16 @@ export async function GET(request) {
 
         const query = `
             WITH latest_data AS (
-                SELECT MAX(date_timestamp) as max_date FROM piezometer_data
+                SELECT MAX(to_timestamp(date_timestamp / 1000.0)) as max_date FROM piezometer_data
             ),
             daily_tmat AS (
                 SELECT 
                     company_code,
                     split_part(est_code, ' - ', 1) as est_code, 
-                    date_trunc('day', date_timestamp)::date as day_date,
+                    date_trunc('day', to_timestamp(date_timestamp / 1000.0))::date as day_date,
                     AVG(ketinggian) as avg_tmat
                 FROM piezometer_data p, latest_data l
-                WHERE date_timestamp >= l.max_date - INTERVAL '${days} days'
+                WHERE to_timestamp(date_timestamp / 1000.0) >= l.max_date - INTERVAL '${days} days'
                 ${whereClause}
                 GROUP BY 1, 2, 3
             ),
