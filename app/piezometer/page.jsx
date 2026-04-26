@@ -160,6 +160,7 @@ export default function PzoOverviewPage() {
                   <th className="p-3">Estate</th>
                   <th className="p-3">Company</th>
                   <th className="p-3 text-center">Total PZO</th>
+                  <th className="p-3 text-center">Blok</th>
                   <th className="p-3 text-center text-red-600">Kering</th>
                   <th className="p-3 text-center text-blue-600">Basah</th>
                   <th className="p-3 text-center">Avg TMAT</th>
@@ -170,7 +171,8 @@ export default function PzoOverviewPage() {
                   <tr key={i} className="hover:bg-gray-50/50">
                     <td className="p-3 font-bold text-gray-900">{est.estate}</td>
                     <td className="p-3 text-gray-600">{est.company}</td>
-                    <td className="p-3 text-center">{est.total}</td>
+                    <td className="p-3 text-center">{est.total_pzo}</td>
+                    <td className="p-3 text-center font-bold text-gray-700">{est.total_block}</td>
                     <td className="p-3 text-center font-bold text-red-600">{est.cnt_kering}</td>
                     <td className="p-3 text-center font-bold text-blue-600">{est.cnt_basah}</td>
                     <td className="p-3 text-center font-medium">{est.avg_tmat} cm</td>

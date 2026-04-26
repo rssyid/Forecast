@@ -80,13 +80,16 @@ export async function GET(request) {
             const estateRes = await pool.query(`
                 SELECT 
                     p.est_code AS estate, p.company_code AS company,
-                    COUNT(*)::int AS total,
-                    SUM(CASE WHEN p.ketinggian > 65 THEN 1 ELSE 0 END)::int AS cnt_kering,
-                    SUM(CASE WHEN p.ketinggian <= 45 THEN 1 ELSE 0 END)::int AS cnt_basah,
+                    COUNT(DISTINCT p.pie_record_id)::int AS total_pzo,
+                    COUNT(DISTINCT COALESCE(m.block_id, p.block))::int AS total_block,
+                    COUNT(DISTINCT CASE WHEN p.ketinggian > 65 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_kering,
+                    COUNT(DISTINCT CASE WHEN p.ketinggian <= 45 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_basah,
                     ROUND(AVG(p.ketinggian)::numeric, 1) AS avg_tmat
                 FROM piezometer_data p
+                LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
                 WHERE p.month_name = $2
                 ${estateWhere}
+                AND (m.is_active IS NULL OR m.is_active = true)
                 GROUP BY p.est_code, p.company_code
                 ORDER BY cnt_kering DESC
                 LIMIT 10
