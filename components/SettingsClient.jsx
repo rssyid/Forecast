@@ -152,6 +152,8 @@ export default function SettingsClient() {
         } finally {
             setLoading(false);
         }
+    };
+
     const handleMasterUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
