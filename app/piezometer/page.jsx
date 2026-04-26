@@ -79,7 +79,9 @@ export default function PzoOverviewPage() {
 
   const total = cur.total_block || 1;
   const tmatDiff = prev ? (parseFloat(cur.avg_tmat) - parseFloat(prev.avg_tmat)).toFixed(1) : null;
-  const trendColor = tmatDiff > 0 ? 'text-red-500' : tmatDiff < 0 ? 'text-blue-500' : 'text-gray-400';
+  const isGood = tmatDiff !== null && parseFloat(tmatDiff) < 0;
+  const isBad = tmatDiff !== null && parseFloat(tmatDiff) > 0;
+  const trendColor = isGood ? 'text-green-600' : isBad ? 'text-red-500' : 'text-gray-400';
 
   const basahCount = (cur.cnt_tergenang || 0) + (cur.cnt_a_tergenang || 0) + (cur.cnt_banjir || 0);
   const keringCount = (cur.cnt_a_kering || 0) + (cur.cnt_kering || 0);
@@ -133,9 +135,14 @@ export default function PzoOverviewPage() {
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Avg TMAT</span>
           <div className="flex items-center gap-2 mt-1">
             <p className="text-lg font-bold text-gray-900">{cur.avg_tmat} cm</p>
-            {tmatDiff !== null && (
-              <span className={`text-xs font-bold ${trendColor}`}>
-                {tmatDiff > 0 ? '↑' : '↓'} {Math.abs(tmatDiff)}
+            {tmatDiff !== null && parseFloat(tmatDiff) !== 0 && (
+              <span className={`flex items-center gap-0.5 text-xs font-bold ${trendColor}`}>
+                {isGood ? (
+                  <svg width="10" height="10" viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="currentColor"/></svg>
+                ) : (
+                  <svg width="10" height="10" viewBox="0 0 10 10"><polygon points="0,0 10,0 5,10" fill="currentColor"/></svg>
+                )}
+                {tmatDiff > 0 ? '+' : ''}{tmatDiff}
               </span>
             )}
           </div>
