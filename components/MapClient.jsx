@@ -83,10 +83,10 @@ export default function MapClient() {
         geoData.features.forEach(f => {
             const s = f.properties.status?.toUpperCase() || '';
             if (s.includes('BANJIR')) banjir++;
-            else if (s === 'TERGENANG') tergenang++;
-            else if (s.includes('A. TERGENANG')) a_tergenang++;
+            else if (s.includes('A') && s.includes('TERGENANG')) a_tergenang++;
+            else if (s.includes('TERGENANG')) tergenang++;
             else if (s.includes('NORMAL')) normal++;
-            else if (s.includes('A. KERING')) a_kering++;
+            else if (s.includes('A') && s.includes('KERING')) a_kering++;
             else if (s.includes('KERING')) kering++;
         });
 
@@ -109,7 +109,7 @@ export default function MapClient() {
 
                 <div className="flex flex-wrap items-center gap-3 bg-white/50 p-2 rounded-2xl backdrop-blur-sm border border-white/50">
                     {/* Search Input */}
-                    <div className="relative w-full md:w-64">
+                    <div className="relative w-full md:w-56">
                         <input 
                             type="text"
                             value={searchTerm}
@@ -120,17 +120,17 @@ export default function MapClient() {
                         <Filter className="absolute left-3.5 top-3.5 text-gray-400" size={14} />
                     </div>
 
-                    <div className="w-44">
+                    <div className="w-40">
                         <SearchableSelect 
                             options={COMPANIES}
                             value={company}
                             onChange={setCompany}
-                            placeholder="Pilih Company"
+                            placeholder="Company"
                             icon={<Globe size={14} />}
                             autoSort={false}
                         />
                     </div>
-                    <div className="w-52">
+                    <div className="w-48">
                         <SearchableSelect 
                             options={weekList}
                             value={week}
@@ -145,13 +145,19 @@ export default function MapClient() {
                     <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
                         <button 
                             onClick={() => setBaseLayer('dark')}
-                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${baseLayer === 'dark' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black transition-all ${baseLayer === 'dark' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                         >
                             DARK
                         </button>
                         <button 
+                            onClick={() => setBaseLayer('light')}
+                            className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black transition-all ${baseLayer === 'light' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            LIGHT
+                        </button>
+                        <button 
                             onClick={() => setBaseLayer('satellite')}
-                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${baseLayer === 'satellite' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black transition-all ${baseLayer === 'satellite' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                         >
                             SATELIT
                         </button>
