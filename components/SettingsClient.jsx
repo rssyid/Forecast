@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Settings, Database, RefreshCw, AlertTriangle, CheckCircle2, Lock, CalendarDays, Building2 } from 'lucide-react';
+import { Settings, Database, RefreshCw, AlertTriangle, CheckCircle2, Lock, CalendarDays, Building2, Activity } from 'lucide-react';
 
 export default function SettingsClient() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
