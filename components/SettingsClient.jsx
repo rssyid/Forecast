@@ -31,6 +31,7 @@ export default function SettingsClient() {
     const [geoStatus, setGeoStatus] = useState('');
     const [geoResult, setGeoResult] = useState(null);
     const [geoError, setGeoError] = useState(null);
+    const [replaceMode, setReplaceMode] = useState(false);
 
     const fetchCompanies = () => {
         setCompLoading(true);
@@ -255,7 +256,7 @@ export default function SettingsClient() {
                 const geojson = JSON.parse(evt.target.result);
                 setGeoStatus('Mengunggah data spasial ke server...');
                 
-                const res = await fetch('/api/pzo-geometries?clear=false', {
+                const res = await fetch(`/api/pzo-geometries?clear=${replaceMode}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -465,14 +466,28 @@ export default function SettingsClient() {
 
             {/* GIS / Map Data Section */}
             <div className="glass-card overflow-hidden border-t-4 border-blue-500">
-                <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                    <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                        <Globe size={16} className="text-blue-600" />
-                        Manajemen Data Spasial (GIS)
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1">
-                        Upload file GeoJSON blok untuk visualisasi peta. Support: PT.JJP & PT.THIP.
-                    </p>
+                <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                            <Globe size={16} className="text-blue-600" />
+                            Manajemen Data Spasial (GIS)
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Upload file GeoJSON blok untuk visualisasi peta. Support: PT.JJP & PT.THIP.
+                        </p>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                        <div className="text-right">
+                            <p className="text-[10px] font-black text-gray-900 leading-none">Hapus Data Lama</p>
+                            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Replace Mode</p>
+                        </div>
+                        <input 
+                            type="checkbox" 
+                            checked={replaceMode}
+                            onChange={e => setReplaceMode(e.target.checked)}
+                            className="w-5 h-5 rounded-lg border-2 border-gray-200 text-blue-600 focus:ring-blue-500/20 transition-all cursor-pointer"
+                        />
+                    </label>
                 </div>
                 <div className="p-6 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
