@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Settings, Database, RefreshCw, AlertTriangle, CheckCircle2, Lock, CalendarDays, Building2, Activity } from 'lucide-react';
+import { Settings, Database, RefreshCw, AlertTriangle, CheckCircle2, Lock, CalendarDays, Building2, Activity, Upload, FileSpreadsheet, Loader2 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 export default function SettingsClient() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -17,6 +18,13 @@ export default function SettingsClient() {
 
     const [companies, setCompanies] = useState([]);
     const [compLoading, setCompLoading] = useState(false);
+
+    // Master Sync State
+    const [masterLoading, setMasterLoading] = useState(false);
+    const [masterProgress, setMasterProgress] = useState(0);
+    const [masterStatus, setMasterStatus] = useState('');
+    const [masterResult, setMasterResult] = useState(null);
+    const [masterError, setMasterError] = useState(null);
 
     const fetchCompanies = () => {
         setCompLoading(true);
@@ -144,6 +152,84 @@ export default function SettingsClient() {
         } finally {
             setLoading(false);
         }
+    const handleMasterUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setMasterLoading(true);
+        setMasterError(null);
+        setMasterResult(null);
+        setMasterProgress(0);
+        setMasterStatus('Membaca file Excel...');
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const dataArr = new Uint8Array(evt.target.result);
+                const wb = XLSX.read(dataArr, { type: 'array' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+                
+                setMasterStatus('Memproses struktur data...');
+                const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                if (rawData.length < 2) throw new Error("File excel kosong atau tidak memiliki data.");
+
+                const headers = rawData[0].map(h => String(h || '').trim().toLowerCase());
+                const rows = rawData.slice(1).map(row => {
+                    const obj = {};
+                    row.forEach((cell, idx) => {
+                        if (headers[idx]) obj[headers[idx]] = cell;
+                    });
+                    return obj;
+                });
+
+                const cleanData = rows.map(r => ({
+                    pie_record_id: r.pie_record_id || r['pie record id'] || r['pie record_id'] || r.pierecordid,
+                    Mapping: r.mapping || r.maping || r.block_mapping,
+                    EstCode: r.estcode || r.est_code || r['est code'],
+                    EstNewCode: r.estnewcode || r.est_new_code || r['est new code'],
+                    deviceNameIOT: r.devicenameiot || r['device name iot'] || r.device_name,
+                    IsActive: r.isactive !== undefined ? r.isactive : true
+                })).filter(r => r.pie_record_id);
+
+                if (cleanData.length === 0) throw new Error("Kolom 'pie_record_id' tidak ditemukan atau data kosong.");
+
+                const chunkSize = 100;
+                let processed = 0;
+                const totalChunks = Math.ceil(cleanData.length / chunkSize);
+                
+                for (let i = 0; i < cleanData.length; i += chunkSize) {
+                    const chunk = cleanData.slice(i, i + chunkSize);
+                    const isFirst = i === 0;
+                    const currentChunkNum = Math.floor(i/chunkSize) + 1;
+                    
+                    setMasterStatus(`Mengunggah batch ${currentChunkNum} dari ${totalChunks}...`);
+                    
+                    const res = await fetch(`/api/pzo-master?clear=${isFirst}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-admin-key': adminKey
+                        },
+                        body: JSON.stringify(chunk)
+                    });
+
+                    const json = await res.json();
+                    if (json.error) throw new Error(json.error);
+
+                    processed += chunk.length;
+                    setMasterProgress(Math.round((processed / cleanData.length) * 100));
+                }
+
+                setMasterStatus('Selesai!');
+                setMasterResult({ count: cleanData.length });
+            } catch (err) {
+                setMasterError(err.message);
+            } finally {
+                setMasterLoading(false);
+            }
+        };
+        reader.readAsArrayBuffer(file);
     };
 
     if (!isAuthenticated) {
@@ -237,6 +323,97 @@ export default function SettingsClient() {
                             ))}
                         </div>
                     )}
+                </div>
+            </div>
+
+            {/* Master Sync Section */}
+            <div className="glass-card overflow-hidden border-t-4 border-green-500">
+                <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                    <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                        <FileSpreadsheet size={16} className="text-green-600" />
+                        Sinkronisasi Master Piezometer (Excel)
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                        Upload file Excel mapping blok untuk normalisasi perhitungan titik PZO.
+                    </p>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px]">
+                                <AlertTriangle size={18} className="shrink-0" />
+                                <div>
+                                    <p className="font-bold text-xs">Penting: Format Excel</p>
+                                    <p className="opacity-90 italic">Header wajib: pie_record_id, Mapping, EstCode, EstNewCode, IsActive</p>
+                                </div>
+                            </div>
+                            
+                            <div className="relative group">
+                                <input 
+                                    type="file" 
+                                    accept=".xlsx, .xls"
+                                    onChange={handleMasterUpload}
+                                    disabled={masterLoading}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                                />
+                                <div className={`flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-2xl transition-all ${
+                                    masterLoading ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-300 group-hover:border-green-500 group-hover:bg-green-50/30'
+                                }`}>
+                                    {masterLoading ? (
+                                        <Loader2 className="animate-spin text-green-600 mb-2" size={32} />
+                                    ) : (
+                                        <Upload className="text-gray-400 group-hover:text-green-600 mb-2 transition-colors" size={32} />
+                                    )}
+                                    <p className="text-sm font-bold text-gray-700">
+                                        {masterLoading ? 'Sedang Memproses...' : 'Klik atau Seret File Excel Master'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            {masterLoading && (
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-[10px] font-bold text-gray-500 uppercase">
+                                        <span>{masterStatus}</span>
+                                        <span>{masterProgress}%</span>
+                                    </div>
+                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-green-500 transition-all duration-300"
+                                            style={{ width: `${masterProgress}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {masterError && (
+                                <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-700 animate-in slide-in-from-top-2">
+                                    <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                                    <p className="text-[11px] font-medium">{masterError}</p>
+                                </div>
+                            )}
+
+                            {masterResult && (
+                                <div className="p-5 bg-green-50 border border-green-100 rounded-xl flex items-start gap-3 text-green-800 animate-in zoom-in-95">
+                                    <CheckCircle2 size={20} className="shrink-0 text-green-500" />
+                                    <div>
+                                        <p className="font-bold text-sm">Update Master Berhasil!</p>
+                                        <p className="text-[11px] opacity-90 mt-1">
+                                            Berhasil memproses <b>{masterResult.count}</b> data master piezometer.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!masterLoading && !masterError && !masterResult && (
+                                <div className="h-full flex flex-col items-center justify-center text-center opacity-30 py-10 border-2 border-dotted border-gray-200 rounded-2xl">
+                                    <FileSpreadsheet size={48} className="text-gray-300 mb-2" />
+                                    <p className="text-[10px] font-medium text-gray-500">Belum ada file yang diunggah.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 
