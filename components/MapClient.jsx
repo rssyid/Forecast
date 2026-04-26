@@ -59,9 +59,15 @@ export default function MapClient() {
     const stats = useMemo(() => {
         if (!geoData) return null;
         const total = geoData.features.length;
-        const banjir = geoData.features.filter(f => f.properties.status?.toLowerCase() === 'banjir').length;
-        const normal = geoData.features.filter(f => f.properties.status?.toLowerCase() === 'normal').length;
-        const kering = geoData.features.filter(f => f.properties.status?.toLowerCase() === 'kering').length;
+        let banjir = 0, normal = 0, kering = 0;
+        
+        geoData.features.forEach(f => {
+            const s = f.properties.status?.toUpperCase() || '';
+            if (s.includes('BANJIR') || s.includes('TERGENANG')) banjir++;
+            else if (s.includes('NORMAL')) normal++;
+            else if (s.includes('KERING')) kering++;
+        });
+
         const noData = total - (banjir + normal + kering);
         return { total, banjir, normal, kering, noData };
     }, [geoData]);

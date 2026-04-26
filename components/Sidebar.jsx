@@ -22,7 +22,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
         { href: '/analysis/correlation', label: 'Analisis Korelasi' },
         { href: '/analysis/map', label: 'Peta Interaktif' }
       ]
-    },
+    }, // GIS Integration Ready
     { 
       id: 'rainfall',
       icon: <CalendarDays size={18} />, 

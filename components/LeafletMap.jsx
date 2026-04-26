@@ -24,12 +24,11 @@ function ChangeView({ center, zoom }) {
 }
 
 const getStatusColor = (status) => {
-  switch (status?.toLowerCase()) {
-    case 'banjir': return '#ef4444'; // red-500
-    case 'kering': return '#f59e0b'; // amber-500
-    case 'normal': return '#10b981'; // emerald-500
-    default: return '#94a3b8'; // slate-400
-  }
+  const s = status?.toUpperCase() || '';
+  if (s.includes('BANJIR') || s.includes('TERGENANG')) return '#ef4444'; // Red-500 (Basah)
+  if (s.includes('NORMAL')) return '#10b981'; // Emerald-500 (Normal)
+  if (s.includes('KERING')) return '#f59e0b'; // Amber-500 (Kering)
+  return '#94a3b8'; // Slate-400 (No Data)
 };
 
 export default function LeafletMap({ data, center, zoom }) {
