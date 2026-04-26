@@ -96,7 +96,7 @@ export default function MapClient() {
 
     return (
         <div className="max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-700">
-            <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <header className="relative z-[1001] flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-100 text-blue-600">
                         <MapIcon size={24} />
@@ -167,7 +167,7 @@ export default function MapClient() {
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-220px)] min-h-[600px]">
+            <div className="relative z-0 grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-220px)] min-h-[600px]">
                 {/* Stats Sidebar */}
                 <div className="lg:col-span-1 space-y-6 overflow-y-auto pr-1">
                     {stats && (

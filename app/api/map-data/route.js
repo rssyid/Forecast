@@ -23,22 +23,22 @@ export async function GET(request) {
 
         const query = `
             WITH pzo_stats AS (
-                SELECT 
+                SELECT DISTINCT ON (pie_record_id)
                     pie_record_id, 
-                    ROUND(AVG(ketinggian)::numeric, 1) as avg_tmat,
-                    MODE() WITHIN GROUP (ORDER BY indicator_alias) as mode_status,
-                    MAX(date_timestamp) as latest_ts
+                    ketinggian as tmat,
+                    indicator_alias as status,
+                    date_timestamp as latest_ts
                 FROM piezometer_data
                 ${pzoFilter}
-                GROUP BY pie_record_id
+                ORDER BY pie_record_id, date_timestamp DESC
             )
             SELECT 
                 g.pie_record_id,
                 g.geom,
                 g.company_code,
                 g.est_code,
-                p.avg_tmat as tmat,
-                p.mode_status as status,
+                p.tmat,
+                p.status,
                 p.latest_ts
             FROM pzo_geometries g
             LEFT JOIN pzo_stats p ON g.pie_record_id = p.pie_record_id
