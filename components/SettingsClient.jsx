@@ -82,6 +82,8 @@ export default function SettingsClient() {
         }
     };
 
+    const [progress, setProgress] = useState([]);
+
     const handleSync = async () => {
         if (!adminKey) {
             setError('Admin Key wajib diisi untuk sinkronisasi.');
@@ -91,24 +93,52 @@ export default function SettingsClient() {
         setLoading(true);
         setError(null);
         setResult(null);
+        setProgress([]);
 
         try {
-            const res = await fetch('/api/sync-rainfall', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-admin-key': adminKey
-                },
-                body: JSON.stringify({
-                    endingDate: endingDate,
-                    weeks: weeks
-                })
-            });
-
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || 'Terjadi kesalahan saat sinkronisasi');
+            const url = `/api/update-recent?stream=true&key=${encodeURIComponent(adminKey)}`;
+            const response = await fetch(url);
             
-            setResult(json);
+            if (!response.ok) {
+                const json = await response.json();
+                throw new Error(json.error || 'Gagal memulai sinkronisasi');
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                const text = decoder.decode(value);
+                buffer += text;
+
+                const lines = buffer.split('\n\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.msg === 'DONE') {
+                                // Handled by done
+                            } else {
+                                setProgress(prev => [...prev, data.msg]);
+                                // Auto scroll
+                                setTimeout(() => {
+                                    const el = document.getElementById('progress-end');
+                                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                }, 10);
+                            }
+                        } catch (e) {
+                            console.error('Parse error', e);
+                        }
+                    }
+                }
+            }
+            setResult({ success: true });
         } catch (e) {
             setError(e.message);
         } finally {
@@ -205,118 +235,106 @@ export default function SettingsClient() {
                                     </div>
                                 </label>
                             ))}
-                            {companies.length === 0 && (
-                                <div className="col-span-full text-center p-4 text-xs text-gray-500">
-                                    Tidak ada data unit yang ditemukan.
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Historical Sync Card */}
+                {/* Sync Card */}
                 <div className="glass-card overflow-hidden flex flex-col">
                     <div className="p-6 border-b border-gray-100 bg-gray-50/50">
                         <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                            <Database size={16} className="text-blue-500" />
-                            Sinkronisasi Curah Hujan Historis
+                            <RefreshCw size={16} className="text-blue-500" />
+                            Update Data Piezometer & Rainfall
                         </h3>
                     </div>
                     <div className="p-6 space-y-4 flex-1">
                         <p className="text-xs text-gray-500 leading-relaxed">
-                            Ambil data curah hujan dari server IoT untuk periode waktu tertentu dan simpan ke database lokal.
+                            Tarik data terbaru dari server GIS untuk Piezometer (2 minggu terakhir) dan Rainfall (4 minggu terakhir) untuk seluruh unit aktif.
                         </p>
                         
-                        <div className="space-y-3 pt-2">
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase">Tanggal Akhir (Ending Date)</label>
-                                <div className="flex items-center gap-2 px-3 py-2 border border-gray-100 bg-gray-50 rounded-xl">
-                                    <CalendarDays size={14} className="text-gray-400" />
-                                    <input 
-                                        type="date" 
-                                        value={endingDate}
-                                        onChange={e => setEndingDate(e.target.value)}
-                                        className="text-xs font-medium bg-transparent outline-none w-full"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase">Durasi (Minggu ke Belakang)</label>
-                                <select 
-                                    value={weeks}
-                                    onChange={e => setWeeks(e.target.value)}
-                                    className="text-xs font-medium border border-gray-100 bg-gray-50 p-2.5 rounded-xl outline-none"
-                                >
-                                    <option value="1">1 Minggu</option>
-                                    <option value="2">2 Minggu</option>
-                                    <option value="4">4 Minggu (1 Bulan)</option>
-                                    <option value="6">6 Minggu</option>
-                                    <option value="8">8 Minggu (2 Bulan)</option>
-                                    <option value="12">12 Minggu (3 Bulan)</option>
-                                </select>
-                            </div>
+                        <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl">
+                            <h4 className="text-[10px] font-bold text-blue-700 uppercase mb-2">Informasi Update</h4>
+                            <ul className="space-y-1.5">
+                                <li className="text-[11px] text-blue-800 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                                    Piezometer: Update data TMAT real-time.
+                                </li>
+                                <li className="text-[11px] text-blue-800 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                                    Rainfall: Update data curah hujan harian.
+                                </li>
+                                <li className="text-[11px] text-blue-800 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                                    Cakupan: Seluruh estate di bawah unit aktif.
+                                </li>
+                            </ul>
                         </div>
 
                         <div className="pt-4 mt-auto">
                             <button 
                                 onClick={handleSync}
                                 disabled={loading}
-                                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all
+                                className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-xs transition-all uppercase tracking-wider
                                     ${loading ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}
                                 `}
                             >
                                 {loading ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                                {loading ? 'Menyinkronkan...' : 'Jalankan Sinkronisasi'}
+                                {loading ? 'Memproses Update...' : 'Mulai Update Data'}
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Status / Feedback Section */}
-                <div className="space-y-4">
-                    {result && (
-                        <div className="glass-card p-6 border-l-4 border-green-500 bg-green-50/30 animate-in slide-in-from-right-4 duration-300">
-                            <div className="flex gap-3">
-                                <CheckCircle2 className="text-green-500 shrink-0" size={20} />
-                                <div>
-                                    <h4 className="text-sm font-bold text-green-900">Sinkronisasi Berhasil!</h4>
-                                    <p className="text-xs text-green-700/80 mt-1">
-                                        Berhasil memasukkan/memperbarui <span className="font-bold">{result.inserted}</span> rekaman data curah hujan.
-                                    </p>
-                                    {result.errors && (
-                                        <div className="mt-3 p-2 bg-red-50 rounded-lg text-[10px] text-red-600 border border-red-100 max-h-32 overflow-y-auto">
-                                            <p className="font-bold mb-1">Beberapa Company Gagal:</p>
-                                            <ul className="list-disc pl-3">
-                                                {result.errors.map((err, i) => (
-                                                    <li key={i}>{err.company}: {err.error}</li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
+                {/* Progress / Status Section */}
+                <div className="flex flex-col gap-4 h-full">
+                    <div className="glass-card flex-1 overflow-hidden flex flex-col">
+                        <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                <Activity size={12} className="text-blue-500" />
+                                Log Aktivitas Update
+                            </h3>
+                            {loading && <span className="text-[10px] text-blue-600 animate-pulse font-bold">LIVE</span>}
+                        </div>
+                        <div className="p-4 flex-1 overflow-y-auto max-h-[300px] bg-gray-900 font-mono text-[11px] space-y-1">
+                            {progress.length === 0 && !loading && (
+                                <div className="h-full flex flex-col items-center justify-center text-gray-600 italic">
+                                    Siap untuk melakukan update data...
                                 </div>
+                            )}
+                            {progress.map((line, i) => (
+                                <div key={i} className="text-gray-300 border-l-2 border-blue-500/30 pl-2 py-0.5">
+                                    <span className="text-gray-600 mr-2">[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
+                                    {line}
+                                </div>
+                            ))}
+                            {loading && (
+                                <div className="text-blue-400 animate-pulse pl-2 mt-2">
+                                    _ Menunggu data selanjutnya...
+                                </div>
+                            )}
+                            <div id="progress-end" />
+                        </div>
+                    </div>
+
+                    {result && !loading && (
+                        <div className="bg-green-600 text-white p-4 rounded-2xl flex items-center gap-3 shadow-lg shadow-green-100 animate-in zoom-in duration-300">
+                            <CheckCircle2 size={24} />
+                            <div>
+                                <h4 className="text-sm font-bold">Sinkronisasi Selesai</h4>
+                                <p className="text-[11px] opacity-90">Data berhasil diperbarui ke database lokal.</p>
                             </div>
                         </div>
                     )}
 
                     {error && (
-                        <div className="glass-card p-6 border-l-4 border-red-500 bg-red-50/30 animate-in slide-in-from-right-4 duration-300">
-                            <div className="flex gap-3">
-                                <AlertTriangle className="text-red-500 shrink-0" size={20} />
-                                <div>
-                                    <h4 className="text-sm font-bold text-red-900">Gagal Sinkronisasi</h4>
-                                    <p className="text-xs text-red-700/80 mt-1">{error}</p>
-                                </div>
+                        <div className="bg-red-600 text-white p-4 rounded-2xl flex items-center gap-3 shadow-lg shadow-red-100 animate-in zoom-in duration-300">
+                            <AlertTriangle size={24} />
+                            <div>
+                                <h4 className="text-sm font-bold">Gagal Update</h4>
+                                <p className="text-[11px] opacity-90">{error}</p>
                             </div>
-                        </div>
-                    )}
-
-                    {!result && !error && !loading && (
-                        <div className="glass-card p-10 flex flex-col items-center justify-center text-center opacity-40">
-                            <Database size={48} className="text-gray-300 mb-4" />
-                            <p className="text-xs font-medium text-gray-500 italic">Belum ada aktivitas sinkronisasi dijalankan.</p>
                         </div>
                     )}
                 </div>
