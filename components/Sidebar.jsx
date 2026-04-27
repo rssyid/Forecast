@@ -18,7 +18,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       label: 'Piezometer',
       items: [
         { href: '/piezometer', label: 'Overview' },
-        { href: '/piezometer/comparison', label: 'Perbandingan' },
+        { href: '/analysis/comparison', label: 'Executive Dashboard' },
+        { href: '/piezometer/comparison', label: 'Laporan Tabel' },
         { href: '/analysis/correlation', label: 'Analisis Korelasi' },
         { href: '/analysis/map', label: 'Peta Interaktif' }
       ]
