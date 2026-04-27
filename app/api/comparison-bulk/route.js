@@ -74,7 +74,7 @@ export async function GET(request) {
                     WHEN r.record_date BETWEEN $1 AND $2 THEN 'current'
                     WHEN r.record_date BETWEEN $3 AND $4 THEN 'prev'
                 END as period,
-                ROUND(SUM(r.rainfall_mm)::numeric, 1) AS total_mm
+                ROUND(SUM(r.rainfall_mm)::numeric / NULLIF(COUNT(DISTINCT r.est_code), 0), 1) AS avg_weekly_mm
             FROM daily_rainfall r
             WHERE (r.record_date BETWEEN $1 AND $2 OR r.record_date BETWEEN $3 AND $4)
             AND r.company_code = ANY($5)
@@ -87,8 +87,8 @@ export async function GET(request) {
             const currentTmat = tmatRes.rows.find(r => r.company_code === comp.code && r.week === weekFilter) || null;
             const prevTmat = tmatRes.rows.find(r => r.company_code === comp.code && r.week === prevWeekName) || null;
             
-            const currentRain = rainRes.rows.find(r => r.company_code === comp.code && r.period === 'current')?.total_mm || 0;
-            const prevRain = rainRes.rows.find(r => r.company_code === comp.code && r.period === 'prev')?.total_mm || 0;
+            const currentRain = rainRes.rows.find(r => r.company_code === comp.code && r.period === 'current')?.avg_weekly_mm || 0;
+            const prevRain = rainRes.rows.find(r => r.company_code === comp.code && r.period === 'prev')?.avg_weekly_mm || 0;
 
             return {
                 companyCode: comp.code,

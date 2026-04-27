@@ -128,7 +128,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
             <CloudRain size={18} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Curah Hujan</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Rata-rata Mingguan CH</p>
             <div className="flex items-center gap-2">
               <span className="text-sm font-black text-gray-800">{rainfall.current} mm</span>
               {rainfall.delta !== 0 && (
