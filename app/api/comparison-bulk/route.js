@@ -67,18 +67,28 @@ export async function GET(request) {
         const tmatRes = await pool.query(tmatStatsQ, [weekFilter, prevWeekName, companyCodes]);
 
         // 4. Aggregate Rainfall data for both weeks per company
+        // 4. Aggregate Rainfall data: Sum of Daily Averages per Company
         const rainStatsQ = `
+            WITH daily_co_avg AS (
+                SELECT 
+                    r.company_code,
+                    r.record_date,
+                    AVG(r.rainfall_mm) as daily_avg
+                FROM daily_rainfall r
+                WHERE (r.record_date BETWEEN $1 AND $2 OR r.record_date BETWEEN $3 AND $4)
+                AND r.company_code = ANY($5)
+                GROUP BY r.company_code, r.record_date
+            )
             SELECT 
-                r.company_code,
+                da.company_code,
                 CASE 
-                    WHEN r.record_date BETWEEN $1 AND $2 THEN 'current'
-                    WHEN r.record_date BETWEEN $3 AND $4 THEN 'prev'
+                    WHEN da.record_date BETWEEN $1 AND $2 THEN 'current'
+                    WHEN da.record_date BETWEEN $3 AND $4 THEN 'prev'
                 END as period,
-                ROUND(SUM(r.rainfall_mm)::numeric / NULLIF(COUNT(DISTINCT r.est_code), 0), 1) AS avg_weekly_mm
-            FROM daily_rainfall r
-            WHERE (r.record_date BETWEEN $1 AND $2 OR r.record_date BETWEEN $3 AND $4)
-            AND r.company_code = ANY($5)
-            GROUP BY r.company_code, period
+                ROUND(SUM(da.daily_avg)::numeric, 1) AS total_ch,
+                COUNT(DISTINCT CASE WHEN da.daily_avg > 0 THEN da.record_date END)::int AS hari_hujan
+            FROM daily_co_avg da
+            GROUP BY da.company_code, period
         `;
         const rainRes = await pool.query(rainStatsQ, [currentStart, currentEnd, prevStart, prevEnd, companyCodes]);
 
@@ -87,8 +97,11 @@ export async function GET(request) {
             const currentTmat = tmatRes.rows.find(r => r.company_code === comp.code && r.week === weekFilter) || null;
             const prevTmat = tmatRes.rows.find(r => r.company_code === comp.code && r.week === prevWeekName) || null;
             
-            const currentRain = rainRes.rows.find(r => r.company_code === comp.code && r.period === 'current')?.avg_weekly_mm || 0;
-            const prevRain = rainRes.rows.find(r => r.company_code === comp.code && r.period === 'prev')?.avg_weekly_mm || 0;
+            const currentRainObj = rainRes.rows.find(r => r.company_code === comp.code && r.period === 'current');
+            const prevRainObj = rainRes.rows.find(r => r.company_code === comp.code && r.period === 'prev');
+
+            const currentRain = currentRainObj?.total_ch || 0;
+            const prevRain = prevRainObj?.total_ch || 0;
 
             return {
                 companyCode: comp.code,
@@ -98,7 +111,9 @@ export async function GET(request) {
                 rainfall: {
                     current: currentRain,
                     prev: prevRain,
-                    delta: currentRain - prevRain
+                    delta: currentRain - prevRain,
+                    currentHH: currentRainObj?.hari_hujan || 0,
+                    prevHH: prevRainObj?.hari_hujan || 0
                 }
             };
         });
