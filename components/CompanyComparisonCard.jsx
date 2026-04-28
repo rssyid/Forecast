@@ -82,9 +82,9 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                         {/* Values & Trend Section */}
                         <div style={{ display: 'table-cell', verticalAlign: 'middle', width: '180px', paddingLeft: '16px', textAlign: 'right' }}>
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '45px', textAlign: 'right', fontSize: '18px', color: '#9CA3AF', lineHeight: '1' }}>{Math.round(lwPct)}%</div>
+                                <div style={{ width: '45px', textAlign: 'right', fontSize: '18px', color: '#9CA3AF', lineHeight: '1' }}>{lwPct}%</div>
                                 <div style={{ color: '#D1D5DB', fontSize: '14px', lineHeight: '1' }}>➜</div>
-                                <div style={{ width: '45px', textAlign: 'right', fontSize: '18px', fontWeight: 'bold', color: '#111827', lineHeight: '1' }}>{Math.round(twPct)}%</div>
+                                <div style={{ width: '45px', textAlign: 'right', fontSize: '18px', fontWeight: 'bold', color: '#111827', lineHeight: '1' }}>{twPct}%</div>
                                 <div style={{ width: '25px', textAlign: 'center', fontSize: '18px', fontWeight: '900', color: trendColor, lineHeight: '1' }}>{trendIcon}</div>
                             </div>
                         </div>
