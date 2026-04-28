@@ -132,8 +132,11 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                         </p>
                     </div>
                     <div 
-                        className="shrink-0 min-w-[140px] h-[44px] grid place-items-center px-6 rounded-full text-[#FFFFFF] text-[18px] md:text-[20px] font-black uppercase leading-none"
-                        style={{ backgroundColor: getDominantColor() }}
+                        className="shrink-0 min-w-[140px] h-[40px] px-6 rounded-full text-[#FFFFFF] text-[18px] md:text-[20px] font-black uppercase text-center"
+                        style={{ 
+                            backgroundColor: getDominantColor(),
+                            lineHeight: '40px'
+                        }}
                     >
                         {dominantStatus}
                     </div>
