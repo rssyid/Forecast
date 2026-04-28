@@ -26,7 +26,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
         setCopying(true);
         try {
             const blob = await domToBlob(cardRef.current, { 
-                scale: 2, 
+                scale: 4, 
                 backgroundColor: '#FAFAFA'
             });
             const clipboardItem = new ClipboardItem({ 'image/png': blob });
