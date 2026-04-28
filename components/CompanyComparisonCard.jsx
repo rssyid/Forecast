@@ -61,37 +61,31 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
             }
 
             return (
-                <div key={i} className="flex items-center gap-6 py-1.5 min-h-[40px] w-full">
+                <div key={i} style={{ display: 'flex', alignItems: 'center', width: '100%', minHeight: '40px', marginBottom: '4px' }}>
                     {/* Legend Section */}
-                    <div className="flex items-center gap-3 w-[260px] shrink-0">
-                        <span className="w-6 h-6 shrink-0" style={{ backgroundColor: COLORS_TW[i] }}></span>
-                        <span className="text-[18px] md:text-[20px] font-bold text-[#374151] leading-tight">{label}</span>
+                    <div style={{ width: '260px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '24px', height: '24px', flexShrink: 0, backgroundColor: COLORS_TW[i] }}></div>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#374151', lineHeight: '1.2' }}>{label}</div>
                     </div>
 
                     {/* Bars Section */}
-                    <div className="relative flex-1 h-[32px] min-w-0">
+                    <div style={{ flexGrow: 1, position: 'relative', height: '32px', minWidth: '0' }}>
                         {/* LW Track (Top half) */}
-                        <div className="absolute top-0 left-0 w-full h-[12px] bg-[#E0E0E0]">
-                            <div 
-                                className="h-full transition-all duration-700" 
-                                style={{ width: `${lwPct}%`, backgroundColor: COLORS_LW[i] }}
-                            />
+                        <div style={{ position: 'absolute', top: '0', left: '0', width: '100%', height: '12px', backgroundColor: '#E0E0E0' }}>
+                            <div style={{ height: '100%', transition: 'width 0.7s', width: `${lwPct}%`, backgroundColor: COLORS_LW[i] }} />
                         </div>
                         {/* TW Track (Bottom half) */}
-                        <div className="absolute bottom-0 left-0 w-full h-[12px] bg-[#E0E0E0]">
-                            <div 
-                                className="h-full transition-all duration-700" 
-                                style={{ width: `${twPct}%`, backgroundColor: COLORS_TW[i] }}
-                            />
+                        <div style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', height: '12px', backgroundColor: '#E0E0E0' }}>
+                            <div style={{ height: '100%', transition: 'width 0.7s', width: `${twPct}%`, backgroundColor: COLORS_TW[i] }} />
                         </div>
                     </div>
 
                     {/* Values & Trend Section */}
-                    <div className="flex items-center justify-end gap-3 w-[180px] shrink-0 text-[18px] md:text-[20px]">
-                        <span className="text-[#9CA3AF] w-[45px] text-right leading-none">{Math.round(lwPct)}%</span>
-                        <span className="text-[#D1D5DB] leading-none">➜</span>
-                        <span className="font-bold text-[#111827] w-[45px] text-right leading-none">{Math.round(twPct)}%</span>
-                        <span className="font-black w-[25px] text-center leading-none" style={{ color: trendColor }}>{trendIcon}</span>
+                    <div style={{ width: '180px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
+                        <div style={{ width: '45px', textAlign: 'right', fontSize: '18px', color: '#9CA3AF', lineHeight: '1' }}>{Math.round(lwPct)}%</div>
+                        <div style={{ color: '#D1D5DB', fontSize: '14px', lineHeight: '1' }}>➜</div>
+                        <div style={{ width: '45px', textAlign: 'right', fontSize: '18px', fontWeight: 'bold', color: '#111827', lineHeight: '1' }}>{Math.round(twPct)}%</div>
+                        <div style={{ width: '25px', textAlign: 'center', fontSize: '18px', fontWeight: '900', color: trendColor, lineHeight: '1' }}>{trendIcon}</div>
                     </div>
                 </div>
             );
@@ -116,26 +110,40 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                 style={{
                     backgroundColor: '#FAFAFA',
                     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-                    '--background': '0 0% 100%',
-                    '--foreground': '240 10% 3.9%',
+                    width: '100%',
+                    borderRadius: '42px',
+                    padding: '48px',
+                    border: '1px solid #EEEEEE',
+                    overflow: 'hidden'
                 }}
-                className="w-full rounded-[42px] p-8 md:p-12 border border-[#EEEEEE] overflow-hidden"
             >
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-6">
-                    <div className="flex-1 space-y-2 min-w-0">
-                        <h1 className="text-[42px] md:text-[48px] font-black leading-tight text-[#000000] uppercase">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '32px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#000000', textTransform: 'uppercase', margin: 0, lineHeight: '1.1' }}>
                             {companyName.replace('PT.', '')}
                         </h1>
-                        <p className="text-[16px] md:text-[20px] text-[#b4b4b4] font-bold bg-[#FAFAFA] px-0 py-1 rounded-xl inline-block">
-                            CH {prevWeek?.slice(-2)}: {rainfall.prev}mm/{rainfall.prevHH}HH | {currentWeek?.slice(-2)}: {rainfall.current}mm/{rainfall.currentHH}HH
-                        </p>
+                        <div style={{ marginTop: '8px' }}>
+                            <span style={{ fontSize: '18px', color: '#b4b4b4', fontWeight: 'bold' }}>
+                                CH {prevWeek?.slice(-2)}: {rainfall.prev}mm/{rainfall.prevHH}HH | {currentWeek?.slice(-2)}: {rainfall.current}mm/{rainfall.currentHH}HH
+                            </span>
+                        </div>
                     </div>
                     <div 
-                        className="shrink-0 min-w-[140px] px-6 py-2.5 rounded-full text-[#FFFFFF] text-[18px] md:text-[20px] font-black uppercase text-center flex items-center justify-center leading-none"
-                        style={{ backgroundColor: getDominantColor() }}
+                        style={{ 
+                            flexShrink: 0,
+                            minWidth: '140px',
+                            height: '40px',
+                            borderRadius: '20px',
+                            backgroundColor: getDominantColor(),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
                     >
-                        {dominantStatus}
+                        <span style={{ color: '#FFFFFF', fontSize: '18px', fontWeight: '900', textTransform: 'uppercase', lineHeight: '1' }}>
+                            {dominantStatus}
+                        </span>
                     </div>
                 </div>
 
