@@ -94,20 +94,66 @@ export async function GET(request) {
 
         // 5. Structure the data for Option B (Grid View)
         const result = companies.map(comp => {
-            const currentTmat = tmatRes.rows.find(r => r.company_code === comp.code && r.week === weekFilter) || null;
-            const prevTmat = tmatRes.rows.find(r => r.company_code === comp.code && r.week === prevWeekName) || null;
-            
+            // Calculate percentages for Current Week
+            const currentStats = currentTmat ? {
+                cnt_banjir: currentTmat.cnt_banjir,
+                cnt_tergenang: currentTmat.cnt_tergenang,
+                cnt_a_tergenang: currentTmat.cnt_a_tergenang,
+                cnt_normal: currentTmat.cnt_normal,
+                cnt_a_kering: currentTmat.cnt_a_kering,
+                cnt_kering: currentTmat.cnt_kering,
+                total_blocks: currentTmat.total_blocks,
+                percentages: [
+                    currentTmat.total_blocks > 0 ? (currentTmat.cnt_banjir / currentTmat.total_blocks * 100) : 0,
+                    currentTmat.total_blocks > 0 ? (currentTmat.cnt_tergenang / currentTmat.total_blocks * 100) : 0,
+                    currentTmat.total_blocks > 0 ? (currentTmat.cnt_a_tergenang / currentTmat.total_blocks * 100) : 0,
+                    currentTmat.total_blocks > 0 ? (currentTmat.cnt_normal / currentTmat.total_blocks * 100) : 0,
+                    currentTmat.total_blocks > 0 ? (currentTmat.cnt_a_kering / currentTmat.total_blocks * 100) : 0,
+                    currentTmat.total_blocks > 0 ? (currentTmat.cnt_kering / currentTmat.total_blocks * 100) : 0
+                ]
+            } : null;
+
+            // Calculate percentages for Previous Week
+            const prevStats = prevTmat ? {
+                cnt_banjir: prevTmat.cnt_banjir,
+                cnt_tergenang: prevTmat.cnt_tergenang,
+                cnt_a_tergenang: prevTmat.cnt_a_tergenang,
+                cnt_normal: prevTmat.cnt_normal,
+                cnt_a_kering: prevTmat.cnt_a_kering,
+                cnt_kering: prevTmat.cnt_kering,
+                total_blocks: prevTmat.total_blocks,
+                percentages: [
+                    prevTmat.total_blocks > 0 ? (prevTmat.cnt_banjir / prevTmat.total_blocks * 100) : 0,
+                    prevTmat.total_blocks > 0 ? (prevTmat.cnt_tergenang / prevTmat.total_blocks * 100) : 0,
+                    prevTmat.total_blocks > 0 ? (prevTmat.cnt_a_tergenang / prevTmat.total_blocks * 100) : 0,
+                    prevTmat.total_blocks > 0 ? (prevTmat.cnt_normal / prevTmat.total_blocks * 100) : 0,
+                    prevTmat.total_blocks > 0 ? (prevTmat.cnt_a_kering / prevTmat.total_blocks * 100) : 0,
+                    prevTmat.total_blocks > 0 ? (prevTmat.cnt_kering / prevTmat.total_blocks * 100) : 0
+                ]
+            } : null;
+
             const currentRainObj = rainRes.rows.find(r => r.company_code === comp.code && r.period === 'current');
             const prevRainObj = rainRes.rows.find(r => r.company_code === comp.code && r.period === 'prev');
 
             const currentRain = currentRainObj?.total_ch || 0;
             const prevRain = prevRainObj?.total_ch || 0;
 
+            // Get dominant status for current week
+            const labels = ['Banjir', 'Tergenang', 'A Tergenang', 'Normal', 'A Kering', 'Kering'];
+            let dominantLabel = 'Unknown';
+            if (currentStats && currentStats.percentages) {
+                const maxPct = Math.max(...currentStats.percentages);
+                const maxIdx = currentStats.percentages.indexOf(maxPct);
+                if (maxPct > 0) dominantLabel = labels[maxIdx];
+                else dominantLabel = 'No Data';
+            }
+
             return {
                 companyCode: comp.code,
                 companyName: comp.name,
-                currentWeek: currentTmat,
-                prevWeek: prevTmat,
+                currentWeek: currentStats,
+                prevWeek: prevStats,
+                dominantStatus: dominantLabel,
                 rainfall: {
                     current: currentRain,
                     prev: prevRain,

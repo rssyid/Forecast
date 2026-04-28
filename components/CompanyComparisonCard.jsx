@@ -1,172 +1,152 @@
 "use client";
 
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Bar } from 'react-chartjs-2';
-import { TrendingUp, TrendingDown, CloudRain, Info, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { ClipboardCopy, Check, CloudRain, Info } from 'lucide-react';
+import html2canvas from 'html2canvas';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
-
-const CATEGORIES = [
-  { key: 'cnt_banjir', label: 'Banjir', color: '#6b7280' },
-  { key: 'cnt_tergenang', label: 'Tergenang', color: '#2563eb' },
-  { key: 'cnt_a_tergenang', label: 'A. Terg', color: '#60a5fa' },
-  { key: 'cnt_normal', label: 'Normal', color: '#22c55e' },
-  { key: 'cnt_a_kering', label: 'A. Kering', color: '#f59e0b' },
-  { key: 'cnt_kering', label: 'Kering', color: '#ef4444' }
-];
+const LABELS = ['Banjir ( <0 )', 'Tergenang ( 0-40 )', 'A Tergenang ( 41-45 )', 'Normal ( 46-60 )', 'A Kering ( 61-65 )', 'Kering ( >65 )'];
+const COLORS_LW = ['#999999', '#B3C5DF', '#99ECFF', '#BDC7A9', '#FFFD99', '#FF9999'];
+const COLORS_TW = ['#000000', '#4170B0', '#1CB8E0', '#5A732A', '#FFFB00', '#FF0D0D'];
 
 export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
-  const { companyName, currentWeek: current, prevWeek: prev, rainfall } = item;
+    const cardRef = useRef(null);
+    const [copying, setCopying] = useState(false);
+    const [copied, setCopied] = useState(false);
 
-  // Calculate overall trend
-  // Improving if Kering/A.Kering decrease OR Normal increases
-  const currentRisk = (current?.cnt_kering || 0) + (current?.cnt_a_kering || 0);
-  const prevRisk = (prev?.cnt_kering || 0) + (prev?.cnt_a_kering || 0);
-  const isImproving = currentRisk < prevRisk || (current?.cnt_normal || 0) > (prev?.cnt_normal || 0);
-  const isDegrading = currentRisk > prevRisk;
+    const { companyName, currentWeek: current, prevWeek: prev, rainfall, dominantStatus } = item;
 
-  const data = {
-    labels: CATEGORIES.map(c => c.label),
-    datasets: [
-      {
-        label: 'Minggu Lalu',
-        data: CATEGORIES.map(c => prev?.[c.key] || 0),
-        backgroundColor: '#e5e7eb', // Soft grey for historical
-        borderRadius: 6,
-      },
-      {
-        label: 'Minggu Ini',
-        data: CATEGORIES.map(c => current?.[c.key] || 0),
-        backgroundColor: CATEGORIES.map(c => c.color),
-        borderRadius: 6,
-      }
-    ],
-  };
+    // Helper to get color for dominant status
+    const getDominantColor = () => {
+        const idx = ['Banjir', 'Tergenang', 'A Tergenang', 'Normal', 'A Kering', 'Kering'].indexOf(dominantStatus);
+        return idx !== -1 ? COLORS_TW[idx] : '#EEEEEE';
+    };
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: '#1f2937',
-        padding: 12,
-        titleFont: { size: 14, weight: 'bold' },
-        bodyFont: { size: 12 },
-        cornerRadius: 8,
-        displayColors: true
-      }
-    },
-    scales: {
-      y: { 
-        beginAtZero: true,
-        grid: { color: '#f3f4f6' },
-        ticks: { font: { size: 10 } }
-      },
-      x: { 
-        grid: { display: false },
-        ticks: { font: { size: 9, weight: 'bold' } }
-      }
-    },
-  };
+    const copyAsImage = async () => {
+        if (!cardRef.current) return;
+        setCopying(true);
+        try {
+            const canvas = await html2canvas(cardRef.current, { 
+                scale: 2, 
+                backgroundColor: '#FAFAFA',
+                useCORS: true,
+                logging: false
+            });
+            canvas.toBlob(async (blob) => {
+                const clipboardItem = new ClipboardItem({ 'image/png': blob });
+                await navigator.clipboard.write([clipboardItem]);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            });
+        } catch (err) {
+            console.error('Failed to copy image:', err);
+        } finally {
+            setCopying(false);
+        }
+    };
 
-  return (
-    <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden group">
-      {/* Card Header */}
-      <div className="p-6 pb-4 border-b border-gray-50 flex justify-between items-start">
-        <div className="space-y-1">
-          <h3 className="text-xl font-black text-gray-800 tracking-tight">{companyName}</h3>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase tracking-wider">
-              {currentWeek}
-            </span>
-            <span className="text-gray-300 text-[10px] font-bold">vs</span>
-            <span className="text-gray-400 text-[10px] font-medium italic">
-              {prevWeek || 'N/A'}
-            </span>
-          </div>
-        </div>
+    const renderBars = () => {
+        return LABELS.map((label, i) => {
+            const lwPct = prev?.percentages?.[i] || 0;
+            const twPct = current?.percentages?.[i] || 0;
 
-        {/* Trend Badge */}
-        {isDegrading ? (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-xl border border-red-100 animate-pulse">
-            <TrendingDown size={14} />
-            <span className="text-[10px] font-black uppercase">Degrading</span>
-          </div>
-        ) : isImproving ? (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 rounded-xl border border-green-100">
-            <TrendingUp size={14} />
-            <span className="text-[10px] font-black uppercase">Improving</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-500 rounded-xl border border-gray-100">
-            <Minus size={14} />
-            <span className="text-[10px] font-black uppercase">Stable</span>
-          </div>
-        )}
-      </div>
+            let trendIcon = '▬';
+            let trendClass = 'text-gray-300';
 
-      {/* Rainfall Context */}
-      <div className="px-6 py-4 bg-gray-50/50 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-            <CloudRain size={18} />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Curah Hujan (CH)</p>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-black text-gray-800">{rainfall.current} mm / {rainfall.currentHH} HH</span>
-              {rainfall.delta !== 0 && (
-                <span className={`text-[10px] font-bold flex items-center ${rainfall.delta > 0 ? 'text-blue-500' : 'text-orange-500'}`}>
-                  {rainfall.delta > 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                  {Math.abs(rainfall.delta).toFixed(1)}
-                </span>
-              )}
+            if (twPct > lwPct) {
+                trendIcon = '▲';
+                trendClass = (i === 3) ? 'text-[#178242]' : 'text-[#ff0000]';
+            } else if (twPct < lwPct) {
+                trendIcon = '▼';
+                trendClass = (i === 3) ? 'text-[#ff0000]' : 'text-[#178242]';
+            }
+
+            return (
+                <div key={i} className="grid grid-cols-[1.2fr_1fr_0.8fr] gap-4 items-center min-h-[40px]">
+                    {/* Legend Section */}
+                    <div className="flex items-center gap-3">
+                        <span className="w-6 h-6 shrink-0" style={{ backgroundColor: COLORS_TW[i] }}></span>
+                        <span className="text-[14px] md:text-[16px] font-medium whitespace-nowrap text-gray-700">{label}</span>
+                    </div>
+
+                    {/* Bars Section */}
+                    <div className="relative w-full h-[28px]">
+                        {/* LW Track (Top half) */}
+                        <div className="absolute top-0 left-0 w-full h-[10px] bg-[#E0E0E0]">
+                            <div 
+                                className="h-full transition-all duration-700" 
+                                style={{ width: `${lwPct}%`, backgroundColor: COLORS_LW[i] }}
+                            />
+                        </div>
+                        {/* TW Track (Bottom half) */}
+                        <div className="absolute bottom-0 left-0 w-full h-[10px] bg-[#E0E0E0]">
+                            <div 
+                                className="h-full transition-all duration-700" 
+                                style={{ width: `${twPct}%`, backgroundColor: COLORS_TW[i] }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Values & Trend Section */}
+                    <div className="grid grid-cols-[45px_20px_45px_20px] gap-1 items-center justify-end text-[16px] md:text-[18px]">
+                        <span className="text-gray-400 text-right">{Math.round(lwPct)}%</span>
+                        <span className="text-gray-300 text-center text-sm">➜</span>
+                        <span className="font-bold text-gray-900 text-right">{Math.round(twPct)}%</span>
+                        <span className={`font-black text-center ${trendClass}`}>{trendIcon}</span>
+                    </div>
+                </div>
+            );
+        });
+    };
+
+    return (
+        <div className="relative flex flex-col items-end gap-2 group">
+            <button 
+                onClick={copyAsImage}
+                disabled={copying}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm
+                    ${copied ? 'bg-[#178242] text-white' : 'bg-[#2b2b2b] text-white hover:bg-black'}
+                    ${copying ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
+            >
+                {copying ? '⏳ Copying...' : copied ? <><Check size={14} /> Copied!</> : <><ClipboardCopy size={14} /> Copy Image</>}
+            </button>
+
+            <div 
+                ref={cardRef}
+                className="w-full bg-[#FAFAFA] rounded-[42px] p-8 md:p-12 border border-[#EEEEEE] shadow-sm overflow-hidden"
+            >
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-4">
+                    <div className="space-y-1">
+                        <h1 className="text-[48px] md:text-[64px] font-black leading-[0.96] tracking-[-0.06em] text-black uppercase">
+                            {companyName.replace('PT.', '')}
+                        </h1>
+                        <p className="text-[14px] md:text-[18px] text-[#b4b4b4] font-medium">
+                            {prevWeek?.substring(0, 2)}: {rainfall.prev}mm/{rainfall.prevHH}HH | {currentWeek?.substring(0, 2)}: {rainfall.current}mm/{rainfall.currentHH}HH
+                        </p>
+                    </div>
+                    <div 
+                        className="min-w-[150px] md:min-w-[180px] text-center px-6 py-3 rounded-full text-white text-[20px] md:text-[24px] font-black uppercase"
+                        style={{ backgroundColor: getDominantColor() }}
+                    >
+                        {dominantStatus}
+                    </div>
+                </div>
+
+                {/* Body Grid */}
+                <div className="mt-6 space-y-2">
+                    {renderBars()}
+                </div>
+
+                {/* Footer Insight */}
+                <div className="mt-8 flex items-start gap-3 opacity-60">
+                    <Info size={16} className="mt-1 text-gray-400 shrink-0" />
+                    <p className="text-[12px] text-gray-500 font-medium italic leading-relaxed">
+                        Perbandingan distribusi status blok antara {prevWeek} dan {currentWeek}. 
+                        Garis atas menunjukkan minggu lalu, garis bawah menunjukkan minggu terpilih.
+                    </p>
+                </div>
             </div>
-          </div>
         </div>
-
-        <div className="text-right">
-          <p className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Total Blok</p>
-          <p className="text-sm font-black text-gray-800">{current?.total_blocks || 0}</p>
-        </div>
-      </div>
-
-      {/* Chart Section */}
-      <div className="p-6 h-[220px]">
-        <Bar data={data} options={options} />
-      </div>
-
-      {/* Quick Insight Footer */}
-      <div className="px-6 py-4 bg-white border-t border-gray-50 flex items-center gap-3">
-        <Info className="text-blue-400 shrink-0" size={14} />
-        <p className="text-[10px] text-gray-500 font-medium leading-relaxed italic">
-          {currentRisk > prevRisk 
-            ? `Peringatan: Kategori Kering meningkat ${currentRisk - prevRisk} blok dibanding minggu lalu.`
-            : currentRisk < prevRisk
-            ? `Kondisi membaik: Kategori Kering berkurang ${prevRisk - currentRisk} blok.`
-            : `Kondisi stabil: Tidak ada pergerakan signifikan pada kategori berisiko.`}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function Minus({ size, className }) {
-    return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+    );
 }
