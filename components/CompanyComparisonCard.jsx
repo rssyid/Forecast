@@ -144,15 +144,6 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                 <div className="mt-6 space-y-2">
                     {renderBars()}
                 </div>
-
-                {/* Footer Insight */}
-                <div className="mt-8 flex items-start gap-3 opacity-60">
-                    <Info size={16} className="mt-1 text-[#9CA3AF] shrink-0" />
-                    <p className="text-[12px] text-[#6B7280] font-medium italic leading-relaxed">
-                        Perbandingan distribusi status blok antara {prevWeek} dan {currentWeek}. 
-                        Garis atas menunjukkan minggu lalu, garis bawah menunjukkan minggu terpilih.
-                    </p>
-                </div>
             </div>
         </div>
     );

@@ -60,7 +60,7 @@ export default function ComparisonGridClient() {
         : null;
 
     return (
-        <div className="max-w-[1200px] mx-auto space-y-12 animate-in fade-in duration-1000 pb-20">
+        <div className="max-w-[900px] mx-auto space-y-12 animate-in fade-in duration-1000 pb-20">
             {/* Header Section */}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-[#f8f9fa] p-8 rounded-[42px] border border-gray-100 shadow-sm">
                 <div className="space-y-1">
