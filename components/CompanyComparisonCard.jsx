@@ -65,7 +65,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                     {/* Legend Section */}
                     <div className="flex items-center gap-3">
                         <span className="w-6 h-6 shrink-0" style={{ backgroundColor: COLORS_TW[i] }}></span>
-                        <span className="text-[14px] md:text-[16px] font-medium whitespace-nowrap text-gray-700">{label}</span>
+                        <span className="text-[14px] md:text-[16px] font-medium whitespace-nowrap text-[#374151]">{label}</span>
                     </div>
 
                     {/* Bars Section */}
@@ -88,9 +88,9 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
 
                     {/* Values & Trend Section */}
                     <div className="grid grid-cols-[45px_20px_45px_20px] gap-1 items-center justify-end text-[16px] md:text-[18px]">
-                        <span className="text-gray-400 text-right">{Math.round(lwPct)}%</span>
-                        <span className="text-gray-300 text-center text-sm">➜</span>
-                        <span className="font-bold text-gray-900 text-right">{Math.round(twPct)}%</span>
+                        <span className="text-[#9CA3AF] text-right">{Math.round(lwPct)}%</span>
+                        <span className="text-[#D1D5DB] text-center text-sm">➜</span>
+                        <span className="font-bold text-[#111827] text-right">{Math.round(twPct)}%</span>
                         <span className={`font-black text-center ${trendClass}`}>{trendIcon}</span>
                     </div>
                 </div>
@@ -113,7 +113,14 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
 
             <div 
                 ref={cardRef}
-                className="w-full bg-[#FAFAFA] rounded-[42px] p-8 md:p-12 border border-[#EEEEEE] shadow-sm overflow-hidden"
+                style={{
+                    backgroundColor: '#FAFAFA',
+                    '--background': '0 0% 100%',
+                    '--foreground': '240 10% 3.9%',
+                    '--color-black': '#000000',
+                    '--color-white': '#FFFFFF',
+                }}
+                className="w-full rounded-[42px] p-8 md:p-12 border border-[#EEEEEE] shadow-sm overflow-hidden"
             >
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-4">
@@ -140,8 +147,8 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
 
                 {/* Footer Insight */}
                 <div className="mt-8 flex items-start gap-3 opacity-60">
-                    <Info size={16} className="mt-1 text-gray-400 shrink-0" />
-                    <p className="text-[12px] text-gray-500 font-medium italic leading-relaxed">
+                    <Info size={16} className="mt-1 text-[#9CA3AF] shrink-0" />
+                    <p className="text-[12px] text-[#6B7280] font-medium italic leading-relaxed">
                         Perbandingan distribusi status blok antara {prevWeek} dan {currentWeek}. 
                         Garis atas menunjukkan minggu lalu, garis bawah menunjukkan minggu terpilih.
                     </p>
