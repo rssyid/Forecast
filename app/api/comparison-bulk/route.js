@@ -94,6 +94,9 @@ export async function GET(request) {
 
         // 5. Structure the data for Option B (Grid View)
         const result = companies.map(comp => {
+            const currentTmat = tmatRes.rows.find(r => r.company_code === comp.code && r.week === weekFilter) || null;
+            const prevTmat = tmatRes.rows.find(r => r.company_code === comp.code && r.week === prevWeekName) || null;
+
             // Calculate percentages for Current Week
             const currentStats = currentTmat ? {
                 cnt_banjir: currentTmat.cnt_banjir,
