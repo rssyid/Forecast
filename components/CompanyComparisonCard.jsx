@@ -60,22 +60,6 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                 trendColor = (i === 3) ? '#ff0000' : '#178242';
             }
 
-    const renderBars = () => {
-        return LABELS.map((label, i) => {
-            const lwPct = prev?.percentages?.[i] || 0;
-            const twPct = current?.percentages?.[i] || 0;
-
-            let trendIcon = '▬';
-            let trendColor = '#D1D5DB';
-
-            if (twPct > lwPct) {
-                trendIcon = '▲';
-                trendColor = (i === 3) ? '#178242' : '#ff0000';
-            } else if (twPct < lwPct) {
-                trendIcon = '▼';
-                trendColor = (i === 3) ? '#ff0000' : '#178242';
-            }
-
             return (
                 <div key={i} style={{ display: 'table', width: '100%', borderCollapse: 'collapse', marginBottom: '8px' }}>
                     <div style={{ display: 'table-row' }}>
