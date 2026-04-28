@@ -123,7 +123,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                 className="w-full rounded-[42px] p-8 md:p-12 border border-[#EEEEEE] shadow-sm overflow-hidden"
             >
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-10">
+                <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-6">
                     <div className="flex-1 space-y-3 min-w-0">
                         <h1 className="text-[48px] md:text-[64px] font-black leading-none tracking-[-0.06em] text-black uppercase truncate">
                             {companyName.replace('PT.', '')}
@@ -141,7 +141,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                 </div>
 
                 {/* Body Grid */}
-                <div className="mt-6 space-y-0.5">
+                <div className="mt-4 space-y-0.5">
                     {renderBars()}
                 </div>
             </div>
