@@ -122,21 +122,18 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                 className="w-full rounded-[42px] p-8 md:p-12 border border-[#EEEEEE] overflow-hidden"
             >
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-6">
-                    <div className="flex-1 space-y-3 min-w-0">
-                        <h1 className="text-[48px] md:text-[64px] font-black leading-none tracking-[-0.06em] text-[#000000] uppercase truncate">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-6">
+                    <div className="flex-1 space-y-2 min-w-0">
+                        <h1 className="text-[42px] md:text-[48px] font-black leading-tight text-[#000000] uppercase">
                             {companyName.replace('PT.', '')}
                         </h1>
-                        <p className="text-[16px] md:text-[20px] text-[#b4b4b4] font-bold bg-[#FAFAFA] px-0 py-2 rounded-xl inline-block">
+                        <p className="text-[16px] md:text-[20px] text-[#b4b4b4] font-bold bg-[#FAFAFA] px-0 py-1 rounded-xl inline-block">
                             CH {prevWeek?.slice(-2)}: {rainfall.prev}mm/{rainfall.prevHH}HH | {currentWeek?.slice(-2)}: {rainfall.current}mm/{rainfall.currentHH}HH
                         </p>
                     </div>
                     <div 
-                        className="shrink-0 min-w-[180px] text-center px-8 py-4 rounded-full text-[#FFFFFF] text-[24px] md:text-[28px] font-black uppercase"
-                        style={{ 
-                            backgroundColor: getDominantColor(),
-                            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-                        }}
+                        className="shrink-0 min-w-[140px] h-[48px] flex items-center justify-center px-6 rounded-full text-[#FFFFFF] text-[18px] md:text-[20px] font-black uppercase"
+                        style={{ backgroundColor: getDominantColor() }}
                     >
                         {dominantStatus}
                     </div>
