@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import { ClipboardCopy, Check, CloudRain, Info } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { domToBlob } from 'modern-screenshot';
 
 const LABELS = ['Banjir ( <0 )', 'Tergenang ( 0-40 )', 'A Tergenang ( 41-45 )', 'Normal ( 46-60 )', 'A Kering ( 61-65 )', 'Kering ( >65 )'];
 const COLORS_LW = ['#999999', '#B3C5DF', '#99ECFF', '#BDC7A9', '#FFFD99', '#FF9999'];
@@ -25,18 +25,14 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
         if (!cardRef.current) return;
         setCopying(true);
         try {
-            const canvas = await html2canvas(cardRef.current, { 
+            const blob = await domToBlob(cardRef.current, { 
                 scale: 2, 
-                backgroundColor: '#FAFAFA',
-                useCORS: true,
-                logging: false
+                backgroundColor: '#FAFAFA'
             });
-            canvas.toBlob(async (blob) => {
-                const clipboardItem = new ClipboardItem({ 'image/png': blob });
-                await navigator.clipboard.write([clipboardItem]);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-            });
+            const clipboardItem = new ClipboardItem({ 'image/png': blob });
+            await navigator.clipboard.write([clipboardItem]);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
         } catch (err) {
             console.error('Failed to copy image:', err);
         } finally {
