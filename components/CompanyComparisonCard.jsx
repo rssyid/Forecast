@@ -128,8 +128,8 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                         <h1 className="text-[48px] md:text-[64px] font-black leading-none tracking-[-0.06em] text-black uppercase truncate">
                             {companyName.replace('PT.', '')}
                         </h1>
-                        <p className="text-[16px] md:text-[20px] text-[#b4b4b4] font-bold bg-gray-100/50 px-4 py-2 rounded-xl inline-block">
-                            CH {prevWeek?.substring(0, 2)}: {rainfall.prev}mm/{rainfall.prevHH}HH | {currentWeek?.substring(0, 2)}: {rainfall.current}mm/{rainfall.currentHH}HH
+                        <p className="text-[16px] md:text-[20px] text-[#b4b4b4] font-bold bg-[#FAFAFA] px-0 py-2 rounded-xl inline-block">
+                            CH {prevWeek?.slice(-2)}: {rainfall.prev}mm/{rainfall.prevHH}HH | {currentWeek?.slice(-2)}: {rainfall.current}mm/{rainfall.currentHH}HH
                         </p>
                     </div>
                     <div 
