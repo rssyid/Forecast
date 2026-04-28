@@ -61,7 +61,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
             }
 
             return (
-                <div key={i} className="grid grid-cols-[320px_1fr_180px] gap-8 items-center min-h-[48px]">
+                <div key={i} className="grid grid-cols-[320px_1fr_180px] gap-8 items-center min-h-[40px]">
                     {/* Legend Section */}
                     <div className="flex items-center gap-3 w-[320px]">
                         <span className="w-6 h-6 shrink-0" style={{ backgroundColor: COLORS_TW[i] }}></span>
@@ -141,7 +141,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                 </div>
 
                 {/* Body Grid */}
-                <div className="mt-6 space-y-2">
+                <div className="mt-6 space-y-0.5">
                     {renderBars()}
                 </div>
             </div>
