@@ -50,14 +50,14 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
             const twPct = current?.percentages?.[i] || 0;
 
             let trendIcon = '▬';
-            let trendClass = 'text-gray-300';
+            let trendColor = '#D1D5DB';
 
             if (twPct > lwPct) {
                 trendIcon = '▲';
-                trendClass = (i === 3) ? 'text-[#178242]' : 'text-[#ff0000]';
+                trendColor = (i === 3) ? '#178242' : '#ff0000';
             } else if (twPct < lwPct) {
                 trendIcon = '▼';
-                trendClass = (i === 3) ? 'text-[#ff0000]' : 'text-[#178242]';
+                trendColor = (i === 3) ? '#ff0000' : '#178242';
             }
 
             return (
@@ -91,7 +91,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                         <span className="text-[#9CA3AF] w-[45px] text-right">{Math.round(lwPct)}%</span>
                         <span className="text-[#D1D5DB]">➜</span>
                         <span className="font-bold text-[#111827] w-[45px] text-right">{Math.round(twPct)}%</span>
-                        <span className={`font-black w-[25px] text-center ${trendClass}`}>{trendIcon}</span>
+                        <span className="font-black w-[25px] text-center" style={{ color: trendColor }}>{trendIcon}</span>
                     </div>
                 </div>
             );
@@ -115,17 +115,16 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                 ref={cardRef}
                 style={{
                     backgroundColor: '#FAFAFA',
+                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
                     '--background': '0 0% 100%',
                     '--foreground': '240 10% 3.9%',
-                    '--color-black': '#000000',
-                    '--color-white': '#FFFFFF',
                 }}
-                className="w-full rounded-[42px] p-8 md:p-12 border border-[#EEEEEE] shadow-sm overflow-hidden"
+                className="w-full rounded-[42px] p-8 md:p-12 border border-[#EEEEEE] overflow-hidden"
             >
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-6">
                     <div className="flex-1 space-y-3 min-w-0">
-                        <h1 className="text-[48px] md:text-[64px] font-black leading-none tracking-[-0.06em] text-black uppercase truncate">
+                        <h1 className="text-[48px] md:text-[64px] font-black leading-none tracking-[-0.06em] text-[#000000] uppercase truncate">
                             {companyName.replace('PT.', '')}
                         </h1>
                         <p className="text-[16px] md:text-[20px] text-[#b4b4b4] font-bold bg-[#FAFAFA] px-0 py-2 rounded-xl inline-block">
@@ -133,8 +132,11 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                         </p>
                     </div>
                     <div 
-                        className="shrink-0 min-w-[180px] text-center px-8 py-4 rounded-full text-white text-[24px] md:text-[28px] font-black uppercase shadow-sm"
-                        style={{ backgroundColor: getDominantColor() }}
+                        className="shrink-0 min-w-[180px] text-center px-8 py-4 rounded-full text-[#FFFFFF] text-[24px] md:text-[28px] font-black uppercase"
+                        style={{ 
+                            backgroundColor: getDominantColor(),
+                            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                        }}
                     >
                         {dominantStatus}
                     </div>
