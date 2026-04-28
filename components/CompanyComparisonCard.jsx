@@ -61,15 +61,15 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
             }
 
             return (
-                <div key={i} className="grid grid-cols-[260px_1fr_180px] gap-4 items-center min-h-[40px]">
+                <div key={i} className="flex items-center gap-6 py-1.5 min-h-[40px] w-full">
                     {/* Legend Section */}
-                    <div className="flex items-center gap-3 w-[260px]">
+                    <div className="flex items-center gap-3 w-[260px] shrink-0">
                         <span className="w-6 h-6 shrink-0" style={{ backgroundColor: COLORS_TW[i] }}></span>
-                        <span className="text-[18px] md:text-[20px] font-bold whitespace-nowrap text-[#374151]">{label}</span>
+                        <span className="text-[18px] md:text-[20px] font-bold text-[#374151] leading-tight">{label}</span>
                     </div>
 
                     {/* Bars Section */}
-                    <div className="relative w-full h-[32px]">
+                    <div className="relative flex-1 h-[32px] min-w-0">
                         {/* LW Track (Top half) */}
                         <div className="absolute top-0 left-0 w-full h-[12px] bg-[#E0E0E0]">
                             <div 
@@ -87,11 +87,11 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                     </div>
 
                     {/* Values & Trend Section */}
-                    <div className="flex items-center justify-end gap-3 w-[180px] text-[18px] md:text-[20px]">
-                        <span className="text-[#9CA3AF] w-[45px] text-right">{Math.round(lwPct)}%</span>
-                        <span className="text-[#D1D5DB]">➜</span>
-                        <span className="font-bold text-[#111827] w-[45px] text-right">{Math.round(twPct)}%</span>
-                        <span className="font-black w-[25px] text-center" style={{ color: trendColor }}>{trendIcon}</span>
+                    <div className="flex items-center justify-end gap-3 w-[180px] shrink-0 text-[18px] md:text-[20px]">
+                        <span className="text-[#9CA3AF] w-[45px] text-right leading-none">{Math.round(lwPct)}%</span>
+                        <span className="text-[#D1D5DB] leading-none">➜</span>
+                        <span className="font-bold text-[#111827] w-[45px] text-right leading-none">{Math.round(twPct)}%</span>
+                        <span className="font-black w-[25px] text-center leading-none" style={{ color: trendColor }}>{trendIcon}</span>
                     </div>
                 </div>
             );
@@ -132,11 +132,8 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                         </p>
                     </div>
                     <div 
-                        className="shrink-0 min-w-[140px] h-[40px] px-6 rounded-full text-[#FFFFFF] text-[18px] md:text-[20px] font-black uppercase text-center"
-                        style={{ 
-                            backgroundColor: getDominantColor(),
-                            lineHeight: '40px'
-                        }}
+                        className="shrink-0 min-w-[140px] px-6 py-2.5 rounded-full text-[#FFFFFF] text-[18px] md:text-[20px] font-black uppercase text-center flex items-center justify-center leading-none"
+                        style={{ backgroundColor: getDominantColor() }}
                     >
                         {dominantStatus}
                     </div>
