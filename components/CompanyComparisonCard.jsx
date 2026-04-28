@@ -61,9 +61,9 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
             }
 
             return (
-                <div key={i} className="grid grid-cols-[1fr_2.5fr_1fr] gap-4 items-center min-h-[48px]">
+                <div key={i} className="grid grid-cols-[220px_1fr_180px] gap-6 items-center min-h-[48px]">
                     {/* Legend Section */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 w-[220px]">
                         <span className="w-6 h-6 shrink-0" style={{ backgroundColor: COLORS_TW[i] }}></span>
                         <span className="text-[18px] md:text-[20px] font-bold whitespace-nowrap text-[#374151]">{label}</span>
                     </div>
@@ -87,11 +87,11 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                     </div>
 
                     {/* Values & Trend Section */}
-                    <div className="grid grid-cols-[55px_20px_55px_20px] gap-1 items-center justify-end text-[18px] md:text-[20px]">
-                        <span className="text-[#9CA3AF] text-right">{Math.round(lwPct)}%</span>
-                        <span className="text-[#D1D5DB] text-center text-sm">➜</span>
-                        <span className="font-bold text-[#111827] text-right">{Math.round(twPct)}%</span>
-                        <span className={`font-black text-center ${trendClass}`}>{trendIcon}</span>
+                    <div className="flex items-center justify-end gap-3 w-[180px] text-[18px] md:text-[20px]">
+                        <span className="text-[#9CA3AF] w-[45px] text-right">{Math.round(lwPct)}%</span>
+                        <span className="text-[#D1D5DB]">➜</span>
+                        <span className="font-bold text-[#111827] w-[45px] text-right">{Math.round(twPct)}%</span>
+                        <span className={`font-black w-[25px] text-center ${trendClass}`}>{trendIcon}</span>
                     </div>
                 </div>
             );
