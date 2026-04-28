@@ -61,24 +61,24 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
             }
 
             return (
-                <div key={i} className="grid grid-cols-[1.2fr_1fr_0.8fr] gap-4 items-center min-h-[40px]">
+                <div key={i} className="grid grid-cols-[1fr_2.5fr_1fr] gap-4 items-center min-h-[48px]">
                     {/* Legend Section */}
                     <div className="flex items-center gap-3">
                         <span className="w-6 h-6 shrink-0" style={{ backgroundColor: COLORS_TW[i] }}></span>
-                        <span className="text-[14px] md:text-[16px] font-medium whitespace-nowrap text-[#374151]">{label}</span>
+                        <span className="text-[18px] md:text-[20px] font-bold whitespace-nowrap text-[#374151]">{label}</span>
                     </div>
 
                     {/* Bars Section */}
-                    <div className="relative w-full h-[28px]">
+                    <div className="relative w-full h-[32px]">
                         {/* LW Track (Top half) */}
-                        <div className="absolute top-0 left-0 w-full h-[10px] bg-[#E0E0E0]">
+                        <div className="absolute top-0 left-0 w-full h-[12px] bg-[#E0E0E0]">
                             <div 
                                 className="h-full transition-all duration-700" 
                                 style={{ width: `${lwPct}%`, backgroundColor: COLORS_LW[i] }}
                             />
                         </div>
                         {/* TW Track (Bottom half) */}
-                        <div className="absolute bottom-0 left-0 w-full h-[10px] bg-[#E0E0E0]">
+                        <div className="absolute bottom-0 left-0 w-full h-[12px] bg-[#E0E0E0]">
                             <div 
                                 className="h-full transition-all duration-700" 
                                 style={{ width: `${twPct}%`, backgroundColor: COLORS_TW[i] }}
@@ -87,7 +87,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                     </div>
 
                     {/* Values & Trend Section */}
-                    <div className="grid grid-cols-[45px_20px_45px_20px] gap-1 items-center justify-end text-[16px] md:text-[18px]">
+                    <div className="grid grid-cols-[55px_20px_55px_20px] gap-1 items-center justify-end text-[18px] md:text-[20px]">
                         <span className="text-[#9CA3AF] text-right">{Math.round(lwPct)}%</span>
                         <span className="text-[#D1D5DB] text-center text-sm">➜</span>
                         <span className="font-bold text-[#111827] text-right">{Math.round(twPct)}%</span>
@@ -123,17 +123,17 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                 className="w-full rounded-[42px] p-8 md:p-12 border border-[#EEEEEE] shadow-sm overflow-hidden"
             >
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-4">
-                    <div className="space-y-1">
-                        <h1 className="text-[48px] md:text-[64px] font-black leading-[0.96] tracking-[-0.06em] text-black uppercase">
+                <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-10">
+                    <div className="flex-1 space-y-3 min-w-0">
+                        <h1 className="text-[48px] md:text-[64px] font-black leading-none tracking-[-0.06em] text-black uppercase truncate">
                             {companyName.replace('PT.', '')}
                         </h1>
-                        <p className="text-[14px] md:text-[18px] text-[#b4b4b4] font-medium">
-                            {prevWeek?.substring(0, 2)}: {rainfall.prev}mm/{rainfall.prevHH}HH | {currentWeek?.substring(0, 2)}: {rainfall.current}mm/{rainfall.currentHH}HH
+                        <p className="text-[16px] md:text-[20px] text-[#b4b4b4] font-bold bg-gray-100/50 px-4 py-2 rounded-xl inline-block">
+                            CH {prevWeek?.substring(0, 2)}: {rainfall.prev}mm/{rainfall.prevHH}HH | {currentWeek?.substring(0, 2)}: {rainfall.current}mm/{rainfall.currentHH}HH
                         </p>
                     </div>
                     <div 
-                        className="min-w-[150px] md:min-w-[180px] text-center px-6 py-3 rounded-full text-white text-[20px] md:text-[24px] font-black uppercase"
+                        className="shrink-0 min-w-[180px] text-center px-8 py-4 rounded-full text-white text-[24px] md:text-[28px] font-black uppercase shadow-sm"
                         style={{ backgroundColor: getDominantColor() }}
                     >
                         {dominantStatus}
