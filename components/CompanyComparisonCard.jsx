@@ -128,7 +128,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                             </h1>
                             <div style={{ marginTop: '8px' }}>
                                 <span style={{ fontSize: '18px', color: '#b4b4b4', fontWeight: 'bold' }}>
-                                    CH {prevWeek?.slice(-2)}: {rainfall.prev}mm/{rainfall.prevHH}HH | {currentWeek?.slice(-2)}: {rainfall.current}mm/{rainfall.currentHH}HH
+                                    CH {prevWeek?.slice(-2)}: {Math.floor(rainfall.prev)}mm/{rainfall.prevHH}HH | {currentWeek?.slice(-2)}: {Math.floor(rainfall.current)}mm/{rainfall.currentHH}HH
                                 </span>
                             </div>
                         </div>
