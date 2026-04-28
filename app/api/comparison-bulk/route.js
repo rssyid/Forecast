@@ -107,12 +107,12 @@ export async function GET(request) {
                 cnt_kering: currentTmat.cnt_kering,
                 total_blocks: currentTmat.total_blocks,
                 percentages: [
-                    currentTmat.total_blocks > 0 ? (currentTmat.cnt_banjir / currentTmat.total_blocks * 100) : 0,
-                    currentTmat.total_blocks > 0 ? (currentTmat.cnt_tergenang / currentTmat.total_blocks * 100) : 0,
-                    currentTmat.total_blocks > 0 ? (currentTmat.cnt_a_tergenang / currentTmat.total_blocks * 100) : 0,
-                    currentTmat.total_blocks > 0 ? (currentTmat.cnt_normal / currentTmat.total_blocks * 100) : 0,
-                    currentTmat.total_blocks > 0 ? (currentTmat.cnt_a_kering / currentTmat.total_blocks * 100) : 0,
-                    currentTmat.total_blocks > 0 ? (currentTmat.cnt_kering / currentTmat.total_blocks * 100) : 0
+                    currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_banjir / currentTmat.total_blocks * 100) : 0,
+                    currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_tergenang / currentTmat.total_blocks * 100) : 0,
+                    currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_a_tergenang / currentTmat.total_blocks * 100) : 0,
+                    currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_normal / currentTmat.total_blocks * 100) : 0,
+                    currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_a_kering / currentTmat.total_blocks * 100) : 0,
+                    currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_kering / currentTmat.total_blocks * 100) : 0
                 ]
             } : null;
 
@@ -126,12 +126,12 @@ export async function GET(request) {
                 cnt_kering: prevTmat.cnt_kering,
                 total_blocks: prevTmat.total_blocks,
                 percentages: [
-                    prevTmat.total_blocks > 0 ? (prevTmat.cnt_banjir / prevTmat.total_blocks * 100) : 0,
-                    prevTmat.total_blocks > 0 ? (prevTmat.cnt_tergenang / prevTmat.total_blocks * 100) : 0,
-                    prevTmat.total_blocks > 0 ? (prevTmat.cnt_a_tergenang / prevTmat.total_blocks * 100) : 0,
-                    prevTmat.total_blocks > 0 ? (prevTmat.cnt_normal / prevTmat.total_blocks * 100) : 0,
-                    prevTmat.total_blocks > 0 ? (prevTmat.cnt_a_kering / prevTmat.total_blocks * 100) : 0,
-                    prevTmat.total_blocks > 0 ? (prevTmat.cnt_kering / prevTmat.total_blocks * 100) : 0
+                    prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_banjir / prevTmat.total_blocks * 100) : 0,
+                    prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_tergenang / prevTmat.total_blocks * 100) : 0,
+                    prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_a_tergenang / prevTmat.total_blocks * 100) : 0,
+                    prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_normal / prevTmat.total_blocks * 100) : 0,
+                    prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_a_kering / prevTmat.total_blocks * 100) : 0,
+                    prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_kering / prevTmat.total_blocks * 100) : 0
                 ]
             } : null;
 
