@@ -62,7 +62,7 @@ export default function ComparisonGridClient() {
     return (
         <div className="max-w-[900px] mx-auto space-y-12 animate-in fade-in duration-1000 pb-20">
             {/* Header Section */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-[#FAFAFA] p-8 rounded-[42px] border border-gray-100 shadow-sm">
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white p-8 rounded-[42px] border border-gray-100 shadow-sm">
                 <div className="space-y-1">
                     <h1 className="text-4xl font-black text-gray-900 tracking-[-0.04em] flex items-center gap-3">
                         <TrendingUp className="text-blue-600" size={36} />
