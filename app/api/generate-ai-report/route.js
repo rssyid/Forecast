@@ -7,6 +7,7 @@ export async function POST(req) {
 
         const openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
+            baseURL: 'https://ai.dinoiki.com/v1',
         });
 
         const prompt = `
@@ -43,7 +44,7 @@ export async function POST(req) {
         `;
 
         const response = await openai.chat.completions.create({
-            model: "gpt-4-turbo-preview",
+            model: "gpt-4o",
             messages: [
                 { role: "system", content: "Anda adalah asisten AI ahli agronomi dan water management sawit." },
                 { role: "user", content: prompt }
