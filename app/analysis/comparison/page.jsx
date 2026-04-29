@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function ComparisonPage() {
     return (
-        <div className="p-4 md:p-8 min-h-screen bg-gray-50/50">
+        <div className="p-4 md:p-8 min-h-screen bg-[#FAFAFA]">
             <ComparisonGridClient />
         </div>
     );
