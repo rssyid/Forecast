@@ -48,30 +48,151 @@ export default function ForecastPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportCopied, setReportCopied] = useState(false);
 
+  // Translation States
+  const [translateText, setTranslateText] = useState('');
+  const [translatedReport, setTranslatedReport] = useState('');
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translateCopied, setTranslateCopied] = useState(false);
+
   const handleGenerateAI = async () => {
     if (!processed) return;
+    
+    if (userContext.trim().length < 10) {
+      setStatus({ msg: 'Harap isi minimal 10 karakter untuk Konteks Cuaca agar AI dapat menganalisis dengan relevan!', type: 'error' });
+      return;
+    }
+
     setIsGenerating(true);
+    setAiReport('');
     try {
+      const p = processed;
+      const userNotes = userContext;
+      const actions = wmActions || "tim operasional WM terus memantau level air kanal melalui patroli rutin.";
+
+      const currentSummary = p.weeklySummaryRecords.find(r => r.Week === p.baselineWeek);
+      const currentIndex = p.weeklySummaryRecords.findIndex(r => r.Week === p.baselineWeek);
+      const prevSummary = currentIndex > 0 ? p.weeklySummaryRecords[currentIndex - 1] : currentSummary;
+
+      let prevRedPct = "-", prevWetPct = "-";
+      if (prevSummary) {
+          const prevWeek = prevSummary.Week;
+          const prevTotal = p.weeklySummaryRecords.find(r => r.Week === prevWeek)["Total Records"];
+          const prevRedCount = p.weeklyCounts[prevWeek]?.["Kering (>65)"] || 0;
+          prevRedPct = prevTotal ? Math.round((prevRedCount / prevTotal) * 100) : "-";
+          const prevWetCount = (p.weeklyCounts[prevWeek]?.["Tergenang (0-40)"] || 0) + (p.weeklyCounts[prevWeek]?.["A Tergenang (41-45)"] || 0);
+          prevWetPct = prevTotal && prevWetCount ? Math.round((prevWetCount / prevTotal) * 100) : "-";
+      }
+
+      const currRedCount = p.baselineCounts["Kering (>65)"] || 0;
+      const currRedPct = p.baselineTotal ? Math.round((currRedCount / p.baselineTotal) * 100) : "-";
+      const currWetPct = Math.round(currentSummary["Basah <=45 %"]); // Use current field name
+
+      const prevTmat = prevSummary ? Math.round(Math.abs(prevSummary["Avg TMAT (cm)"])) : '-';
+      const currTmat = Math.round(Math.abs(currentSummary["Avg TMAT (cm)"]));
+
+      const pctBasah = currentSummary["Basah <=45 %"];
+      const pctKering = currentSummary["Kering >60 %"];
+      const countNormal = p.baselineCounts["Normal (46-60)"] || 0;
+      const pctNormal = p.baselineTotal ? (countNormal / p.baselineTotal) * 100 : 0;
+
+      let dominan = "Normal", instruksiAI = "", arahanPenutup = "";
+
+      if (pctKering >= Math.max(pctBasah, pctNormal)) {
+          dominan = "Kering";
+          instruksiAI = `Focus Para 1 on executive risk assessment regarding severe drought, fire hazards, and critical water deficit impacts on plantation yield, since data is ${Math.round(pctKering)}% DRY.`;
+          arahanPenutup = `Para 4: Write a strong concluding paragraph addressed to "Manajemen dan Pimpinan Operasional". Summarize that the landscape is experiencing a dominant water deficit. Include the TMAT movement (${prevTmat}cm to ${currTmat}cm) and the change in critical red blocks (${prevRedPct}% to ${currRedPct}%). Naturally integrate the user's weather context: "${userNotes}". Conclude with this specific operational instruction to mitigate risks: "${actions}".`;
+      } else if (pctBasah >= Math.max(pctKering, pctNormal)) {
+          dominan = "Basah";
+          instruksiAI = `Focus Para 1 on executive risk assessment regarding inundation, operational access disruption, and urgent drainage priorities, since data is ${Math.round(pctBasah)}% WET/FLOODED.`;
+          arahanPenutup = `Para 4: Write a strong concluding paragraph addressed to "Manajemen dan Pimpinan Operasional". Summarize that the landscape is waterlogged with high inundation risks. Include the TMAT movement (${prevTmat}cm to ${currTmat}cm) and the change in wet blocks (${prevWetPct}% to ${currWetPct}%). Naturally integrate the user's weather context: "${userNotes}". Conclude with this specific operational instruction to manage excess water: "${actions}".`;
+      } else {
+          instruksiAI = `Focus Para 1 on executive summary of water stability, maintained ideal moisture for palm productivity, and standard operational readiness, since data is ${Math.round(pctNormal)}% NORMAL.`;
+          arahanPenutup = `Para 4: Write a strong concluding paragraph addressed to "Manajemen dan Pimpinan Operasional". Summarize that the water management is stable and under control. Include the TMAT movement (${prevTmat}cm to ${currTmat}cm). Naturally integrate the user's weather context: "${userNotes}". Conclude with this specific operational instruction to maintain current stability: "${actions}".`;
+      }
+
+      const sc0 = p.scenarioResults.find(s => s.scenarioMm === 0) || p.scenarioResults[0];
+      const sc50 = p.scenarioResults.find(s => s.scenarioMm === 50) || (p.scenarioResults.length > 1 ? p.scenarioResults[1] : p.scenarioResults[0]);
+
+      const promptText = `
+Role: Senior Hydrology Advisor to COO and Plantation Operations Managers.
+Task: Write a 4-paragraph TMAT Executive Analysis Report.
+Language: STRICTLY INDONESIAN.
+Tone: Executive, analytical, risk-focused, and actionable. 
+Style Instruction: VARY your vocabulary, sentence structure, and transitions each time you generate this report. Avoid sounding like a rigid template. Make it read naturally like a human expert's dynamic analysis.
+Constraint: Output ONLY the 4 paragraphs. No conversational fillers, no markdown.
+
+DATA:
+- TMAT: Prev=${prevTmat}cm, Curr=${currTmat}cm.
+- Dry(>60cm): ${currentSummary.counts["Kering (>65)"]} blk (${Math.round(currentSummary["Kering >60 %"])}%).
+- Wet(<=45cm): ${currentSummary.counts["Tergenang (0-40)"] + currentSummary.counts["A Tergenang (41-45)"]} blk (${Math.round(currentSummary["Basah <=45 %"])}%).
+- Normal(46-60cm): ${countNormal} blk (${Math.round(pctNormal)}%).
+- Fcst 0mm: TMAT=${Math.round(Math.abs(sc0.avgNext))}cm, Dry(>65cm)=${sc0.counts["Kering (>65)"]}, Wet(<=45cm)=${sc0.summary["Basah <=45 Count"]}.
+- Fcst 50mm: TMAT=${Math.round(Math.abs(sc50.avgNext))}cm, Dry(>65cm)=${sc50.counts["Kering (>65)"]}, Wet(<=45cm)=${sc50.summary["Basah <=45 Count"]}, Normal(46-60cm)=${sc50.counts["Normal (46-60)"]}.
+
+FORMAT INSTRUCTIONS:
+Para 1: ${instruksiAI} Compare Prev vs Curr TMAT naturally.
+Para 2: Analyze the 0 mm rain projection. Integrate the data naturally into sentences discussing operational risks or recovery.
+Para 3: Analyze the 50 mm rain projection. Integrate the data naturally into sentences discussing operational risks or recovery.
+${arahanPenutup}
+    `;
+
       const res = await fetch('/api/generate-ai-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          baselineWeek: processed.baselineWeek,
-          scenarioResults: processed.scenarioResults,
-          baselineCounts: processed.baselineCounts,
-          baselinePct: processed.baselinePct,
-          userContext,
-          wmActions
+          prompt: promptText,
+          systemPrompt: "Anda adalah asisten AI ahli agronomi dan water management sawit."
         })
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Gagal generate laporan');
-      setAiReport(json.report);
+      
+      const report = json.text;
+      setAiReport(report);
+      setTranslateText(report); // Auto-fill translation input
       setStatus({ msg: 'Laporan AI berhasil dibuat!', type: 'success' });
     } catch (err) {
       setStatus({ msg: err.message, type: 'error' });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleTranslateReport = async () => {
+    if (!translateText.trim()) return;
+    setIsTranslating(true);
+    try {
+        const promptText = `
+Role: Senior Executive Translator & Hydrology Advisor.
+Task: Translate and rewrite the following Indonesian Executive Report into formal, C-Suite level English. Ensure the tone is authoritative, risk-focused, and highly professional.
+Constraint: Output ONLY the translated English text. No conversational fillers, no markdown, no bold text.
+Terminology Mapping:
+- "tanggul" -> "embankment"
+- "TMAS" -> "water level"
+- "TMAT" -> "ground water"
+
+TEXT TO TRANSLATE:
+${translateText}
+    `;
+
+        const res = await fetch('/api/generate-ai-report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                prompt: promptText,
+                systemPrompt: "Anda adalah penerjemah eksekutif ahli agronomi."
+            })
+        });
+
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Terjadi kesalahan pada server backend.");
+
+        setTranslatedReport(json.text);
+        setStatus({ msg: 'Laporan berhasil diterjemahkan!', type: 'success' });
+    } catch (err) {
+        setStatus({ msg: err.message, type: 'error' });
+    } finally {
+        setIsTranslating(false);
     }
   };
 
@@ -621,15 +742,73 @@ export default function ForecastPage() {
                             </div>
                             <div className="prose prose-slate max-w-none text-gray-800 leading-relaxed">
                                 {aiReport.split('\n').map((line, i) => {
-                                    if (line.startsWith('# ')) return <h1 key={i} className="text-2xl font-black mb-4 mt-8">{line.substring(2)}</h1>;
-                                    if (line.startsWith('## ')) return <h2 key={i} className="text-xl font-bold mb-3 mt-6">{line.substring(3)}</h2>;
-                                    if (line.startsWith('### ')) return <h3 key={i} className="text-lg font-bold mb-2 mt-4">{line.substring(4)}</h3>;
-                                    if (line.startsWith('- ')) return <li key={i} className="ml-4 mb-1">{line.substring(2)}</li>;
-                                    return <p key={i} className="mb-3">{line}</p>;
+                                    const cleaned = line.replace(/\*\*/g, '');
+                                    if (cleaned.startsWith('# ')) return <h1 key={i} className="text-2xl font-black mb-4 mt-8">{cleaned.substring(2)}</h1>;
+                                    if (cleaned.startsWith('## ')) return <h2 key={i} className="text-xl font-bold mb-3 mt-6">{cleaned.substring(3)}</h2>;
+                                    if (cleaned.startsWith('### ')) return <h3 key={i} className="text-lg font-bold mb-2 mt-4">{cleaned.substring(4)}</h3>;
+                                    if (cleaned.startsWith('- ')) return <li key={i} className="ml-4 mb-1">{cleaned.substring(2)}</li>;
+                                    return <p key={i} className="mb-3">{cleaned}</p>;
                                 })}
                             </div>
                         </div>
                       )}
+
+                      {/* Translation Module */}
+                      <div className="mt-12 pt-8 border-t border-gray-100">
+                          <div className="mb-6">
+                              <h3 className="text-lg font-bold text-gray-900">AI Translation & Rewrite (English)</h3>
+                              <p className="text-sm text-gray-500">Gunakan fitur ini untuk menerjemahkan laporan ke Bahasa Inggris formal level eksekutif.</p>
+                          </div>
+                          
+                          <div className="space-y-4">
+                              <textarea 
+                                  value={translateText} 
+                                  onChange={e => setTranslateText(e.target.value)}
+                                  className="w-full h-48 p-4 rounded-2xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-orange/50 bg-gray-50/30"
+                                  placeholder="Tempel teks laporan di sini..."
+                              />
+                              
+                              <button 
+                                  onClick={handleTranslateReport}
+                                  disabled={isTranslating || !translateText}
+                                  className={`bg-black text-white font-bold px-8 py-3 rounded-xl text-sm transition-all flex items-center gap-2 ${isTranslating ? 'opacity-70 cursor-wait' : 'hover:bg-gray-800'}`}
+                              >
+                                  {isTranslating ? <><RefreshCw size={16} className="animate-spin" /> Translating...</> : <><RefreshCw size={16} /> Rewrite & Translate</>}
+                              </button>
+                          </div>
+
+                          {translatedReport && (
+                              <div className="mt-8 p-8 bg-blue-50/30 rounded-[32px] border border-blue-100 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500 relative">
+                                  <div className="flex justify-between items-center mb-6 pb-4 border-b border-blue-100">
+                                      <h4 className="text-xl font-black text-blue-900 flex items-center gap-3">
+                                          <FileText className="text-blue-600" size={24} />
+                                          English Executive Report
+                                      </h4>
+                                      <button
+                                          onClick={() => {
+                                              navigator.clipboard.writeText(translatedReport).then(() => {
+                                                  setTranslateCopied(true);
+                                                  setTimeout(() => setTranslateCopied(false), 2000);
+                                              });
+                                          }}
+                                          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                                              translateCopied 
+                                                  ? 'bg-blue-200 text-blue-800' 
+                                                  : 'bg-white text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200'
+                                          }`}
+                                      >
+                                          {translateCopied ? <><Check size={16} /> Copied!</> : <><ClipboardCopy size={16} /> Salin Laporan</>}
+                                      </button>
+                                  </div>
+                                  <div className="prose prose-blue max-w-none text-blue-900 leading-relaxed">
+                                      {translatedReport.split('\n').map((line, i) => {
+                                          const cleaned = line.replace(/\*\*/g, '');
+                                          return <p key={i} className="mb-3">{cleaned}</p>;
+                                      })}
+                                  </div>
+                              </div>
+                          )}
+                      </div>
                   </div>
               )}
 
