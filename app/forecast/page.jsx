@@ -44,6 +44,36 @@ export default function ForecastPage() {
   // AI Laporan States
   const [userContext, setUserContext] = useState('');
   const [wmActions, setWmActions] = useState('');
+  const [aiReport, setAiReport] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [reportCopied, setReportCopied] = useState(false);
+
+  const handleGenerateAI = async () => {
+    if (!processed) return;
+    setIsGenerating(true);
+    try {
+      const res = await fetch('/api/generate-ai-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          baselineWeek: processed.baselineWeek,
+          scenarioResults: processed.scenarioResults,
+          baselineCounts: processed.baselineCounts,
+          baselinePct: processed.baselinePct,
+          userContext,
+          wmActions
+        })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Gagal generate laporan');
+      setAiReport(json.report);
+      setStatus({ msg: 'Laporan AI berhasil dibuat!', type: 'success' });
+    } catch (err) {
+      setStatus({ msg: err.message, type: 'error' });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleFetchDB = async () => {
     setIsFetching(true);
@@ -558,9 +588,48 @@ export default function ForecastPage() {
                               />
                           </div>
                       </div>
-                      <button className="bg-brand-green text-green-900 font-bold px-6 py-2 rounded-xl text-sm opacity-50 cursor-not-allowed">
-                          Generate Laporan AI
+                      <button 
+                        onClick={handleGenerateAI}
+                        disabled={isGenerating || !processed}
+                        className={`bg-brand-green text-green-900 font-bold px-8 py-3 rounded-xl text-sm shadow-lg shadow-green-100 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 ${isGenerating ? 'opacity-70 cursor-wait' : 'hover:bg-green-500'}`}
+                      >
+                        {isGenerating ? <><RefreshCw size={16} className="animate-spin" /> Generating...</> : <><Play size={16} /> Generate Laporan AI</>}
                       </button>
+
+                      {aiReport && (
+                        <div className="mt-8 p-8 bg-white rounded-[32px] border border-gray-100 shadow-xl animate-in fade-in slide-in-from-top-4 duration-500 relative">
+                            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                                <h4 className="text-xl font-black text-gray-900 flex items-center gap-3">
+                                    <FileText className="text-brand-green" size={24} />
+                                    Hasil Analisis AI
+                                </h4>
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(aiReport).then(() => {
+                                            setReportCopied(true);
+                                            setTimeout(() => setReportCopied(false), 2000);
+                                        });
+                                    }}
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                                        reportCopied 
+                                            ? 'bg-green-100 text-green-700' 
+                                            : 'bg-gray-100 text-gray-600 hover:bg-black hover:text-white'
+                                    }`}
+                                >
+                                    {reportCopied ? <><Check size={16} /> Copied!</> : <><ClipboardCopy size={16} /> Salin Laporan</>}
+                                </button>
+                            </div>
+                            <div className="prose prose-slate max-w-none text-gray-800 leading-relaxed">
+                                {aiReport.split('\n').map((line, i) => {
+                                    if (line.startsWith('# ')) return <h1 key={i} className="text-2xl font-black mb-4 mt-8">{line.substring(2)}</h1>;
+                                    if (line.startsWith('## ')) return <h2 key={i} className="text-xl font-bold mb-3 mt-6">{line.substring(3)}</h2>;
+                                    if (line.startsWith('### ')) return <h3 key={i} className="text-lg font-bold mb-2 mt-4">{line.substring(4)}</h3>;
+                                    if (line.startsWith('- ')) return <li key={i} className="ml-4 mb-1">{line.substring(2)}</li>;
+                                    return <p key={i} className="mb-3">{line}</p>;
+                                })}
+                            </div>
+                        </div>
+                      )}
                   </div>
               )}
 
