@@ -169,15 +169,17 @@ export default function DailyReportPage() {
                 )}
 
                 {loading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                         <SkeletonColumn />
                         <SkeletonColumn />
                     </div>
                 ) : data ? (
-                    <div ref={dashboardRef} className="bg-white p-6 -m-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                            <ReportColumn data={data.w1} />
-                            <ReportColumn data={data.w2} />
+                    <div className="overflow-x-auto pb-8">
+                        <div ref={dashboardRef} className="bg-white p-8 min-w-[1600px]">
+                            <div className="grid grid-cols-2 gap-16">
+                                <ReportColumn data={data.w1} />
+                                <ReportColumn data={data.w2} />
+                            </div>
                         </div>
                     </div>
                 ) : (
@@ -215,11 +217,11 @@ function ReportColumn({ data }) {
                     />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-10 gap-3">
-                    <div className="lg:col-span-6">
+                <div className="grid grid-cols-1 lg:grid-cols-10 gap-4">
+                    <div className="lg:col-span-5">
                         <LegendTable legendData={legend} />
                     </div>
-                    <div className="lg:col-span-4">
+                    <div className="lg:col-span-5">
                         <StatsTable statsData={stats} />
                     </div>
                 </div>
@@ -235,10 +237,10 @@ function LegendTable({ legendData }) {
             <table className="w-full text-left border-collapse font-['Arial_Narrow',_sans-serif] text-[14px]">
                 <thead className="bg-[#f9f9f9] border-b border-[#ddd]">
                     <tr className="text-gray-900">
-                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[10%]">Warna</th>
-                        <th className="border border-[#ddd] px-3 py-1.5 w-[70%]">Keterangan</th>
-                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[10%] whitespace-nowrap">Total Block</th>
-                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[10%]">%</th>
+                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[12%]">Warna</th>
+                        <th className="border border-[#ddd] px-3 py-1.5 w-[58%]">Keterangan</th>
+                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[15%] whitespace-nowrap">Total Block</th>
+                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[15%]">%</th>
                     </tr>
                 </thead>
                 <tbody className="text-gray-900 font-bold">
@@ -279,10 +281,10 @@ function StatsTable({ statsData }) {
             <table className="w-full text-left border-collapse font-['Arial_Narrow',_sans-serif] text-[15px]">
                 <thead className="bg-[#f9f9f9] border-b border-[#ddd]">
                     <tr className="text-gray-900">
-                        <th className="border border-[#ddd] px-3 py-1.5 w-[70%] text-center">Statistik</th>
-                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[10%] whitespace-nowrap">Minggu Lalu</th>
-                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[10%] whitespace-nowrap">Minggu Ini</th>
-                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[10%]">Selisih</th>
+                        <th className="border border-[#ddd] px-3 py-1.5 w-[40%] text-center">Statistik</th>
+                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[20%] whitespace-nowrap">Minggu Lalu</th>
+                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[20%] whitespace-nowrap">Minggu Ini</th>
+                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[20%]">Selisih</th>
                     </tr>
                 </thead>
                 <tbody className="text-gray-900 font-bold">
