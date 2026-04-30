@@ -19,6 +19,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       items: [
         { href: '/piezometer', label: 'Overview' },
         { href: '/analysis/comparison', label: 'Executive Dashboard' },
+        { href: '/analysis/daily', label: 'Laporan Harian (PZO)' },
         { href: '/piezometer/comparison', label: 'Laporan Tabel' },
         { href: '/analysis/correlation', label: 'Analisis Korelasi' },
         { href: '/analysis/map', label: 'Peta Interaktif' }
