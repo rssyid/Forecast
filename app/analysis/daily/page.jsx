@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { CalendarDays, Building2, RefreshCw, AlertCircle, FileText, Image as ImageIcon, Info, BarChart } from 'lucide-react';
+import { CalendarDays, Building2, RefreshCw, AlertCircle, FileText, Image as ImageIcon, Copy, Check } from 'lucide-react';
+import { domToBlob } from 'modern-screenshot';
 import SearchableSelect from '../../../components/SearchableSelect';
 
 export default function DailyReportPage() {
@@ -152,29 +153,74 @@ export default function DailyReportPage() {
 function ReportColumn({ data }) {
     if (!data || !data.meta) return null;
     const { meta, legend, imgUrl, stats } = data;
+    const [copying, setCopying] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const reportRef = React.useRef(null);
 
     const title = `Week ${meta.Week} ${meta.nameOfMonth} ${meta.Year} (${meta.StartDate} - ${meta.EndDate})`;
 
+    const handleCopyImage = async () => {
+        if (!reportRef.current) return;
+        setCopying(true);
+        try {
+            // Using modern-screenshot for high quality export
+            const blob = await domToBlob(reportRef.current, {
+                backgroundColor: '#ffffff',
+                scale: 2 // High DPI
+            });
+            
+            if (blob) {
+                const item = new ClipboardItem({ [blob.type]: blob });
+                await navigator.clipboard.write([item]);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            }
+        } catch (err) {
+            console.error('Failed to copy image:', err);
+        } finally {
+            setCopying(false);
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <h2 className="text-2xl font-bold text-gray-800 font-sans tracking-tight leading-none">
-                {title}
-            </h2>
-
-            <div className="rounded-[24px] overflow-hidden border border-gray-100 shadow-md bg-white">
-                <img 
-                    src={imgUrl} 
-                    alt={title}
-                    className="w-full h-auto block min-h-[400px] object-cover"
-                />
+            <div className="flex justify-between items-center pr-2">
+                <h2 className="text-2xl font-bold text-gray-800 font-sans tracking-tight leading-none">
+                    {title}
+                </h2>
+                <button 
+                    onClick={handleCopyImage}
+                    disabled={copying}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                        copied 
+                        ? 'bg-green-50 text-green-700 border-green-200' 
+                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                    }`}
+                >
+                    {copying ? <RefreshCw size={14} className="animate-spin" /> : (copied ? <Check size={14} /> : <Copy size={14} />)}
+                    {copied ? 'Copied!' : 'Copy Image'}
+                </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-10 gap-4">
-                <div className="lg:col-span-6">
-                    <LegendTable legendData={legend} />
-                </div>
-                <div className="lg:col-span-4">
-                    <StatsTable statsData={stats} />
+            <div ref={reportRef} className="bg-white p-4 -m-4 rounded-[4px]">
+                <div className="space-y-4">
+                    <div className="overflow-hidden border border-[#ddd] shadow-sm">
+                        <img 
+                            src={imgUrl} 
+                            alt={title}
+                            crossOrigin="anonymous"
+                            className="w-full h-auto block min-h-[400px] object-cover"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-10 gap-4">
+                        <div className="lg:col-span-6">
+                            <LegendTable legendData={legend} />
+                        </div>
+                        <div className="lg:col-span-4">
+                            <StatsTable statsData={stats} />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -184,37 +230,36 @@ function ReportColumn({ data }) {
 function LegendTable({ legendData }) {
     if (!legendData) return null;
     return (
-        <div className="rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-            <table className="w-full text-left border-collapse font-['Arial_Narrow',_sans-serif]">
-                <thead className="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                        <th className="px-3 py-2 text-[12px] font-black text-gray-500 uppercase text-center w-[15%]">Warna</th>
-                        <th className="px-3 py-2 text-[12px] font-black text-gray-500 uppercase w-[55%]">Keterangan</th>
-                        <th className="px-3 py-2 text-[12px] font-black text-gray-500 uppercase text-center w-[15%]">Blocks</th>
-                        <th className="px-3 py-2 text-[12px] font-black text-gray-500 uppercase text-center w-[15%]">%</th>
+        <div className="border border-[#ddd] overflow-hidden">
+            <table className="w-full text-left border-collapse font-['Arial_Narrow',_sans-serif] text-[14px]">
+                <thead className="bg-[#f9f9f9] border-b border-[#ddd]">
+                    <tr className="text-gray-900">
+                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[10%]">Warna</th>
+                        <th className="border border-[#ddd] px-3 py-1.5 w-[70%]">Keterangan</th>
+                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[10%] whitespace-nowrap">Total Block</th>
+                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[10%]">%</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="text-gray-900 font-bold">
                     {legendData.map((row, i) => {
                         const isSpecial = ["No Data", "Total", "Shade"].includes(row.IndicatorName);
                         return (
-                            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                                <td className="p-1">
+                            <tr key={i} className={i % 2 === 0 ? 'bg-[#f9f9f9]' : 'bg-white'}>
+                                <td className="border border-[#ddd] p-1 text-center">
                                     <div 
-                                        className="h-6 w-full rounded"
+                                        className="h-5 w-full mx-auto"
                                         style={{ 
-                                            backgroundColor: isSpecial ? '#fff' : row.colorBack,
-                                            border: isSpecial ? '1px solid #eee' : 'none'
+                                            backgroundColor: isSpecial ? '#ffffff' : row.colorBack,
                                         }}
                                     />
                                 </td>
-                                <td className="px-3 py-2 text-[14px] font-bold text-gray-700">
+                                <td className="border border-[#ddd] px-3 py-1.5">
                                     {row.IndicatorAliasReport ? `${row.IndicatorAliasReport} ( ${row.IndicatorName} )` : `( ${row.IndicatorName} )`}
                                 </td>
-                                <td className="px-3 py-2 text-[14px] font-bold text-gray-700 text-right">
+                                <td className="border border-[#ddd] px-3 py-1.5 text-right">
                                     {row.totalPiezo ?? '-'}
                                 </td>
-                                <td className="px-3 py-2 text-[14px] font-bold text-gray-700 text-right">
+                                <td className="border border-[#ddd] px-3 py-1.5 text-right">
                                     {row.persenPiezo}
                                 </td>
                             </tr>
@@ -229,25 +274,25 @@ function LegendTable({ legendData }) {
 function StatsTable({ statsData }) {
     if (!statsData) return null;
     return (
-        <div className="rounded-2xl border border-gray-100 overflow-hidden shadow-sm h-full">
-            <table className="w-full text-left border-collapse font-['Arial_Narrow',_sans-serif] h-full">
-                <thead className="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                        <th className="px-3 py-2 text-[12px] font-black text-gray-500 uppercase">Statistik</th>
-                        <th className="px-3 py-2 text-[12px] font-black text-gray-500 uppercase text-right">Lalu</th>
-                        <th className="px-3 py-2 text-[12px] font-black text-gray-500 uppercase text-right">Ini</th>
-                        <th className="px-3 py-2 text-[12px] font-black text-gray-500 uppercase text-right">+/-</th>
+        <div className="border border-[#ddd] overflow-hidden">
+            <table className="w-full text-left border-collapse font-['Arial_Narrow',_sans-serif] text-[15px]">
+                <thead className="bg-[#f9f9f9] border-b border-[#ddd]">
+                    <tr className="text-gray-900">
+                        <th className="border border-[#ddd] px-3 py-1.5 w-[70%] text-center">Statistik</th>
+                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[10%] whitespace-nowrap">Minggu Lalu</th>
+                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[10%] whitespace-nowrap">Minggu Ini</th>
+                        <th className="border border-[#ddd] px-2 py-1.5 text-center w-[10%]">Selisih</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50 bg-white">
+                <tbody className="text-gray-900 font-bold">
                     {statsData.map((row, i) => {
                         const selisih = (row.selisih === 0 && ["Σ Piezo", "Σ Record"].includes(row.Statistic)) ? '' : row.selisih;
                         return (
-                            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                                <td className="px-3 py-2 text-[14px] font-bold text-gray-700">{row.Statistic}</td>
-                                <td className="px-3 py-2 text-[14px] font-bold text-gray-600 text-right">{row.mingguLalu}</td>
-                                <td className="px-3 py-2 text-[14px] font-bold text-blue-700 text-right">{row.mingguIni}</td>
-                                <td className={`px-3 py-2 text-[14px] font-black text-right ${Number(selisih) > 0 ? 'text-green-600' : Number(selisih) < 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                            <tr key={i} className={i % 2 === 0 ? 'bg-[#f9f9f9]' : 'bg-white'}>
+                                <td className="border border-[#ddd] px-3 py-2">{row.Statistic}</td>
+                                <td className="border border-[#ddd] px-3 py-2 text-right">{row.mingguLalu}</td>
+                                <td className="border border-[#ddd] px-3 py-2 text-right">{row.mingguIni}</td>
+                                <td className="border border-[#ddd] px-3 py-2 text-right">
                                     {selisih}
                                 </td>
                             </tr>
