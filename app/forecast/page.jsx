@@ -65,83 +65,19 @@ export default function ForecastPage() {
     setIsGenerating(true);
     setAiReport('');
     try {
-      const p = processed;
-      const userNotes = userContext;
-      const actions = wmActions || "tim operasional WM terus memantau level air kanal melalui patroli rutin.";
-
-      const currentSummary = p.weeklySummaryRecords.find(r => r.Week === p.baselineWeek);
-      const currentIndex = p.weeklySummaryRecords.findIndex(r => r.Week === p.baselineWeek);
-      const prevSummary = currentIndex > 0 ? p.weeklySummaryRecords[currentIndex - 1] : currentSummary;
-
-      let prevRedPct = "-", prevWetPct = "-";
-      if (prevSummary) {
-          const prevWeek = prevSummary.Week;
-          const prevTotal = p.weeklySummaryRecords.find(r => r.Week === prevWeek)["Total Records"];
-          const prevRedCount = p.weeklyCounts[prevWeek]?.["Kering (>65)"] || 0;
-          prevRedPct = prevTotal ? Math.round((prevRedCount / prevTotal) * 100) : "-";
-          const prevWetCount = (p.weeklyCounts[prevWeek]?.["Tergenang (0-40)"] || 0) + (p.weeklyCounts[prevWeek]?.["A Tergenang (41-45)"] || 0);
-          prevWetPct = prevTotal && prevWetCount ? Math.round((prevWetCount / prevTotal) * 100) : "-";
-      }
-
-      const currRedCount = p.baselineCounts["Kering (>65)"] || 0;
-      const currRedPct = p.baselineTotal ? Math.round((currRedCount / p.baselineTotal) * 100) : "-";
-      const currWetPct = Math.round(currentSummary["Basah <=45 %"]); // Use current field name
-
-      const prevTmat = prevSummary ? Math.round(Math.abs(prevSummary["Avg TMAT (cm)"])) : '-';
-      const currTmat = Math.round(Math.abs(currentSummary["Avg TMAT (cm)"]));
-
-      const pctBasah = currentSummary["Basah <=45 %"];
-      const pctKering = currentSummary["Kering >60 %"];
-      const countNormal = p.baselineCounts["Normal (46-60)"] || 0;
-      const pctNormal = p.baselineTotal ? (countNormal / p.baselineTotal) * 100 : 0;
-
-      let dominan = "Normal", instruksiAI = "", arahanPenutup = "";
-
-      if (pctKering >= Math.max(pctBasah, pctNormal)) {
-          dominan = "Kering";
-          instruksiAI = `Focus Para 1 on executive risk assessment regarding severe drought, fire hazards, and critical water deficit impacts on plantation yield, since data is ${Math.round(pctKering)}% DRY.`;
-          arahanPenutup = `Para 4: Write a strong concluding paragraph addressed to "Manajemen dan Pimpinan Operasional". Summarize that the landscape is experiencing a dominant water deficit. Include the TMAT movement (${prevTmat}cm to ${currTmat}cm) and the change in critical red blocks (${prevRedPct}% to ${currRedPct}%). Naturally integrate the user's weather context: "${userNotes}". Conclude with this specific operational instruction to mitigate risks: "${actions}".`;
-      } else if (pctBasah >= Math.max(pctKering, pctNormal)) {
-          dominan = "Basah";
-          instruksiAI = `Focus Para 1 on executive risk assessment regarding inundation, operational access disruption, and urgent drainage priorities, since data is ${Math.round(pctBasah)}% WET/FLOODED.`;
-          arahanPenutup = `Para 4: Write a strong concluding paragraph addressed to "Manajemen dan Pimpinan Operasional". Summarize that the landscape is waterlogged with high inundation risks. Include the TMAT movement (${prevTmat}cm to ${currTmat}cm) and the change in wet blocks (${prevWetPct}% to ${currWetPct}%). Naturally integrate the user's weather context: "${userNotes}". Conclude with this specific operational instruction to manage excess water: "${actions}".`;
-      } else {
-          instruksiAI = `Focus Para 1 on executive summary of water stability, maintained ideal moisture for palm productivity, and standard operational readiness, since data is ${Math.round(pctNormal)}% NORMAL.`;
-          arahanPenutup = `Para 4: Write a strong concluding paragraph addressed to "Manajemen dan Pimpinan Operasional". Summarize that the water management is stable and under control. Include the TMAT movement (${prevTmat}cm to ${currTmat}cm). Naturally integrate the user's weather context: "${userNotes}". Conclude with this specific operational instruction to maintain current stability: "${actions}".`;
-      }
-
-      const sc0 = p.scenarioResults.find(s => s.scenarioMm === 0) || p.scenarioResults[0];
-      const sc50 = p.scenarioResults.find(s => s.scenarioMm === 50) || (p.scenarioResults.length > 1 ? p.scenarioResults[1] : p.scenarioResults[0]);
-
+      const forecastDataJson = JSON.stringify(processed.forecastRows);
+      
       const promptText = `
-Role: Senior Hydrology Advisor to COO and Plantation Operations Managers.
-Task: Write a 4-paragraph TMAT Executive Analysis Report.
-Language: STRICTLY INDONESIAN.
-Tone: Executive, analytical, risk-focused, and actionable. 
-Style Instruction: VARY your vocabulary, sentence structure, and transitions each time you generate this report. Avoid sounding like a rigid template. Make it read naturally like a human expert's dynamic analysis.
-Constraint: Output ONLY the 4 paragraphs. No conversational fillers, no markdown.
-
-DATA:
-- TMAT: Prev=${prevTmat}cm, Curr=${currTmat}cm.
-- Dry(>60cm): ${currentSummary.counts["Kering (>65)"]} blk (${Math.round(currentSummary["Kering >60 %"])}%).
-- Wet(<=45cm): ${currentSummary.counts["Tergenang (0-40)"] + currentSummary.counts["A Tergenang (41-45)"]} blk (${Math.round(currentSummary["Basah <=45 %"])}%).
-- Normal(46-60cm): ${countNormal} blk (${Math.round(pctNormal)}%).
-- Fcst 0mm: TMAT=${Math.round(Math.abs(sc0.avgNext))}cm, Dry(>65cm)=${sc0.counts["Kering (>65)"]}, Wet(<=45cm)=${sc0.summary["Basah <=45 Count"]}.
-- Fcst 50mm: TMAT=${Math.round(Math.abs(sc50.avgNext))}cm, Dry(>65cm)=${sc50.counts["Kering (>65)"]}, Wet(<=45cm)=${sc50.summary["Basah <=45 Count"]}, Normal(46-60cm)=${sc50.counts["Normal (46-60)"]}.
-
-FORMAT INSTRUCTIONS:
-Para 1: ${instruksiAI} Compare Prev vs Curr TMAT naturally.
-Para 2: Analyze the 0 mm rain projection. Integrate the data naturally into sentences discussing operational risks or recovery.
-Para 3: Analyze the 50 mm rain projection. Integrate the data naturally into sentences discussing operational risks or recovery.
-${arahanPenutup}
-    `;
+[WEATHER CONTEXT]: ${userContext}
+[FIELD ACTIONS]: ${wmActions || "No specific field actions recorded."}
+[FORECAST DATA]: ${forecastDataJson}
+      `.trim();
 
       const res = await fetch('/api/generate-ai-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: promptText,
-          systemPrompt: "Anda adalah asisten AI ahli agronomi dan water management sawit."
+          prompt: promptText
         })
       });
       const json = await res.json();
@@ -149,8 +85,8 @@ ${arahanPenutup}
       
       const report = json.text;
       setAiReport(report);
-      setTranslateText(report); // Auto-fill translation input
-      setStatus({ msg: 'Laporan AI berhasil dibuat!', type: 'success' });
+      setTranslateText(report);
+      setStatus({ msg: 'Hydrological Forecast Report berhasil dibuat!', type: 'success' });
     } catch (err) {
       setStatus({ msg: err.message, type: 'error' });
     } finally {
