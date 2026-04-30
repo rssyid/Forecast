@@ -174,11 +174,15 @@ export default function DailyReportPage() {
                         <SkeletonColumn />
                     </div>
                 ) : data ? (
-                    <div className="overflow-x-auto pb-8">
-                        <div ref={dashboardRef} className="bg-white p-8 min-w-[1600px]">
-                            <div className="grid grid-cols-2 gap-16">
-                                <ReportColumn data={data.w1} />
-                                <ReportColumn data={data.w2} />
+                    <div className="space-y-8">
+                        <ReportSummary data={data} ptName={ptName} />
+                        
+                        <div className="overflow-x-auto pb-8">
+                            <div ref={dashboardRef} className="bg-white p-8 min-w-[1600px]">
+                                <div className="grid grid-cols-2 gap-16">
+                                    <ReportColumn data={data.w1} />
+                                    <ReportColumn data={data.w2} />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -190,6 +194,58 @@ export default function DailyReportPage() {
                         <p className="text-gray-400 font-bold text-xl">Pilih Company dan Minggu untuk melihat laporan.</p>
                     </div>
                 )}
+            </div>
+        </div>
+    );
+}
+
+function ReportSummary({ data, ptName }) {
+    const [copied, setCopied] = useState(false);
+    
+    // 1. Format Datetime
+    const now = new Date();
+    const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+    const formattedDate = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
+
+    // 2. Extract Meta info
+    const w1 = data.w1.meta;
+    const w2 = data.w2.meta;
+    
+    // 3. Calculate Progress
+    const recordStat = data.w2.stats?.find(s => s.Statistic === 'Σ Record');
+    const progress = recordStat && recordStat.mingguLalu > 0 
+        ? Math.round((recordStat.mingguIni / recordStat.mingguLalu) * 100)
+        : 0;
+
+    const summaryText = `Berikut terlampirkan Peta Perbandingan Kondisi Piezometer W${w1.Week} ${w1.nameOfMonth.substring(0,3)} dan W${w2.Week} ${w2.nameOfMonth.substring(0,3)} ${w2.Year}. Update ${formattedDate}. Progres Pendataan Piezometer ${ptName.replace('PT.', '')} Minggu ke-${w2.Week} ${w2.nameOfMonth.substring(0,3)} sudah ${progress}%. \nTerimakasih.`;
+
+    const handleCopyText = async () => {
+        try {
+            await navigator.clipboard.writeText(summaryText);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy text:', err);
+        }
+    };
+
+    return (
+        <div className="max-w-[1400px] mx-auto bg-gray-50 border border-gray-200 rounded-2xl p-6 relative group animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex justify-between items-start gap-4">
+                <p className="text-gray-700 font-medium leading-relaxed whitespace-pre-wrap">
+                    {summaryText}
+                </p>
+                <button 
+                    onClick={handleCopyText}
+                    className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                        copied 
+                        ? 'bg-green-100 text-green-700 border-green-200' 
+                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 shadow-sm'
+                    }`}
+                >
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                    {copied ? 'Teks Tersalin!' : 'Copy Teks'}
+                </button>
             </div>
         </div>
     );
