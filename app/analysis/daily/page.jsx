@@ -248,13 +248,13 @@ function LegendTable({ legendData }) {
                         const isSpecial = ["No Data", "Total", "Shade"].includes(row.IndicatorName);
                         return (
                             <tr key={i} className={i % 2 === 0 ? 'bg-[#f9f9f9]' : 'bg-white'}>
-                                <td className="border border-[#ddd] p-1 text-center">
-                                    <div 
-                                        className="h-5 w-full mx-auto"
-                                        style={{ 
-                                            backgroundColor: isSpecial ? '#ffffff' : row.colorBack,
-                                        }}
-                                    />
+                                <td 
+                                    className="border border-[#ddd] p-0"
+                                    style={{ 
+                                        backgroundColor: isSpecial ? '#ffffff' : row.colorBack,
+                                    }}
+                                >
+                                    <div className="h-8 w-full" />
                                 </td>
                                 <td className="border border-[#ddd] px-3 py-1.5">
                                     {row.IndicatorAliasReport ? `${row.IndicatorAliasReport} ( ${row.IndicatorName} )` : `( ${row.IndicatorName} )`}
