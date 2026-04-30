@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CalendarDays, Building2, RefreshCw, AlertCircle, FileText, Image as ImageIcon, Copy, Check } from 'lucide-react';
 import { domToBlob } from 'modern-screenshot';
 import SearchableSelect from '../../../components/SearchableSelect';
@@ -155,7 +155,7 @@ function ReportColumn({ data }) {
     const { meta, legend, imgUrl, stats } = data;
     const [copying, setCopying] = useState(false);
     const [copied, setCopied] = useState(false);
-    const reportRef = React.useRef(null);
+    const reportRef = useRef(null);
 
     const title = `Week ${meta.Week} ${meta.nameOfMonth} ${meta.Year} (${meta.StartDate} - ${meta.EndDate})`;
 
