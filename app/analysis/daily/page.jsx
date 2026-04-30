@@ -13,6 +13,9 @@ export default function DailyReportPage() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [copying, setCopying] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const dashboardRef = useRef(null);
 
     // 1. Fetch weeks and companies list
     useEffect(() => {
@@ -65,13 +68,34 @@ export default function DailyReportPage() {
         }
     };
 
+    const handleCopyAll = async () => {
+        if (!dashboardRef.current) return;
+        setCopying(true);
+        try {
+            const blob = await domToBlob(dashboardRef.current, {
+                backgroundColor: '#ffffff',
+                scale: 2
+            });
+            if (blob) {
+                const item = new ClipboardItem({ [blob.type]: blob });
+                await navigator.clipboard.write([item]);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            }
+        } catch (err) {
+            console.error('Failed to copy dashboard:', err);
+        } finally {
+            setCopying(false);
+        }
+    };
+
     useEffect(() => {
         if (ptName && weekId) fetchReport();
     }, [ptName, weekId]);
 
     return (
         <div className="p-4 md:p-8 min-h-screen bg-white">
-            <div className="max-w-[1400px] mx-auto space-y-8">
+            <div className="w-full space-y-8">
                 {/* Header Section */}
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
                     <div className="space-y-1">
@@ -110,32 +134,51 @@ export default function DailyReportPage() {
                                 autoSort={false}
                             />
                         </div>
-                        <button 
-                            onClick={fetchReport}
-                            disabled={loading}
-                            className="p-3 mt-5.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all text-gray-600 shadow-sm disabled:opacity-50"
-                        >
-                            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-                        </button>
+                        <div className="flex items-center gap-2 mt-5.5">
+                            <button 
+                                onClick={fetchReport}
+                                disabled={loading}
+                                className="p-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all text-gray-600 shadow-sm disabled:opacity-50"
+                                title="Refresh Data"
+                            >
+                                <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                            </button>
+                            {data && (
+                                <button 
+                                    onClick={handleCopyAll}
+                                    disabled={copying}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all border ${
+                                        copied 
+                                        ? 'bg-green-50 text-green-700 border-green-200' 
+                                        : 'bg-black text-white border-black hover:bg-gray-800 shadow-lg'
+                                    }`}
+                                >
+                                    {copying ? <RefreshCw size={18} className="animate-spin" /> : (copied ? <Check size={18} /> : <ImageIcon size={18} />)}
+                                    {copied ? 'Dashboard Copied!' : 'Copy Dashboard Image'}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </header>
 
                 {error && (
-                    <div className="p-6 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-4 text-red-700">
+                    <div className="p-6 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-4 text-red-700 max-w-[1400px] mx-auto">
                         <AlertCircle size={24} />
                         <p className="font-bold">{error}</p>
                     </div>
                 )}
 
                 {loading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                         <SkeletonColumn />
                         <SkeletonColumn />
                     </div>
                 ) : data ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                        <ReportColumn data={data.w1} />
-                        <ReportColumn data={data.w2} />
+                    <div ref={dashboardRef} className="bg-white p-6 -m-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                            <ReportColumn data={data.w1} />
+                            <ReportColumn data={data.w2} />
+                        </div>
                     </div>
                 ) : (
                     <div className="py-32 text-center">
@@ -153,73 +196,31 @@ export default function DailyReportPage() {
 function ReportColumn({ data }) {
     if (!data || !data.meta) return null;
     const { meta, legend, imgUrl, stats } = data;
-    const [copying, setCopying] = useState(false);
-    const [copied, setCopied] = useState(false);
-    const reportRef = useRef(null);
 
     const title = `Week ${meta.Week} ${meta.nameOfMonth} ${meta.Year} (${meta.StartDate} - ${meta.EndDate})`;
 
-    const handleCopyImage = async () => {
-        if (!reportRef.current) return;
-        setCopying(true);
-        try {
-            // Using modern-screenshot for high quality export
-            const blob = await domToBlob(reportRef.current, {
-                backgroundColor: '#ffffff',
-                scale: 2 // High DPI
-            });
-            
-            if (blob) {
-                const item = new ClipboardItem({ [blob.type]: blob });
-                await navigator.clipboard.write([item]);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-            }
-        } catch (err) {
-            console.error('Failed to copy image:', err);
-        } finally {
-            setCopying(false);
-        }
-    };
-
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex justify-between items-center pr-2">
-                <h2 className="text-2xl font-bold text-gray-800 font-sans tracking-tight leading-none">
-                    {title}
-                </h2>
-                <button 
-                    onClick={handleCopyImage}
-                    disabled={copying}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                        copied 
-                        ? 'bg-green-50 text-green-700 border-green-200' 
-                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                    }`}
-                >
-                    {copying ? <RefreshCw size={14} className="animate-spin" /> : (copied ? <Check size={14} /> : <Copy size={14} />)}
-                    {copied ? 'Copied!' : 'Copy Image'}
-                </button>
-            </div>
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-800 font-sans tracking-tight leading-none px-1">
+                {title}
+            </h2>
 
-            <div ref={reportRef} className="bg-white p-4 -m-4 rounded-[4px]">
-                <div className="space-y-4">
-                    <div className="overflow-hidden border border-[#ddd] shadow-sm">
-                        <img 
-                            src={imgUrl} 
-                            alt={title}
-                            crossOrigin="anonymous"
-                            className="w-full h-auto block min-h-[400px] object-cover"
-                        />
+            <div className="space-y-4">
+                <div className="overflow-hidden shadow-xs">
+                    <img 
+                        src={imgUrl} 
+                        alt={title}
+                        crossOrigin="anonymous"
+                        className="w-full h-auto block min-h-[400px] object-cover"
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-10 gap-3">
+                    <div className="lg:col-span-6">
+                        <LegendTable legendData={legend} />
                     </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-10 gap-4">
-                        <div className="lg:col-span-6">
-                            <LegendTable legendData={legend} />
-                        </div>
-                        <div className="lg:col-span-4">
-                            <StatsTable statsData={stats} />
-                        </div>
+                    <div className="lg:col-span-4">
+                        <StatsTable statsData={stats} />
                     </div>
                 </div>
             </div>
