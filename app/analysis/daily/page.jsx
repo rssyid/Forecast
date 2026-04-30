@@ -211,13 +211,35 @@ function ReportSummary({ data, ptName }) {
     const w1 = data.w1.meta;
     const w2 = data.w2.meta;
     
+    // Helper to get short month
+    const getShortMonth = (name) => {
+        if (!name) return "";
+        const m = name.toLowerCase();
+        if (m.includes("jan")) return "Jan";
+        if (m.includes("feb")) return "Feb";
+        if (m.includes("mar")) return "Mar";
+        if (m.includes("apr")) return "Apr";
+        if (m.includes("mei") || m.includes("may")) return "Mei";
+        if (m.includes("jun")) return "Jun";
+        if (m.includes("jul")) return "Jul";
+        if (m.includes("agt") || m.includes("aug")) return "Agt";
+        if (m.includes("sep")) return "Sep";
+        if (m.includes("okt") || m.includes("oct")) return "Okt";
+        if (m.includes("nov")) return "Nov";
+        if (m.includes("des") || m.includes("dec")) return "Des";
+        return name.substring(0, 3);
+    };
+
+    const w1Label = `W${w1.Week} ${getShortMonth(w1.nameOfMonth)}`;
+    const w2Label = `W${w2.Week} ${getShortMonth(w2.nameOfMonth)}`;
+    
     // 3. Calculate Progress
     const recordStat = data.w2.stats?.find(s => s.Statistic === 'Σ Record');
     const progress = recordStat && recordStat.mingguLalu > 0 
         ? Math.round((recordStat.mingguIni / recordStat.mingguLalu) * 100)
         : 0;
 
-    const summaryText = `Berikut terlampirkan Peta Perbandingan Kondisi Piezometer W${w1.Week} ${w1.nameOfMonth.substring(0,3)} dan W${w2.Week} ${w2.nameOfMonth.substring(0,3)} ${w2.Year}. Update ${formattedDate}. Progres Pendataan Piezometer ${ptName.replace('PT.', '')} Minggu ke-${w2.Week} ${w2.nameOfMonth.substring(0,3)} sudah ${progress}%. \nTerimakasih.`;
+    const summaryText = `Berikut terlampirkan Peta Perbandingan Kondisi Piezometer ${w1Label} dan ${w2Label} ${w2.Year}. Update ${formattedDate}. Progres Pendataan Piezometer ${ptName.replace('PT.', '')} Minggu ke-${w2.Week} ${getShortMonth(w2.nameOfMonth)} sudah ${progress}%. \nTerimakasih.`;
 
     const handleCopyText = async () => {
         try {
