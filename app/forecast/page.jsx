@@ -139,7 +139,8 @@ ${translateText}
         const params = new URLSearchParams({ companyCode: dbCompany, lookbackWeeks: dbRange });
         const res = await fetch(`/api/get-piezometer?${params}`);
         if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-        const { data, rainfall, estateRainfall: dbEstRain } = await res.json();
+        const responseJson = await res.json();
+        const { data, rainfall, estateRainfall: dbEstRain, weekObjects } = responseJson;
 
         if (!data || data.length === 0) throw new Error(`Tidak ada data untuk company "${dbCompany}".`);
 
@@ -159,11 +160,13 @@ ${translateText}
         setRainfallMap(initialRainMap);
         // Default to current week if available in data, else latest
         const now = new Date();
-        const currentWeekObj = json.weeks.find(w => {
+        const currentWeekObj = weekObjects ? weekObjects.find(w => {
+          if (!w.start_date || !w.end_date) return false;
           const start = new Date(w.start_date);
           const end = new Date(w.end_date);
+          end.setHours(23, 59, 59, 999);
           return now >= start && now <= end;
-        });
+        }) : null;
 
         const currentWeekName = currentWeekObj ? currentWeekObj.formatted_name : '';
         const hasCurrentData = foundWeeks.includes(currentWeekName);

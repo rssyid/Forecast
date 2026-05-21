@@ -12,15 +12,16 @@ export async function GET(request) {
     // Find the latest active weeks available in the database
     // We take limit + 1 so we have the 'previous week' data for the oldest week in the target range
     const weeksResult = await pool.query(`
-        SELECT month_name 
-        FROM piezometer_data 
-        GROUP BY month_name 
-        ORDER BY MAX(date_timestamp) DESC 
+        SELECT p.month_name, MAX(cw.start_date) as start_date, MAX(cw.end_date) as end_date 
+        FROM piezometer_data p
+        LEFT JOIN calendar_weeks cw ON p.month_name = cw.formatted_name
+        GROUP BY p.month_name 
+        ORDER BY MAX(p.date_timestamp) DESC 
         LIMIT $1 + 1
     `, [limit]);
 
     if (weeksResult.rows.length === 0) {
-        return NextResponse.json({ data: [], weeks: [] });
+        return NextResponse.json({ data: [], weeks: [], weekObjects: [] });
     }
 
     const targetWeeks = weeksResult.rows.map(r => r.month_name);
@@ -122,6 +123,11 @@ export async function GET(request) {
     return NextResponse.json({ 
         data: dataResult.rows, 
         weeks: targetWeeks,
+        weekObjects: weeksResult.rows.map(r => ({
+            formatted_name: r.month_name,
+            start_date: r.start_date,
+            end_date: r.end_date
+        })),
         rainfall: rainfallMap,
         estateRainfall: estateRainfallMap
     });
