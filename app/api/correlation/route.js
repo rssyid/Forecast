@@ -35,6 +35,7 @@ export async function GET(request) {
                     AVG(ketinggian) as avg_tmat
                 FROM piezometer_data p, latest_data l
                 WHERE to_timestamp(date_timestamp / 1000.0) >= l.max_date - INTERVAL '${days} days'
+                AND p.ketinggian != 999
                 ${whereClause}
                 GROUP BY 1, 2, 3
             ),
