@@ -41,31 +41,41 @@ export async function GET(request) {
         }
 
         // 2. Get WEEK_LIMIT weeks of TMAT data ending at/before selected week
+        // Deduplication: keep only latest upload per piezometer per week
         const weekCondition = anchorStartDate
             ? `AND cw.start_date <= $2`
             : '';
         const weekParams = anchorStartDate ? [queryParams[0], anchorStartDate] : [queryParams[0]];
 
         const weeklyQ = `
+            WITH latest_pzo AS (
+                SELECT DISTINCT ON (p.pie_record_id, p.month_name)
+                    p.pie_record_id, p.est_code, p.company_code, p.month_name,
+                    p.ketinggian, p.block
+                FROM piezometer_data p
+                LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
+                LEFT JOIN calendar_weeks cw ON cw.formatted_name = p.month_name
+                WHERE p.ketinggian IS NOT NULL ${companyWhere} ${weekCondition}
+                AND (m.is_active IS NULL OR m.is_active = true)
+                ORDER BY p.pie_record_id, p.month_name, p.date_timestamp DESC
+            )
             SELECT 
-                p.month_name AS week,
-                COUNT(DISTINCT p.pie_record_id)::int AS total_pzo,
-                COUNT(DISTINCT COALESCE(m.block_id, p.block))::int AS total_block,
-                ROUND(AVG(p.ketinggian)::numeric, 1) AS avg_tmat,
-                COUNT(DISTINCT CASE WHEN p.ketinggian < 0 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_banjir,
-                COUNT(DISTINCT CASE WHEN p.ketinggian BETWEEN 0 AND 40 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_tergenang,
-                COUNT(DISTINCT CASE WHEN p.ketinggian BETWEEN 41 AND 45 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_a_tergenang,
-                COUNT(DISTINCT CASE WHEN p.ketinggian BETWEEN 46 AND 60 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_normal,
-                COUNT(DISTINCT CASE WHEN p.ketinggian BETWEEN 61 AND 65 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_a_kering,
-                COUNT(DISTINCT CASE WHEN p.ketinggian > 65 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_kering,
+                lp.month_name AS week,
+                COUNT(DISTINCT lp.pie_record_id)::int AS total_pzo,
+                COUNT(DISTINCT COALESCE(m.block_id, lp.block))::int AS total_block,
+                ROUND(AVG(lp.ketinggian)::numeric, 1) AS avg_tmat,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian < 0 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_banjir,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian BETWEEN 0 AND 40 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_tergenang,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian BETWEEN 41 AND 45 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_a_tergenang,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian BETWEEN 46 AND 60 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_normal,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian BETWEEN 61 AND 65 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_a_kering,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian > 65 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_kering,
                 MIN(cw.start_date)::text AS week_start,
                 MAX(cw.end_date)::text AS week_end
-            FROM piezometer_data p
-            LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
-            LEFT JOIN calendar_weeks cw ON cw.formatted_name = p.month_name
-            WHERE p.ketinggian IS NOT NULL ${companyWhere} ${weekCondition}
-            AND (m.is_active IS NULL OR m.is_active = true)
-            GROUP BY p.month_name
+            FROM latest_pzo lp
+            LEFT JOIN pzo_master_mapping m ON lp.pie_record_id = m.pie_record_id
+            LEFT JOIN calendar_weeks cw ON cw.formatted_name = lp.month_name
+            GROUP BY lp.month_name
             ORDER BY MIN(cw.start_date) DESC NULLS LAST
             LIMIT ${WEEK_LIMIT}
         `;
@@ -75,25 +85,33 @@ export async function GET(request) {
         const currentWeek = weeklyData.length > 0 ? weeklyData[weeklyData.length - 1] : null;
         const prevWeek = weeklyData.length > 1 ? weeklyData[weeklyData.length - 2] : null;
 
-        // 3. Estate breakdown for anchor week
+        // 3. Estate breakdown for anchor week (deduplicated)
         const selectedWeekName = currentWeek?.week || null;
         let estateBreakdown = [];
         if (selectedWeekName) {
             const estateWhere = companyFilter !== 'Semua' ? 'AND p.company_code = $1' : 'AND p.company_code = ANY($1)';
             const estateRes = await pool.query(`
+                WITH latest_pzo AS (
+                    SELECT DISTINCT ON (p.pie_record_id)
+                        p.pie_record_id, p.est_code, p.company_code,
+                        p.ketinggian, p.block
+                    FROM piezometer_data p
+                    LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
+                    WHERE p.month_name = $2
+                    ${estateWhere}
+                    AND (m.is_active IS NULL OR m.is_active = true)
+                    ORDER BY p.pie_record_id, p.date_timestamp DESC
+                )
                 SELECT 
-                    p.est_code AS estate, p.company_code AS company,
-                    COUNT(DISTINCT p.pie_record_id)::int AS total_pzo,
-                    COUNT(DISTINCT COALESCE(m.block_id, p.block))::int AS total_block,
-                    COUNT(DISTINCT CASE WHEN p.ketinggian > 65 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_kering,
-                    COUNT(DISTINCT CASE WHEN p.ketinggian <= 45 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_basah,
-                    ROUND(AVG(p.ketinggian)::numeric, 1) AS avg_tmat
-                FROM piezometer_data p
-                LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
-                WHERE p.month_name = $2
-                ${estateWhere}
-                AND (m.is_active IS NULL OR m.is_active = true)
-                GROUP BY p.est_code, p.company_code
+                    lp.est_code AS estate, lp.company_code AS company,
+                    COUNT(DISTINCT lp.pie_record_id)::int AS total_pzo,
+                    COUNT(DISTINCT COALESCE(m.block_id, lp.block))::int AS total_block,
+                    COUNT(DISTINCT CASE WHEN lp.ketinggian > 65 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_kering,
+                    COUNT(DISTINCT CASE WHEN lp.ketinggian <= 45 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_basah,
+                    ROUND(AVG(lp.ketinggian)::numeric, 1) AS avg_tmat
+                FROM latest_pzo lp
+                LEFT JOIN pzo_master_mapping m ON lp.pie_record_id = m.pie_record_id
+                GROUP BY lp.est_code, lp.company_code
                 ORDER BY cnt_kering DESC
                 LIMIT 10
             `, [queryParams[0], selectedWeekName]);

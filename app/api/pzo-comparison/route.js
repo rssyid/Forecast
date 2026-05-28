@@ -58,24 +58,31 @@ export async function GET(request) {
         const selectedWeekMeta = availableWeeks.find(w => w.formatted_name === selectedWeek);
         const prevWeekMeta = prevWeekName ? availableWeeks.find(w => w.formatted_name === prevWeekName) : null;
 
-        // 3. TMAT class distribution per company for selected week AND previous week
+        // 3. TMAT class distribution per company (deduplicated: latest record per piezometer per week)
         const targetWeeks = prevWeekName ? [selectedWeek, prevWeekName] : [selectedWeek];
         
         const pzoRes = await pool.query(`
+            WITH latest_pzo AS (
+                SELECT DISTINCT ON (p.pie_record_id, p.month_name)
+                    p.pie_record_id, p.company_code, p.month_name,
+                    p.ketinggian, p.block
+                FROM piezometer_data p
+                WHERE p.month_name = ANY($1) AND p.company_code = ANY($2)
+                AND p.ketinggian IS NOT NULL
+                ORDER BY p.pie_record_id, p.month_name, p.date_timestamp DESC
+            )
             SELECT 
-                p.company_code,
-                p.month_name AS week,
-                COUNT(DISTINCT COALESCE(m.block_id, p.block))::int AS total,
-                COUNT(DISTINCT CASE WHEN p.ketinggian < 0 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_banjir,
-                COUNT(DISTINCT CASE WHEN p.ketinggian >= 0 AND p.ketinggian <= 40 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_tergenang,
-                COUNT(DISTINCT CASE WHEN p.ketinggian > 60 AND p.ketinggian <= 65 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_a_kering,
-                COUNT(DISTINCT CASE WHEN p.ketinggian > 65 THEN COALESCE(m.block_id, p.block) END)::int AS cnt_kering
-            FROM piezometer_data p
-            LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
-            WHERE p.month_name = ANY($1) AND p.company_code = ANY($2)
-            AND p.ketinggian IS NOT NULL
-            AND (m.is_active IS NULL OR m.is_active = true)
-            GROUP BY p.company_code, p.month_name
+                lp.company_code,
+                lp.month_name AS week,
+                COUNT(DISTINCT COALESCE(m.block_id, lp.block))::int AS total,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian < 0 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_banjir,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian >= 0 AND lp.ketinggian <= 40 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_tergenang,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian > 60 AND lp.ketinggian <= 65 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_a_kering,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian > 65 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_kering
+            FROM latest_pzo lp
+            LEFT JOIN pzo_master_mapping m ON lp.pie_record_id = m.pie_record_id
+            WHERE (m.is_active IS NULL OR m.is_active = true)
+            GROUP BY lp.company_code, lp.month_name
         `, [targetWeeks, companyCodes]);
 
         // 4. Rainfall per company: Sum of (Daily Average across all estates)

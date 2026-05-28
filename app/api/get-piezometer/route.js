@@ -26,9 +26,10 @@ export async function GET(request) {
 
     const targetWeeks = weeksResult.rows.map(r => r.month_name);
 
-    // 1. Fetch Piezometer Data with Master Mapping (to handle multi-block and active status)
+    // 1. Fetch Piezometer Data (deduplicated: latest record per piezometer per week)
     let dataQuery = `
-      SELECT p.data_taken, p.est_code, 
+      SELECT DISTINCT ON (p.pie_record_id, p.month_name)
+             p.data_taken, p.est_code, 
              COALESCE(m.block_id, p.block) as block, 
              p.pie_record_id, p.ketinggian, 
              p.indicator_name, p.indicator_alias, p.month_name, p.date_timestamp, 
@@ -43,6 +44,8 @@ export async function GET(request) {
        dataQuery += ` AND p.company_code = $2`;
        params.push(companyCode);
     }
+    // DISTINCT ON requires ORDER BY matching the DISTINCT ON columns first, then the tiebreaker
+    dataQuery += ` ORDER BY p.pie_record_id, p.month_name, p.date_timestamp DESC`;
     const dataResult = await pool.query(dataQuery, params);
 
     // 2. Fetch Total Weekly Rainfall (Sum of Daily Company Averages)

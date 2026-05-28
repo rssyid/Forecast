@@ -46,23 +46,32 @@ export async function GET(request) {
         const currentEnd = anchorRes.rows[0].end_date;
 
         // 3. Aggregate TMAT data for both weeks per company
+        // Deduplication: if the same pie_record_id was uploaded >1x in the same week,
+        // we use DISTINCT ON to keep only the LATEST record (by date_timestamp).
         const tmatStatsQ = `
+            WITH latest_pzo AS (
+                SELECT DISTINCT ON (p.pie_record_id, p.month_name)
+                    p.pie_record_id, p.company_code, p.month_name,
+                    p.ketinggian, p.block, p.date_timestamp
+                FROM piezometer_data p
+                WHERE p.month_name IN ($1, $2)
+                  AND p.company_code = ANY($3)
+                ORDER BY p.pie_record_id, p.month_name, p.date_timestamp DESC
+            )
             SELECT 
-                p.company_code,
-                p.month_name AS week,
-                COUNT(DISTINCT COALESCE(m.block_id, p.block)) FILTER (WHERE p.ketinggian < 0)::int AS cnt_banjir,
-                COUNT(DISTINCT COALESCE(m.block_id, p.block)) FILTER (WHERE p.ketinggian BETWEEN 0 AND 40)::int AS cnt_tergenang,
-                COUNT(DISTINCT COALESCE(m.block_id, p.block)) FILTER (WHERE p.ketinggian BETWEEN 41 AND 45)::int AS cnt_a_tergenang,
-                COUNT(DISTINCT COALESCE(m.block_id, p.block)) FILTER (WHERE p.ketinggian BETWEEN 46 AND 60)::int AS cnt_normal,
-                COUNT(DISTINCT COALESCE(m.block_id, p.block)) FILTER (WHERE p.ketinggian BETWEEN 61 AND 65)::int AS cnt_a_kering,
-                COUNT(DISTINCT COALESCE(m.block_id, p.block)) FILTER (WHERE p.ketinggian > 65)::int AS cnt_kering,
-                COUNT(DISTINCT COALESCE(m.block_id, p.block))::int AS total_blocks
-            FROM piezometer_data p
-            LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
-            WHERE p.month_name IN ($1, $2)
-            AND p.company_code = ANY($3)
-            AND (m.is_active IS NULL OR m.is_active = true)
-            GROUP BY p.company_code, p.month_name
+                lp.company_code,
+                lp.month_name AS week,
+                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian < 0)::int AS cnt_banjir,
+                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian BETWEEN 0 AND 40)::int AS cnt_tergenang,
+                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian BETWEEN 41 AND 45)::int AS cnt_a_tergenang,
+                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian BETWEEN 46 AND 60)::int AS cnt_normal,
+                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian BETWEEN 61 AND 65)::int AS cnt_a_kering,
+                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian > 65)::int AS cnt_kering,
+                COUNT(DISTINCT COALESCE(m.block_id, lp.block))::int AS total_blocks
+            FROM latest_pzo lp
+            LEFT JOIN pzo_master_mapping m ON lp.pie_record_id = m.pie_record_id
+            WHERE (m.is_active IS NULL OR m.is_active = true)
+            GROUP BY lp.company_code, lp.month_name
         `;
         const tmatRes = await pool.query(tmatStatsQ, [weekFilter, prevWeekName, companyCodes]);
 
