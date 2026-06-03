@@ -409,7 +409,7 @@ export default function OverviewClient() {
                             <td className="px-5 py-3 font-medium text-slate-900">{r.estate}</td>
                             <td className="px-5 py-3 font-semibold text-slate-700">{r.avg_tmat} cm</td>
                             <td className="px-5 py-3 text-right text-red-600 font-medium">{r.cnt_kering}</td>
-                            <td className="px-5 py-3 text-right text-blue-600 font-medium">{r.cnt_basah}</td>
+                            <td className="px-5 py-3 text-right text-blue-600 font-medium">{r.cnt_banjir}</td>
                           </tr>
                         ))}
                       </tbody>
