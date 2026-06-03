@@ -113,7 +113,6 @@ export async function GET(request) {
                 LEFT JOIN pzo_master_mapping m ON lp.pie_record_id = m.pie_record_id
                 GROUP BY lp.est_code, lp.company_code
                 ORDER BY cnt_kering DESC
-                LIMIT 10
             `, [queryParams[0], selectedWeekName]);
             estateBreakdown = estateRes.rows;
         }
@@ -138,7 +137,6 @@ export async function GET(request) {
                 WHERE r.record_date BETWEEN $2 AND $3 ${rainWhere}
                 GROUP BY r.est_code, r.company_code
                 ORDER BY total_mm DESC
-                LIMIT 10
             `, [queryParams[0], rainStart, rainEnd]);
             rainfallData = rainRes.rows;
         }
@@ -155,7 +153,6 @@ export async function GET(request) {
             ${lastRainWhere} AND r.rainfall_mm > 0 
             GROUP BY r.est_code, r.company_code
             ORDER BY days_since_rain DESC
-            LIMIT 10
         `, [queryParams[0]]);
         lastRainData = lastRainRes.rows;
 

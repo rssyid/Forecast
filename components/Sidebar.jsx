@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CalendarDays, BarChart2, Settings, ChevronLeft, ChevronDown, ChevronRight, Waves } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, BarChart2, Settings, ChevronLeft, ChevronDown, ChevronRight, Waves, Activity } from 'lucide-react';
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   const pathname = usePathname();
   const [openSub, setOpenSub] = useState('piezometer');
 
   const menuItems = [
+    { href: '/overview', icon: <Activity size={18} />, label: 'Command Center' },
     { href: '/', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
     { href: '/forecast', icon: <BarChart2 size={18} />, label: 'Forecast & AI' },
     { 
