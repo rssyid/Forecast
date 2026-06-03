@@ -76,8 +76,10 @@ export async function GET(request) {
                 lp.month_name AS week,
                 COUNT(DISTINCT COALESCE(m.block_id, lp.block))::int AS total,
                 COUNT(DISTINCT CASE WHEN lp.ketinggian < 0 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_banjir,
-                COUNT(DISTINCT CASE WHEN lp.ketinggian >= 0 AND lp.ketinggian <= 40 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_tergenang,
-                COUNT(DISTINCT CASE WHEN lp.ketinggian > 60 AND lp.ketinggian <= 65 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_a_kering,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian BETWEEN 0 AND 40 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_tergenang,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian BETWEEN 41 AND 45 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_a_tergenang,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian BETWEEN 46 AND 60 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_normal,
+                COUNT(DISTINCT CASE WHEN lp.ketinggian BETWEEN 61 AND 65 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_a_kering,
                 COUNT(DISTINCT CASE WHEN lp.ketinggian > 65 THEN COALESCE(m.block_id, lp.block) END)::int AS cnt_kering
             FROM latest_pzo lp
             LEFT JOIN pzo_master_mapping m ON lp.pie_record_id = m.pie_record_id

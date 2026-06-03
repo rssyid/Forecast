@@ -88,15 +88,22 @@ export default function OverviewClient() {
   // Rainfall Logic
   const currentRain = data?.rainfallData?.reduce((sum, e) => sum + (parseFloat(e.total_mm) || 0), 0) || 0;
   
-  // Status Distribution
+  // Status Distribution (Exact 6 Categories)
   const totalBlocks = currentWeek?.total_block || 0;
-  const pKering = totalBlocks ? Math.round(((currentWeek?.cnt_kering || 0) + (currentWeek?.cnt_a_kering || 0)) / totalBlocks * 100) : 0;
-  const pBanjir = totalBlocks ? Math.round(((currentWeek?.cnt_banjir || 0) + (currentWeek?.cnt_tergenang || 0) + (currentWeek?.cnt_a_tergenang || 0)) / totalBlocks * 100) : 0;
+  const pBanjir = totalBlocks ? Math.round((currentWeek?.cnt_banjir || 0) / totalBlocks * 100) : 0;
+  const pTergenang = totalBlocks ? Math.round((currentWeek?.cnt_tergenang || 0) / totalBlocks * 100) : 0;
+  const pATergenang = totalBlocks ? Math.round((currentWeek?.cnt_a_tergenang || 0) / totalBlocks * 100) : 0;
   const pNormal = totalBlocks ? Math.round((currentWeek?.cnt_normal || 0) / totalBlocks * 100) : 0;
+  const pAKering = totalBlocks ? Math.round((currentWeek?.cnt_a_kering || 0) / totalBlocks * 100) : 0;
+  const pKering = totalBlocks ? Math.round((currentWeek?.cnt_kering || 0) / totalBlocks * 100) : 0;
+  
+  // For dominant status, we can group them logically or find the actual max
+  const groupKering = pKering + pAKering;
+  const groupBasah = pBanjir + pTergenang + pATergenang;
   
   let dominantStatus = 'Normal';
-  if (pKering > pBanjir && pKering > pNormal) dominantStatus = 'Cenderung Kering';
-  else if (pBanjir > pKering && pBanjir > pNormal) dominantStatus = 'Cenderung Basah';
+  if (groupKering > groupBasah && groupKering > pNormal) dominantStatus = 'Cenderung Kering';
+  else if (groupBasah > groupKering && groupBasah > pNormal) dominantStatus = 'Cenderung Basah';
 
   // Forecast Logic
   let forecastDelta = 0;
@@ -167,10 +174,10 @@ export default function OverviewClient() {
   };
 
   const donutData = {
-    labels: ['Banjir & Tergenang', 'Normal', 'Kering & Agak Kering'],
+    labels: ['Banjir (<0)', 'Tergenang (0-40)', 'A Tergenang (41-45)', 'Normal (46-60)', 'A Kering (61-65)', 'Kering (>65)'],
     datasets: [{
-      data: [pBanjir, pNormal, pKering],
-      backgroundColor: ['#3b82f6', '#10b981', '#ef4444'],
+      data: [pBanjir, pTergenang, pATergenang, pNormal, pAKering, pKering],
+      backgroundColor: ['#000000', '#4170B0', '#1CB8E0', '#5A732A', '#FFFB00', '#FF0D0D'],
       borderWidth: 0,
       hoverOffset: 4
     }]
@@ -328,9 +335,12 @@ export default function OverviewClient() {
                      </div>
                   </div>
                   <div className="mt-6 flex flex-col gap-2 text-sm">
-                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>Banjir/Tergenang</div><span className="font-semibold">{pBanjir}%</span></div>
-                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full bg-emerald-500 mr-2"></span>Normal</div><span className="font-semibold">{pNormal}%</span></div>
-                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full bg-red-500 mr-2"></span>Kering/Agak Kering</div><span className="font-semibold">{pKering}%</span></div>
+                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: '#000000'}}></span>Banjir</div><span className="font-semibold">{pBanjir}%</span></div>
+                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: '#4170B0'}}></span>Tergenang</div><span className="font-semibold">{pTergenang}%</span></div>
+                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: '#1CB8E0'}}></span>A Tergenang</div><span className="font-semibold">{pATergenang}%</span></div>
+                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: '#5A732A'}}></span>Normal</div><span className="font-semibold">{pNormal}%</span></div>
+                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: '#FFFB00'}}></span>A Kering</div><span className="font-semibold">{pAKering}%</span></div>
+                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: '#FF0D0D'}}></span>Kering</div><span className="font-semibold">{pKering}%</span></div>
                   </div>
                 </div>
 
