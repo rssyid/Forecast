@@ -25,9 +25,9 @@ export default function OverviewClient() {
 
   useEffect(() => {
     // Fetch active companies for filter
-    fetch('/api/companies')
+    fetch('/api/companies?active=true')
       .then(r => r.json())
-      .then(d => setCompanies(d.data || []))
+      .then(d => setCompanies(d.companies || []))
       .catch(console.error);
   }, []);
 
@@ -199,7 +199,7 @@ export default function OverviewClient() {
                 onChange={(e) => setSelectedCompany(e.target.value)}
               >
                 <option value="Semua">Seluruh Company</option>
-                {companies.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                {companies.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
               </select>
             </div>
           </div>
