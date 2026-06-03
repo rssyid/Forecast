@@ -81,7 +81,7 @@ export default function OverviewClient() {
   const prevWeek = data?.prevWeek;
   
   // TMAT Arrow Logic: higher number = water level dropped = worse (red down arrow)
-  const tmatDiff = currentWeek && prevWeek ? (currentWeek.avg_tmat - prevWeek.avg_tmat).toFixed(1) : 0;
+  const tmatDiff = currentWeek && prevWeek ? (parseFloat(currentWeek.avg_tmat) - parseFloat(prevWeek.avg_tmat)).toFixed(1) : 0;
   const isTmatWorse = parseFloat(tmatDiff) > 0;
   const isTmatBetter = parseFloat(tmatDiff) < 0;
 
@@ -102,8 +102,8 @@ export default function OverviewClient() {
   let forecastDelta = 0;
   let forecastAvgTmat = 0;
   if (forecastData && currentWeek) {
-      forecastDelta = forecastData.fit?.a || 0;
-      forecastAvgTmat = currentWeek.avg_tmat + forecastDelta;
+      forecastDelta = parseFloat(forecastData.fit?.a || 0);
+      forecastAvgTmat = parseFloat(currentWeek.avg_tmat) + forecastDelta;
   }
 
   // --- Chart Configurations ---
