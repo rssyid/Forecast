@@ -67,7 +67,8 @@ export async function GET(request) {
                 COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian BETWEEN 46 AND 60)::int AS cnt_normal,
                 COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian BETWEEN 61 AND 65)::int AS cnt_a_kering,
                 COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian > 65)::int AS cnt_kering,
-                COUNT(DISTINCT COALESCE(m.block_id, lp.block))::int AS total_blocks
+                COUNT(DISTINCT COALESCE(m.block_id, lp.block))::int AS total_blocks,
+                ROUND(AVG(lp.ketinggian)::numeric, 1) AS avg_tmat
             FROM latest_pzo lp
             LEFT JOIN pzo_master_mapping m ON lp.pie_record_id = m.pie_record_id
             WHERE (m.is_active IS NULL OR m.is_active = true)
@@ -115,6 +116,7 @@ export async function GET(request) {
                 cnt_a_kering: currentTmat.cnt_a_kering,
                 cnt_kering: currentTmat.cnt_kering,
                 total_blocks: currentTmat.total_blocks,
+                avg_tmat: parseFloat(currentTmat.avg_tmat) || 0,
                 percentages: [
                     currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_banjir / currentTmat.total_blocks * 100) : 0,
                     currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_tergenang / currentTmat.total_blocks * 100) : 0,
@@ -134,6 +136,7 @@ export async function GET(request) {
                 cnt_a_kering: prevTmat.cnt_a_kering,
                 cnt_kering: prevTmat.cnt_kering,
                 total_blocks: prevTmat.total_blocks,
+                avg_tmat: parseFloat(prevTmat.avg_tmat) || 0,
                 percentages: [
                     prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_banjir / prevTmat.total_blocks * 100) : 0,
                     prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_tergenang / prevTmat.total_blocks * 100) : 0,
@@ -160,12 +163,23 @@ export async function GET(request) {
                 else dominantLabel = 'No Data';
             }
 
+            // TMAT average comparison: delta = prev - current
+            // Negative delta = water went deeper = drier = worse
+            const prevAvg = prevStats?.avg_tmat || 0;
+            const currAvg = currentStats?.avg_tmat || 0;
+            const tmatDelta = prevAvg && currAvg ? parseFloat((prevAvg - currAvg).toFixed(1)) : 0;
+
             return {
                 companyCode: comp.code,
                 companyName: comp.name,
                 currentWeek: currentStats,
                 prevWeek: prevStats,
                 dominantStatus: dominantLabel,
+                tmat: {
+                    prev: prevAvg,
+                    current: currAvg,
+                    delta: tmatDelta
+                },
                 rainfall: {
                     current: currentRain,
                     prev: prevRain,

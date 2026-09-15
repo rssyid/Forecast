@@ -13,7 +13,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
     const [copying, setCopying] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    const { companyName, currentWeek: current, prevWeek: prev, rainfall, dominantStatus } = item;
+    const { companyName, currentWeek: current, prevWeek: prev, rainfall, dominantStatus, tmat } = item;
 
     // Helper to get color for dominant status
     const getDominantColor = () => {
@@ -123,14 +123,36 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                 <div style={{ display: 'table', width: '100%', marginBottom: '24px' }}>
                     <div style={{ display: 'table-row' }}>
                         <div style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'left' }}>
-                            <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#000000', textTransform: 'uppercase', margin: 0, lineHeight: '1' }}>
-                                {companyName.replace('PT.', '')}
-                            </h1>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', flexWrap: 'wrap' }}>
+                                <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#000000', textTransform: 'uppercase', margin: 0, lineHeight: '1' }}>
+                                    {companyName.replace('PT.', '')}
+                                </h1>
+                                {tmat && tmat.delta !== 0 && (
+                                    <span style={{ 
+                                        fontSize: '36px', 
+                                        fontWeight: '900', 
+                                        color: tmat.delta < 0 ? '#EF4444' : '#178242',
+                                        lineHeight: '1',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                    }}>
+                                        {tmat.delta < 0 ? '▼' : '▲'} {tmat.delta > 0 ? '+' : ''}{tmat.delta}
+                                    </span>
+                                )}
+                            </div>
                             <div style={{ marginTop: '8px' }}>
                                 <span style={{ fontSize: '18px', color: '#b4b4b4', fontWeight: 'bold' }}>
                                     CH {prevWeek?.slice(-2)}: {Math.floor(rainfall.prev)}mm/{rainfall.prevHH}HH | {currentWeek?.slice(-2)}: {Math.floor(rainfall.current)}mm/{rainfall.currentHH}HH
                                 </span>
                             </div>
+                            {tmat && (tmat.prev > 0 || tmat.current > 0) && (
+                                <div style={{ marginTop: '4px' }}>
+                                    <span style={{ fontSize: '18px', color: '#b4b4b4', fontWeight: 'bold' }}>
+                                        TMAT {tmat.prev || '–'} → {tmat.current || '–'}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         <div style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'right', width: '160px' }}>
                             <div 
