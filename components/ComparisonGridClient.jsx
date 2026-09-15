@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { CalendarDays, RefreshCw, AlertCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { CalendarDays, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, CloudRain, Database } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 import CompanyComparisonCard from './CompanyComparisonCard';
 
@@ -12,6 +12,15 @@ export default function ComparisonGridClient() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [prevWeekName, setPrevWeekName] = useState('');
+    const [serverWeekId, setServerWeekId] = useState(null);
+
+    // Sync state
+    const [syncing, setSyncing] = useState(false);
+    const [syncProgress, setSyncProgress] = useState(0);
+    const [syncMessage, setSyncMessage] = useState('');
+    const [syncPhase, setSyncPhase] = useState(null); // 'rainfall' | 'gis' | null
+    const [syncStepDone, setSyncStepDone] = useState([]); // ['rainfall'] | ['rainfall','gis']
+    const esRef = useRef(null);
 
     // 1. Fetch weeks list
     useEffect(() => {
@@ -21,92 +30,194 @@ export default function ComparisonGridClient() {
                 if (json.weeks) {
                     const names = json.weeks.map(w => w.formatted_name);
                     setWeekList(names);
-                    // Default to latest week
                     if (names.length > 0) setWeek(names[0]);
                 }
             });
     }, []);
 
-    const [serverWeekId, setServerWeekId] = useState(null);
-    const [syncing, setSyncing] = useState(false);
-
     // 2. Fetch bulk data when week changes
-    const fetchBulkData = async (forceSync = false) => {
+    const fetchBulkData = async () => {
         if (!week) return;
         setLoading(true);
-        if (forceSync) setSyncing(true);
         setError(null);
         try {
-            const url = forceSync 
-                ? `/api/comparison-bulk?week=${encodeURIComponent(week)}&forceSync=true`
-                : `/api/comparison-bulk?week=${encodeURIComponent(week)}`;
-            const res = await fetch(url);
+            const res = await fetch(`/api/comparison-bulk?week=${encodeURIComponent(week)}`);
             const json = await res.json();
             if (!res.ok) throw new Error(json.error || 'Failed to fetch comparison data');
             setData(json.data);
-            setPrevWeekName(json.weeks.prev);
+            setPrevWeekName(json.weeks?.prev || '');
             if (json.currentWeekId) setServerWeekId(json.currentWeekId);
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
-            setSyncing(false);
         }
     };
 
     useEffect(() => {
-        if (week) fetchBulkData(false);
+        if (week) fetchBulkData();
     }, [week]);
 
-    // Calculate Week ID for display using an anchor point or server value
+    // 3. Handle Sync – uses SSE for live progress
+    const handleSync = () => {
+        if (syncing) return;
+        setSyncing(true);
+        setSyncProgress(0);
+        setSyncMessage('Memulai sinkronisasi…');
+        setSyncPhase('rainfall');
+        setSyncStepDone([]);
+        setError(null);
+
+        const url = `/api/sync-all?week=${encodeURIComponent(week)}`;
+        const es = new EventSource(url);
+        esRef.current = es;
+
+        es.onmessage = (e) => {
+            try {
+                const d = JSON.parse(e.data);
+
+                if (d.error) {
+                    setError(`Sync error: ${d.error}`);
+                    es.close();
+                    setSyncing(false);
+                    setSyncPhase(null);
+                    return;
+                }
+
+                setSyncProgress(d.progress ?? 0);
+                setSyncMessage(d.message || '');
+                if (d.phase) setSyncPhase(d.phase);
+
+                if (d.stepDone === 'rainfall') {
+                    setSyncStepDone(prev => [...prev, 'rainfall']);
+                }
+
+                if (d.completed) {
+                    setSyncStepDone(['rainfall', 'gis']);
+                    es.close();
+                    // Refresh data after sync
+                    setTimeout(() => {
+                        setSyncing(false);
+                        setSyncPhase(null);
+                        setSyncProgress(0);
+                        setSyncMessage('');
+                        setSyncStepDone([]);
+                        fetchBulkData();
+                    }, 1500);
+                }
+            } catch (_) {}
+        };
+
+        es.onerror = () => {
+            es.close();
+            setSyncing(false);
+            setSyncPhase(null);
+            if (syncProgress < 100) setError('Koneksi SSE terputus. Coba lagi.');
+        };
+    };
+
+    // Cleanup EventSource on unmount
+    useEffect(() => {
+        return () => { if (esRef.current) esRef.current.close(); };
+    }, []);
+
+    // Computed week ID
     const anchorWeek = 'Apr 2026, W4';
     const anchorId = 503;
     const anchorIdx = weekList.indexOf(anchorWeek);
     const currentIdx = weekList.indexOf(week);
-    
-    const computedWeekId = (anchorIdx !== -1 && currentIdx !== -1) 
-        ? anchorId + (anchorIdx - currentIdx) 
-        : null;
+    const computedWeekId = (anchorIdx !== -1 && currentIdx !== -1)
+        ? anchorId + (anchorIdx - currentIdx) : null;
     const weekId = serverWeekId || computedWeekId;
 
     return (
         <div className="max-w-[900px] mx-auto space-y-12 animate-in fade-in duration-1000 pb-20">
             {/* Header Section */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white p-8 rounded-[42px] border border-gray-100 shadow-sm">
-                <div className="space-y-1">
-                    <h1 className="text-4xl font-black text-gray-900 tracking-[-0.04em] flex items-center gap-3">
-                        <TrendingUp className="text-blue-600" size={36} />
-                        Executive Dashboard
-                    </h1>
-                    <p className="text-gray-400 font-medium pl-1 text-lg">
-                        {week} <span className="text-blue-500 font-black ml-2">ID: {weekId || '---'}</span>
-                    </p>
+            <header className="flex flex-col gap-6 bg-white p-8 rounded-[42px] border border-gray-100 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="space-y-1">
+                        <h1 className="text-4xl font-black text-gray-900 tracking-[-0.04em] flex items-center gap-3">
+                            <TrendingUp className="text-blue-600" size={36} />
+                            Executive Dashboard
+                        </h1>
+                        <p className="text-gray-400 font-medium pl-1 text-lg">
+                            {week} <span className="text-blue-500 font-black ml-2">ID: {weekId || '---'}</span>
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="w-72">
+                            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2 mb-2 block">
+                                Pilih Periode Analisis
+                            </label>
+                            <SearchableSelect
+                                options={weekList}
+                                value={week}
+                                onChange={setWeek}
+                                placeholder="Pilih Minggu"
+                                icon={<CalendarDays size={16} />}
+                                autoSort={false}
+                            />
+                        </div>
+                        <button
+                            onClick={handleSync}
+                            disabled={syncing || loading}
+                            className="flex items-center gap-2 px-5 py-4 mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-2xl transition-all shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer"
+                            title="Sinkronisasi curah hujan dan data GIS dari server"
+                        >
+                            <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
+                            <span>{syncing ? 'Syncing…' : 'Sync Data'}</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="w-72">
-                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2 mb-2 block">
-                            Pilih Periode Analisis
-                        </label>
-                        <SearchableSelect 
-                            options={weekList}
-                            value={week}
-                            onChange={setWeek}
-                            placeholder="Pilih Minggu"
-                            icon={<CalendarDays size={16} />}
-                            autoSort={false}
-                        />
+                {/* ── Progress Panel ── shown only while syncing */}
+                {syncing && (
+                    <div className="w-full space-y-3 pt-2">
+                        {/* Step indicators */}
+                        <div className="flex items-center gap-6">
+                            {/* Step 1: Rainfall */}
+                            <div className={`flex items-center gap-2 text-sm font-bold transition-colors ${
+                                syncStepDone.includes('rainfall') ? 'text-emerald-600'
+                                : syncPhase === 'rainfall' ? 'text-blue-600'
+                                : 'text-gray-300'
+                            }`}>
+                                {syncStepDone.includes('rainfall')
+                                    ? <CheckCircle2 size={16} />
+                                    : <CloudRain size={16} className={syncPhase === 'rainfall' ? 'animate-pulse' : ''} />}
+                                Curah Hujan
+                            </div>
+                            <div className="text-gray-200 font-black">→</div>
+                            {/* Step 2: GIS */}
+                            <div className={`flex items-center gap-2 text-sm font-bold transition-colors ${
+                                syncStepDone.includes('gis') ? 'text-emerald-600'
+                                : syncPhase === 'gis' ? 'text-blue-600'
+                                : 'text-gray-300'
+                            }`}>
+                                {syncStepDone.includes('gis')
+                                    ? <CheckCircle2 size={16} />
+                                    : <Database size={16} className={syncPhase === 'gis' ? 'animate-pulse' : ''} />}
+                                Data GIS
+                            </div>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                            <div
+                                className="h-2.5 rounded-full transition-all duration-300"
+                                style={{
+                                    width: `${syncProgress}%`,
+                                    backgroundColor: syncProgress === 100 ? '#16a34a' : '#2563eb'
+                                }}
+                            />
+                        </div>
+
+                        {/* Progress text */}
+                        <p className="text-xs text-gray-500 font-medium truncate">
+                            {syncProgress}% — {syncMessage}
+                        </p>
                     </div>
-                    <button 
-                        onClick={() => fetchBulkData(true)}
-                        disabled={loading || syncing}
-                        className="flex items-center gap-2 px-5 py-4 mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-2xl transition-all shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer"
-                        title="Sinkronisasi data langsung dari server GIS-DIV"
-                    >
-                        <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
-                        <span>{syncing ? 'Syncing...' : 'Sync GIS'}</span>
-                    </button>
-                </div>
+                )}
             </header>
 
             {error && (
@@ -116,17 +227,16 @@ export default function ComparisonGridClient() {
                 </div>
             )}
 
-            {/* Single Column Grid for the new larger cards */}
+            {/* Cards */}
             <div className="flex flex-col gap-12">
                 {loading ? (
-                    // Skeleton Loaders
                     Array.from({ length: 3 }).map((_, i) => (
                         <div key={i} className="h-[600px] bg-white rounded-[42px] border border-gray-100 animate-pulse shadow-sm" />
                     ))
                 ) : data && data.map((item) => (
-                    <CompanyComparisonCard 
-                        key={item.companyCode} 
-                        item={item} 
+                    <CompanyComparisonCard
+                        key={item.companyCode}
+                        item={item}
                         currentWeek={week}
                         prevWeek={prevWeekName}
                     />
@@ -136,7 +246,7 @@ export default function ComparisonGridClient() {
             {!loading && data?.length === 0 && (
                 <div className="py-20 text-center space-y-4">
                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
-                        <Minus size={40} />
+                        <Database size={40} />
                     </div>
                     <p className="text-gray-500 font-bold text-xl">Tidak ada data untuk periode ini.</p>
                 </div>
@@ -144,3 +254,4 @@ export default function ComparisonGridClient() {
         </div>
     );
 }
+
