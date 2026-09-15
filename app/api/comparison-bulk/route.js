@@ -1,10 +1,12 @@
 import pg from 'pg';
 const { Pool } = pg;
-import { NextResponse } from 'next/server';
+
+import { syncGisComparisonForWeek } from '../../../lib/gisService.js';
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const weekFilter = searchParams.get('week') || null;
+    const forceSync = searchParams.get('forceSync') === 'true' || searchParams.get('sync') === 'true';
 
     const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
@@ -19,23 +21,27 @@ export async function GET(request) {
 
         // 2. Determine target weeks (Current & Previous)
         if (!weekFilter) {
-            return NextResponse.json({ error: 'Week parameter is required' }, { status: 400 });
+            return Response.json({ error: 'Week parameter is required' }, { status: 400 });
         }
 
         const anchorRes = await pool.query(
-            `SELECT start_date, end_date FROM calendar_weeks WHERE formatted_name = $1 LIMIT 1`,
+            `SELECT id, gis_week_id, formatted_name, start_date, end_date 
+             FROM calendar_weeks WHERE formatted_name = $1 LIMIT 1`,
             [weekFilter]
         );
         
         if (anchorRes.rows.length === 0) {
-            return NextResponse.json({ error: 'Invalid week name' }, { status: 400 });
+            return Response.json({ error: 'Invalid week name' }, { status: 400 });
         }
 
         const currentStart = anchorRes.rows[0].start_date;
+        const currentEnd = anchorRes.rows[0].end_date;
+        const currentWeekId = anchorRes.rows[0].gis_week_id || (anchorRes.rows[0].id + 434);
         
         // Get the week immediately before currentStart
         const prevWeekRes = await pool.query(
-            `SELECT formatted_name, start_date, end_date FROM calendar_weeks 
+            `SELECT id, gis_week_id, formatted_name, start_date, end_date 
+             FROM calendar_weeks 
              WHERE start_date < $1 ORDER BY start_date DESC LIMIT 1`,
             [currentStart]
         );
@@ -43,43 +49,38 @@ export async function GET(request) {
         const prevWeekName = prevWeekRes.rows[0]?.formatted_name || null;
         const prevStart = prevWeekRes.rows[0]?.start_date || null;
         const prevEnd = prevWeekRes.rows[0]?.end_date || null;
-        const currentEnd = anchorRes.rows[0].end_date;
+        const prevWeekId = prevWeekRes.rows[0] ? (prevWeekRes.rows[0].gis_week_id || (prevWeekRes.rows[0].id + 434)) : null;
 
-        // 3. Aggregate TMAT data for both weeks per company
-        // Deduplication: if the same pie_record_id was uploaded >1x in the same week,
-        // we use DISTINCT ON to keep only the LATEST record (by date_timestamp).
-        const tmatStatsQ = `
-            WITH latest_pzo AS (
-                SELECT DISTINCT ON (p.pie_record_id, p.month_name)
-                    p.pie_record_id, p.company_code, p.month_name,
-                    p.ketinggian, p.block, p.date_timestamp
-                FROM piezometer_data p
-                WHERE p.month_name IN ($1, $2)
-                  AND p.company_code = ANY($3)
-                  AND p.ketinggian IS NOT NULL
-                  AND p.ketinggian <> 999
-                ORDER BY p.pie_record_id, p.month_name, p.date_timestamp DESC
-            )
-            SELECT 
-                lp.company_code,
-                lp.month_name AS week,
-                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian < 0)::int AS cnt_banjir,
-                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian BETWEEN 0 AND 40)::int AS cnt_tergenang,
-                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian BETWEEN 41 AND 45)::int AS cnt_a_tergenang,
-                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian BETWEEN 46 AND 60)::int AS cnt_normal,
-                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian BETWEEN 61 AND 65)::int AS cnt_a_kering,
-                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) FILTER (WHERE lp.ketinggian > 65)::int AS cnt_kering,
-                COUNT(DISTINCT COALESCE(m.block_id, lp.block))::int AS total_blocks,
-                ROUND(AVG(lp.ketinggian)::numeric, 1) AS avg_tmat
-            FROM latest_pzo lp
-            LEFT JOIN pzo_master_mapping m ON lp.pie_record_id = m.pie_record_id
-            WHERE (m.is_active IS NULL OR m.is_active = true)
-            GROUP BY lp.company_code, lp.month_name
-        `;
-        const tmatRes = await pool.query(tmatStatsQ, [weekFilter, prevWeekName, companyCodes]);
+        // 3. Check if GIS comparison data exists in database
+        const existingCountRes = await pool.query(
+            `SELECT COUNT(DISTINCT company_code)::int AS cnt 
+             FROM gis_comparison_data 
+             WHERE week_id = $1 AND company_code = ANY($2)`,
+            [currentWeekId, companyCodes]
+        );
+        const existingCount = existingCountRes.rows[0]?.cnt || 0;
 
-        // 4. Aggregate Rainfall data for both weeks per company
-        // 4. Aggregate Rainfall data: Sum of Daily Averages per Company
+        // If data is missing or user requested forceSync, sync directly from GIS-DIV API
+        if (forceSync || existingCount < companyCodes.length) {
+            console.log(`[comparison-bulk] Syncing week ${currentWeekId} (${weekFilter}) from GIS API...`);
+            try {
+                await syncGisComparisonForWeek(currentWeekId, companies);
+            } catch (syncErr) {
+                console.warn('[comparison-bulk] GIS API sync error (continuing with existing data):', syncErr.message);
+            }
+        }
+
+        // 4. Fetch TMAT comparison data from gis_comparison_data
+        const targetWeekIds = [currentWeekId];
+        if (prevWeekId) targetWeekIds.push(prevWeekId);
+
+        const gisDataRes = await pool.query(
+            `SELECT * FROM gis_comparison_data 
+             WHERE week_id = ANY($1) AND company_code = ANY($2)`,
+            [targetWeekIds, companyCodes]
+        );
+
+        // 5. Aggregate Rainfall data: Sum of Daily Averages per Company (from daily_rainfall table)
         const rainStatsQ = `
             WITH daily_co_avg AS (
                 SELECT 
@@ -104,72 +105,58 @@ export async function GET(request) {
         `;
         const rainRes = await pool.query(rainStatsQ, [currentStart, currentEnd, prevStart, prevEnd, companyCodes]);
 
-        // 5. Structure the data for Option B (Grid View)
+        // 6. Structure response for CompanyComparisonCard
         const result = companies.map(comp => {
-            const currentTmat = tmatRes.rows.find(r => r.company_code === comp.code && r.week === weekFilter) || null;
-            const prevTmat = tmatRes.rows.find(r => r.company_code === comp.code && r.week === prevWeekName) || null;
+            const currentGis = gisDataRes.rows.find(r => r.company_code === comp.code && r.week_id === currentWeekId) || null;
+            const prevGis = gisDataRes.rows.find(r => r.company_code === comp.code && r.week_id === prevWeekId) || null;
 
-            // Calculate percentages for Current Week
-            const currentStats = currentTmat ? {
-                cnt_banjir: currentTmat.cnt_banjir,
-                cnt_tergenang: currentTmat.cnt_tergenang,
-                cnt_a_tergenang: currentTmat.cnt_a_tergenang,
-                cnt_normal: currentTmat.cnt_normal,
-                cnt_a_kering: currentTmat.cnt_a_kering,
-                cnt_kering: currentTmat.cnt_kering,
-                total_blocks: currentTmat.total_blocks,
-                avg_tmat: parseFloat(currentTmat.avg_tmat) || 0,
-                percentages: [
-                    currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_banjir / currentTmat.total_blocks * 100) : 0,
-                    currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_tergenang / currentTmat.total_blocks * 100) : 0,
-                    currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_a_tergenang / currentTmat.total_blocks * 100) : 0,
-                    currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_normal / currentTmat.total_blocks * 100) : 0,
-                    currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_a_kering / currentTmat.total_blocks * 100) : 0,
-                    currentTmat.total_blocks > 0 ? Math.round(currentTmat.cnt_kering / currentTmat.total_blocks * 100) : 0
-                ]
+            // Structure Current Week Stats
+            const currentStats = currentGis ? {
+                cnt_banjir: currentGis.cnt_banjir,
+                cnt_tergenang: currentGis.cnt_tergenang,
+                cnt_a_tergenang: currentGis.cnt_a_tergenang,
+                cnt_normal: currentGis.cnt_normal,
+                cnt_a_kering: currentGis.cnt_a_kering,
+                cnt_kering: currentGis.cnt_kering,
+                total_blocks: currentGis.cnt_total || currentGis.total_piezo,
+                avg_tmat: currentGis.avg_tmat != null ? parseFloat(currentGis.avg_tmat) : 0,
+                percentages: currentGis.percentages || [0, 0, 0, 0, 0, 0]
             } : null;
 
-            // Calculate percentages for Previous Week
-            const prevStats = prevTmat ? {
-                cnt_banjir: prevTmat.cnt_banjir,
-                cnt_tergenang: prevTmat.cnt_tergenang,
-                cnt_a_tergenang: prevTmat.cnt_a_tergenang,
-                cnt_normal: prevTmat.cnt_normal,
-                cnt_a_kering: prevTmat.cnt_a_kering,
-                cnt_kering: prevTmat.cnt_kering,
-                total_blocks: prevTmat.total_blocks,
-                avg_tmat: parseFloat(prevTmat.avg_tmat) || 0,
-                percentages: [
-                    prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_banjir / prevTmat.total_blocks * 100) : 0,
-                    prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_tergenang / prevTmat.total_blocks * 100) : 0,
-                    prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_a_tergenang / prevTmat.total_blocks * 100) : 0,
-                    prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_normal / prevTmat.total_blocks * 100) : 0,
-                    prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_a_kering / prevTmat.total_blocks * 100) : 0,
-                    prevTmat.total_blocks > 0 ? Math.round(prevTmat.cnt_kering / prevTmat.total_blocks * 100) : 0
-                ]
+            // Structure Previous Week Stats
+            const prevStats = prevGis ? {
+                cnt_banjir: prevGis.cnt_banjir,
+                cnt_tergenang: prevGis.cnt_tergenang,
+                cnt_a_tergenang: prevGis.cnt_a_tergenang,
+                cnt_normal: prevGis.cnt_normal,
+                cnt_a_kering: prevGis.cnt_a_kering,
+                cnt_kering: prevGis.cnt_kering,
+                total_blocks: prevGis.cnt_total || prevGis.total_piezo,
+                avg_tmat: prevGis.avg_tmat != null ? parseFloat(prevGis.avg_tmat) : 0,
+                percentages: prevGis.percentages || [0, 0, 0, 0, 0, 0]
             } : null;
 
+            // Rainfall info
             const currentRainObj = rainRes.rows.find(r => r.company_code === comp.code && r.period === 'current');
             const prevRainObj = rainRes.rows.find(r => r.company_code === comp.code && r.period === 'prev');
 
             const currentRain = currentRainObj?.total_ch || 0;
             const prevRain = prevRainObj?.total_ch || 0;
 
-            // Get dominant status for current week
-            const labels = ['Banjir', 'Tergenang', 'A Tergenang', 'Normal', 'A Kering', 'Kering'];
-            let dominantLabel = 'Unknown';
-            if (currentStats && currentStats.percentages) {
-                const maxPct = Math.max(...currentStats.percentages);
-                const maxIdx = currentStats.percentages.indexOf(maxPct);
-                if (maxPct > 0) dominantLabel = labels[maxIdx];
-                else dominantLabel = 'No Data';
-            }
+            // Dominant status from GIS
+            // Note: 'No Data' is a truthy string, so we must explicitly check for it before falling back
+            const dominantLabel =
+                (currentGis?.dominant_status && currentGis.dominant_status !== 'No Data')
+                    ? currentGis.dominant_status
+                    : (prevGis?.dominant_status && prevGis.dominant_status !== 'No Data')
+                        ? prevGis.dominant_status
+                        : 'No Data';
 
             // TMAT average comparison: delta = prev - current
             // Negative delta = water went deeper = drier = worse
             const prevAvg = prevStats?.avg_tmat || 0;
             const currAvg = currentStats?.avg_tmat || 0;
-            const tmatDelta = prevAvg && currAvg ? parseFloat((prevAvg - currAvg).toFixed(1)) : 0;
+            const tmatDelta = (prevAvg > 0 && currAvg > 0) ? parseFloat((prevAvg - currAvg).toFixed(1)) : 0;
 
             return {
                 companyCode: comp.code,
@@ -185,21 +172,23 @@ export async function GET(request) {
                 rainfall: {
                     current: currentRain,
                     prev: prevRain,
-                    delta: currentRain - prevRain,
+                    delta: parseFloat((currentRain - prevRain).toFixed(1)),
                     currentHH: currentRainObj?.hari_hujan || 0,
                     prevHH: prevRainObj?.hari_hujan || 0
                 }
             };
         });
 
-        return NextResponse.json({
+        return Response.json({
             weeks: { current: weekFilter, prev: prevWeekName },
+            currentWeekId,
+            prevWeekId,
             data: result
         });
 
     } catch (err) {
-        console.error('[Comparison Bulk API Error]', err.message);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        console.error('[Comparison Bulk API Error]', err);
+        return Response.json({ error: err.message }, { status: 500 });
     } finally {
         await pool.end();
     }

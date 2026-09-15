@@ -15,10 +15,18 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
 
     const { companyName, currentWeek: current, prevWeek: prev, rainfall, dominantStatus, tmat } = item;
 
-    // Helper to get color for dominant status
+    // Helper to get background color for dominant status badge
     const getDominantColor = () => {
         const idx = ['Banjir', 'Tergenang', 'A Tergenang', 'Normal', 'A Kering', 'Kering'].indexOf(dominantStatus);
-        return idx !== -1 ? COLORS_TW[idx] : '#EEEEEE';
+        return idx !== -1 ? COLORS_TW[idx] : '#CCCCCC';
+    };
+
+    // Helper to get text color – dark text on light backgrounds (A Kering = yellow, No Data = grey)
+    const getDominantTextColor = () => {
+        if (dominantStatus === 'A Kering' || dominantStatus === 'Normal' || dominantStatus === 'No Data' || !dominantStatus) {
+            return '#111827';
+        }
+        return '#FFFFFF';
     };
 
     const copyAsImage = async () => {
@@ -127,17 +135,17 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                                 <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#000000', textTransform: 'uppercase', margin: 0, lineHeight: '1' }}>
                                     {companyName.replace('PT.', '')}
                                 </h1>
-                                {tmat && tmat.delta !== 0 && (
+                                {tmat && (
                                     <span style={{ 
                                         fontSize: '36px', 
                                         fontWeight: '900', 
-                                        color: tmat.delta < 0 ? '#EF4444' : '#178242',
+                                        color: tmat.delta < 0 ? '#EF4444' : tmat.delta > 0 ? '#178242' : '#9CA3AF',
                                         lineHeight: '1',
                                         display: 'inline-flex',
                                         alignItems: 'center',
                                         gap: '4px'
                                     }}>
-                                        {tmat.delta < 0 ? '▼' : '▲'} {tmat.delta > 0 ? '+' : ''}{tmat.delta}
+                                        {tmat.delta < 0 ? '▼' : tmat.delta > 0 ? '▲' : '▬'} {tmat.delta > 0 ? '+' : ''}{tmat.delta}
                                     </span>
                                 )}
                             </div>
@@ -165,7 +173,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                                     textAlign: 'center'
                                 }}
                             >
-                                <span style={{ color: '#FFFFFF', fontSize: '18px', fontWeight: '900', textTransform: 'uppercase', lineHeight: '44px' }}>
+                                <span style={{ color: getDominantTextColor(), fontSize: '18px', fontWeight: '900', textTransform: 'uppercase', lineHeight: '44px' }}>
                                     {dominantStatus}
                                 </span>
                             </div>
