@@ -27,37 +27,47 @@ export default function ComparisonGridClient() {
             });
     }, []);
 
+    const [serverWeekId, setServerWeekId] = useState(null);
+    const [syncing, setSyncing] = useState(false);
+
     // 2. Fetch bulk data when week changes
-    const fetchBulkData = async () => {
+    const fetchBulkData = async (forceSync = false) => {
         if (!week) return;
         setLoading(true);
+        if (forceSync) setSyncing(true);
         setError(null);
         try {
-            const res = await fetch(`/api/comparison-bulk?week=${encodeURIComponent(week)}`);
+            const url = forceSync 
+                ? `/api/comparison-bulk?week=${encodeURIComponent(week)}&forceSync=true`
+                : `/api/comparison-bulk?week=${encodeURIComponent(week)}`;
+            const res = await fetch(url);
             const json = await res.json();
             if (!res.ok) throw new Error(json.error || 'Failed to fetch comparison data');
             setData(json.data);
             setPrevWeekName(json.weeks.prev);
+            if (json.currentWeekId) setServerWeekId(json.currentWeekId);
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
+            setSyncing(false);
         }
     };
 
     useEffect(() => {
-        if (week) fetchBulkData();
+        if (week) fetchBulkData(false);
     }, [week]);
 
-    // Calculate Week ID for display using an anchor point
+    // Calculate Week ID for display using an anchor point or server value
     const anchorWeek = 'Apr 2026, W4';
     const anchorId = 503;
     const anchorIdx = weekList.indexOf(anchorWeek);
     const currentIdx = weekList.indexOf(week);
     
-    const weekId = (anchorIdx !== -1 && currentIdx !== -1) 
+    const computedWeekId = (anchorIdx !== -1 && currentIdx !== -1) 
         ? anchorId + (anchorIdx - currentIdx) 
         : null;
+    const weekId = serverWeekId || computedWeekId;
 
     return (
         <div className="max-w-[900px] mx-auto space-y-12 animate-in fade-in duration-1000 pb-20">
@@ -73,7 +83,7 @@ export default function ComparisonGridClient() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <div className="w-72">
                         <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2 mb-2 block">
                             Pilih Periode Analisis
@@ -88,11 +98,13 @@ export default function ComparisonGridClient() {
                         />
                     </div>
                     <button 
-                        onClick={fetchBulkData}
-                        disabled={loading}
-                        className="p-4 mt-6 bg-white hover:bg-gray-50 border border-gray-200 rounded-2xl transition-all text-gray-600 shadow-sm disabled:opacity-50"
+                        onClick={() => fetchBulkData(true)}
+                        disabled={loading || syncing}
+                        className="flex items-center gap-2 px-5 py-4 mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-2xl transition-all shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer"
+                        title="Sinkronisasi data langsung dari server GIS-DIV"
                     >
-                        <RefreshCw size={24} className={loading ? 'animate-spin' : ''} />
+                        <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
+                        <span>{syncing ? 'Syncing...' : 'Sync GIS'}</span>
                     </button>
                 </div>
             </header>
