@@ -56,6 +56,8 @@ export async function GET(request) {
                 FROM piezometer_data p
                 WHERE p.month_name IN ($1, $2)
                   AND p.company_code = ANY($3)
+                  AND p.ketinggian IS NOT NULL
+                  AND p.ketinggian <> 999
                 ORDER BY p.pie_record_id, p.month_name, p.date_timestamp DESC
             )
             SELECT 

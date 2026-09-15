@@ -55,7 +55,7 @@ export async function GET(request) {
                 FROM piezometer_data p
                 LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
                 LEFT JOIN calendar_weeks cw ON cw.formatted_name = p.month_name
-                WHERE p.ketinggian IS NOT NULL ${companyWhere} ${weekCondition}
+                WHERE p.ketinggian IS NOT NULL AND p.ketinggian <> 999 ${companyWhere} ${weekCondition}
                 AND (m.is_active IS NULL OR m.is_active = true)
                 ORDER BY p.pie_record_id, p.month_name, p.date_timestamp DESC
             )
@@ -98,6 +98,7 @@ export async function GET(request) {
                     FROM piezometer_data p
                     LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
                     WHERE p.month_name = $2
+                    AND p.ketinggian IS NOT NULL AND p.ketinggian <> 999
                     ${estateWhere}
                     AND (m.is_active IS NULL OR m.is_active = true)
                     ORDER BY p.pie_record_id, p.date_timestamp DESC

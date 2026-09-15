@@ -68,7 +68,7 @@ export async function GET(request) {
                     p.ketinggian, p.block
                 FROM piezometer_data p
                 WHERE p.month_name = ANY($1) AND p.company_code = ANY($2)
-                AND p.ketinggian IS NOT NULL
+                AND p.ketinggian IS NOT NULL AND p.ketinggian <> 999
                 ORDER BY p.pie_record_id, p.month_name, p.date_timestamp DESC
             )
             SELECT 
