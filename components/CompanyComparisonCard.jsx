@@ -131,7 +131,7 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                 <div style={{ display: 'table', width: '100%', marginBottom: '24px' }}>
                     <div style={{ display: 'table-row' }}>
                         <div style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'left' }}>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap', paddingBottom: '6px' }}>
                                 <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#000000', textTransform: 'uppercase', margin: 0, lineHeight: '1' }}>
                                     {companyName.replace('PT.', '')}
                                 </h1>
@@ -143,7 +143,8 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                                         lineHeight: '1',
                                         display: 'inline-flex',
                                         alignItems: 'center',
-                                        gap: '4px'
+                                        gap: '4px',
+                                        marginBottom: '2px'
                                     }}>
                                         {tmat.delta < 0 ? '▼' : tmat.delta > 0 ? '▲' : '▬'} {tmat.delta > 0 ? '+' : ''}{tmat.delta}
                                     </span>
