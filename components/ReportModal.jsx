@@ -4,74 +4,125 @@ import React, { useRef, useState } from 'react';
 import { domToBlob } from 'modern-screenshot';
 import { X, Download, Copy, Check } from 'lucide-react';
 
-const LABELS = ['Banjir', 'Tergenang', 'A Tergenang', 'Normal', 'A Kering', 'Kering'];
+const LABELS = ['Banjir ( <0 )', 'Tergenang ( 0-40 )', 'A Tergenang ( 41-45 )', 'Normal ( 46-60 )', 'A Kering ( 61-65 )', 'Kering ( >65 )'];
 const COLORS_TW = ['#000000', '#4170B0', '#1CB8E0', '#5A732A', '#FFFB00', '#FF0D0D'];
 const COLORS_LW = ['#999999', '#B3C5DF', '#99ECFF', '#BDC7A9', '#FFFD99', '#FF9999'];
 
-const getDomColor = (status) => {
-    const idx = LABELS.indexOf(status);
-    return idx !== -1 ? COLORS_TW[idx] : '#CCCCCC';
-};
-const getDomTextColor = (status) => {
-    if (['A Kering', 'Normal', 'No Data'].includes(status) || !status) return '#111827';
-    return '#FFFFFF';
-};
+// Fixed display order matching the reference image
+const PT_ORDER = ['PT.THIP', 'PT.JJP', 'PT.PTW', 'PT.SIP', 'PT.PANPS', 'PT.SAM', 'PT.GAN', 'PT.PLDK', 'PT.SUMK'];
 
-function MiniCard({ item, currentWeek, prevWeek }) {
-    const { companyName, currentWeek: current, prevWeek: prev, rainfall, dominantStatus } = item;
-    const shortName = companyName.replace('PT.', '');
-    const domColor = getDomColor(dominantStatus);
-    const domTextColor = getDomTextColor(dominantStatus);
+const getDomColor = (s) => { const i = ['Banjir','Tergenang','A Tergenang','Normal','A Kering','Kering'].indexOf(s); return i !== -1 ? COLORS_TW[i] : '#CCCCCC'; };
+const getDomTextColor = (s) => (['A Kering','Normal','No Data'].includes(s) || !s) ? '#111827' : '#FFFFFF';
+
+// ── Full-style card matching the main page ──────────────────────────────────
+function ReportCard({ item, currentWeek, prevWeek }) {
+    const { companyName, currentWeek: curr, prevWeek: prev, rainfall, dominantStatus, tmat } = item;
+    const name = companyName.replace('PT.', '');
 
     return (
         <div style={{
-            backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '20px',
-            border: '1px solid #E5E7EB'
+            backgroundColor: '#FFFFFF', borderRadius: '24px', padding: '28px 28px 20px',
+            border: '1px solid #EEEEEE', boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden'
         }}>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '26px', fontWeight: '900', color: '#000', textTransform: 'uppercase', lineHeight: '1', whiteSpace: 'nowrap' }}>
-                    {shortName}
-                </span>
-                <span style={{
-                    padding: '3px 12px', borderRadius: '20px',
-                    backgroundColor: domColor, color: domTextColor,
-                    fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', whiteSpace: 'nowrap', flexShrink: 0
-                }}>
-                    {dominantStatus || 'No Data'}
-                </span>
+            {/* ── Header row ── */}
+            <div style={{ display: 'table', width: '100%', marginBottom: '16px' }}>
+                <div style={{ display: 'table-row' }}>
+                    {/* Left: name + delta */}
+                    <div style={{ display: 'table-cell', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', flexWrap: 'nowrap', whiteSpace: 'nowrap', paddingBottom: '4px' }}>
+                            <span style={{ fontSize: '38px', fontWeight: '900', color: '#000', textTransform: 'uppercase', lineHeight: '1', flexShrink: 0 }}>
+                                {name}
+                            </span>
+                            {tmat && (
+                                <span style={{
+                                    fontSize: '26px', fontWeight: '900', lineHeight: '1',
+                                    color: tmat.delta < 0 ? '#EF4444' : tmat.delta > 0 ? '#178242' : '#9CA3AF',
+                                    whiteSpace: 'nowrap', flexShrink: 0, marginBottom: '2px'
+                                }}>
+                                    {`${tmat.delta < 0 ? '▼' : tmat.delta > 0 ? '▲' : '▬'} ${tmat.delta > 0 ? '+' : ''}${tmat.delta}`}
+                                </span>
+                            )}
+                        </div>
+                        {/* CH info */}
+                        <div style={{ fontSize: '15px', color: '#b4b4b4', fontWeight: 'bold', marginTop: '4px' }}>
+                            CH {prevWeek?.slice(-2)}: {Math.floor(rainfall?.prev || 0)}mm/{rainfall?.prevHH || 0}HH | {currentWeek?.slice(-2)}: {Math.floor(rainfall?.current || 0)}mm/{rainfall?.currentHH || 0}HH
+                        </div>
+                        {tmat && (tmat.prev > 0 || tmat.current > 0) && (
+                            <div style={{ fontSize: '14px', color: '#b4b4b4', fontWeight: 'bold', marginTop: '2px' }}>
+                                TMAT {tmat.prev} → {tmat.current}
+                            </div>
+                        )}
+                    </div>
+                    {/* Right: dominant badge */}
+                    <div style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'right', width: '160px' }}>
+                        <div style={{
+                            display: 'inline-block', minWidth: '130px', height: '40px',
+                            borderRadius: '20px', backgroundColor: getDomColor(dominantStatus), textAlign: 'center'
+                        }}>
+                            <span style={{
+                                color: getDomTextColor(dominantStatus), fontSize: '16px',
+                                fontWeight: '900', textTransform: 'uppercase', lineHeight: '40px'
+                            }}>
+                                {dominantStatus || 'No Data'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* CH info */}
-            <div style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 'bold', marginBottom: '10px' }}>
-                CH {prevWeek?.slice(-2)}: {Math.floor(rainfall?.prev || 0)}mm/{rainfall?.prevHH || 0}HH | {currentWeek?.slice(-2)}: {Math.floor(rainfall?.current || 0)}mm/{rainfall?.currentHH || 0}HH
-            </div>
-
-            {/* Bars */}
+            {/* ── 6 category bars ── */}
             {LABELS.map((label, i) => {
                 const lwPct = prev?.percentages?.[i] || 0;
-                const twPct = current?.percentages?.[i] || 0;
+                const twPct = curr?.percentages?.[i] || 0;
                 let trend = '▬', trendColor = '#D1D5DB';
                 if (twPct > lwPct) { trend = '▲'; trendColor = i === 3 ? '#178242' : '#EF4444'; }
                 else if (twPct < lwPct) { trend = '▼'; trendColor = i === 3 ? '#EF4444' : '#178242'; }
 
                 return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
-                        <div style={{ width: '12px', height: '12px', flexShrink: 0, backgroundColor: COLORS_TW[i] }} />
-                        <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6B7280', width: '100px', flexShrink: 0 }}>{label}</div>
-                        <div style={{ flex: 1, position: 'relative', height: '14px', backgroundColor: '#F3F4F6', borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${lwPct}%`, backgroundColor: COLORS_LW[i], borderRadius: '3px' }} />
-                            <div style={{ position: 'absolute', left: 0, top: '25%', height: '50%', width: `${twPct}%`, backgroundColor: COLORS_TW[i], borderRadius: '2px' }} />
+                    <div key={i} style={{ display: 'table', width: '100%', borderCollapse: 'collapse', marginBottom: '7px' }}>
+                        <div style={{ display: 'table-row' }}>
+                            {/* Legend */}
+                            <div style={{ display: 'table-cell', verticalAlign: 'middle', width: '210px', paddingRight: '14px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div style={{ width: '18px', height: '18px', flexShrink: 0, backgroundColor: COLORS_TW[i] }} />
+                                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151', lineHeight: '1' }}>{label}</div>
+                                </div>
+                            </div>
+                            {/* Bar track */}
+                            <div style={{ display: 'table-cell', verticalAlign: 'middle' }}>
+                                <div style={{ position: 'relative', width: '100%', height: '26px' }}>
+                                    <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${lwPct}%`, backgroundColor: COLORS_LW[i], borderRadius: '4px' }} />
+                                    <div style={{ position: 'absolute', top: '25%', left: 0, height: '50%', width: `${twPct}%`, backgroundColor: COLORS_TW[i], borderRadius: '3px' }} />
+                                </div>
+                            </div>
+                            {/* Prev % */}
+                            <div style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'right', width: '48px', fontSize: '13px', color: '#9CA3AF', fontWeight: 'bold', paddingLeft: '10px' }}>
+                                {lwPct}%
+                            </div>
+                            {/* → */}
+                            <div style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'center', width: '22px', fontSize: '12px', color: '#D1D5DB' }}>→</div>
+                            {/* Curr % */}
+                            <div style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'right', width: '48px', fontSize: '15px', fontWeight: '900', color: '#111827' }}>
+                                {twPct}%
+                            </div>
+                            {/* Trend */}
+                            <div style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'center', width: '22px', fontSize: '14px', fontWeight: '900', color: trendColor }}>
+                                {trend}
+                            </div>
                         </div>
-                        <div style={{ fontSize: '11px', color: '#9CA3AF', width: '26px', textAlign: 'right', flexShrink: 0 }}>{lwPct}%</div>
-                        <div style={{ fontSize: '11px', color: '#374151', fontWeight: '900', width: '26px', textAlign: 'right', flexShrink: 0 }}>{twPct}%</div>
-                        <div style={{ fontSize: '11px', fontWeight: '900', color: trendColor, width: '12px', textAlign: 'center', flexShrink: 0 }}>{trend}</div>
                     </div>
                 );
             })}
         </div>
     );
 }
+
+// ── Modal ───────────────────────────────────────────────────────────────────
+const CANVAS_W = 2400;
+const CANVAS_H = 1350;
+const PREVIEW_W = 960;
+const PREVIEW_SCALE = PREVIEW_W / CANVAS_W; // 0.4
 
 export default function ReportModal({ data, currentWeek, prevWeek, onClose }) {
     const reportRef = useRef(null);
@@ -81,24 +132,27 @@ export default function ReportModal({ data, currentWeek, prevWeek, onClose }) {
 
     if (!data || data.length === 0) return null;
 
-    // Compute summary stats
-    // Use currentWeek percentages if >0, fallback to prevWeek
+    // Sort by PT_ORDER, then append any extras
+    const ordered = PT_ORDER.map(code => data.find(d => d.companyCode === code)).filter(Boolean);
+    const extras = data.filter(d => !PT_ORDER.includes(d.companyCode));
+    const displayData = [...ordered, ...extras].slice(0, 9); // max 9 for 3×3
+
+    // Summary stats (use currentWeek if has data, else prevWeek)
     const getEff = (item, idx) => {
         const c = item.currentWeek?.percentages?.[idx] || 0;
         return c > 0 ? c : (item.prevWeek?.percentages?.[idx] || 0);
     };
-
-    const n = data.length;
-    const avgNormal = Math.round(data.reduce((s, d) => s + getEff(d, 3), 0) / n);
-    const avgKering = Math.round(data.reduce((s, d) => s + getEff(d, 5), 0) / n);
-    const prevAvgNormal = Math.round(data.reduce((s, d) => s + (d.prevWeek?.percentages?.[3] || 0), 0) / n);
-    const prevAvgKering = Math.round(data.reduce((s, d) => s + (d.prevWeek?.percentages?.[5] || 0), 0) / n);
-    const normalDelta = avgNormal - prevAvgNormal;
-    const keringDelta = avgKering - prevAvgKering;
+    const n = displayData.length || 1;
+    const avgNormal = Math.round(displayData.reduce((s, d) => s + getEff(d, 3), 0) / n);
+    const avgKering = Math.round(displayData.reduce((s, d) => s + getEff(d, 5), 0) / n);
+    const prevNormal = Math.round(displayData.reduce((s, d) => s + (d.prevWeek?.percentages?.[3] || 0), 0) / n);
+    const prevKering = Math.round(displayData.reduce((s, d) => s + (d.prevWeek?.percentages?.[5] || 0), 0) / n);
+    const normalDelta = avgNormal - prevNormal;
+    const keringDelta = avgKering - prevKering;
 
     const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' });
 
-    const captureBlob = () => domToBlob(reportRef.current, { scale: 2, backgroundColor: '#F3F4F6' });
+    const captureBlob = () => domToBlob(reportRef.current, { scale: 1, backgroundColor: '#F3F4F6' });
 
     const handleDownload = async () => {
         setDownloading(true);
@@ -124,91 +178,88 @@ export default function ReportModal({ data, currentWeek, prevWeek, onClose }) {
     };
 
     return (
-        <div style={{
-            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)',
-            zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
-        }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-            <div style={{
-                backgroundColor: '#fff', borderRadius: '28px', width: '100%', maxWidth: '1000px',
-                maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                boxShadow: '0 25px 60px rgba(0,0,0,0.3)'
-            }}>
+        <div
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.72)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        >
+            <div style={{ backgroundColor: '#fff', borderRadius: '28px', width: '100%', maxWidth: '1060px', maxHeight: '92vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 60px rgba(0,0,0,0.35)' }}>
+
                 {/* Toolbar */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px', borderBottom: '1px solid #E5E7EB', flexShrink: 0 }}>
-                    <span style={{ fontWeight: '900', fontSize: '20px', color: '#111827' }}>📊 Preview Report — {currentWeek}</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid #E5E7EB', flexShrink: 0 }}>
+                    <span style={{ fontWeight: '900', fontSize: '18px', color: '#111827' }}>📊 Preview Report — {currentWeek}</span>
                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                        <button onClick={handleDownload} disabled={downloading} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', backgroundColor: '#2563EB', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '14px', cursor: downloading ? 'wait' : 'pointer', opacity: downloading ? 0.7 : 1 }}>
-                            <Download size={16} />
+                        <button onClick={handleDownload} disabled={downloading} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', backgroundColor: '#2563EB', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '13px', cursor: downloading ? 'wait' : 'pointer', opacity: downloading ? 0.7 : 1 }}>
+                            <Download size={15} />
                             {downloading ? 'Mengunduh…' : 'Download PNG'}
                         </button>
-                        <button onClick={handleCopy} disabled={copying} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', backgroundColor: '#059669', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '14px', cursor: copying ? 'wait' : 'pointer', opacity: copying ? 0.7 : 1 }}>
-                            {copied ? <Check size={16} /> : <Copy size={16} />}
+                        <button onClick={handleCopy} disabled={copying} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', backgroundColor: '#059669', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '13px', cursor: copying ? 'wait' : 'pointer', opacity: copying ? 0.7 : 1 }}>
+                            {copied ? <Check size={15} /> : <Copy size={15} />}
                             {copying ? 'Copying…' : copied ? 'Copied!' : 'Copy Image'}
                         </button>
-                        <button onClick={onClose} style={{ padding: '10px', backgroundColor: '#F3F4F6', border: 'none', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <X size={20} color="#374151" />
+                        <button onClick={onClose} style={{ padding: '9px', backgroundColor: '#F3F4F6', border: 'none', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <X size={18} color="#374151" />
                         </button>
                     </div>
                 </div>
 
-                {/* Scrollable preview */}
-                <div style={{ overflow: 'auto', padding: '24px', backgroundColor: '#E5E7EB', flex: 1 }}>
-                    {/* Report canvas – captured by domToBlob */}
-                    <div ref={reportRef} style={{ backgroundColor: '#F3F4F6', padding: '28px', borderRadius: '16px', minWidth: '860px' }}>
+                {/* Preview area */}
+                <div style={{ overflow: 'auto', padding: '20px', backgroundColor: '#9CA3AF', flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+                    {/* Scaled preview wrapper */}
+                    <div style={{
+                        width: `${PREVIEW_W}px`,
+                        height: `${CANVAS_H * PREVIEW_SCALE}px`,
+                        flexShrink: 0, position: 'relative', overflow: 'hidden',
+                        borderRadius: '8px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                    }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, transformOrigin: 'top left', transform: `scale(${PREVIEW_SCALE})` }}>
 
-                        {/* ── Report Header ── */}
-                        <div style={{
-                            backgroundColor: '#FFFFFF', borderRadius: '20px', padding: '24px 28px',
-                            marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '28px', flexWrap: 'wrap'
-                        }}>
-                            {/* Title */}
-                            <div style={{ flex: 1, minWidth: '200px' }}>
-                                <div style={{ fontSize: '26px', fontWeight: '900', color: '#111827', lineHeight: '1' }}>
-                                    Summary CH &amp; PZO
+                            {/* ═══ REPORT CANVAS 2400×1350 ═══ */}
+                            <div ref={reportRef} style={{
+                                width: `${CANVAS_W}px`, height: `${CANVAS_H}px`,
+                                backgroundColor: '#F1F5F9', padding: '32px',
+                                boxSizing: 'border-box', overflow: 'hidden',
+                                display: 'flex', flexDirection: 'column', gap: '18px'
+                            }}>
+                                {/* Header */}
+                                <div style={{ backgroundColor: '#FFFFFF', borderRadius: '24px', padding: '20px 32px', display: 'flex', alignItems: 'center', gap: '36px', flexShrink: 0 }}>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: '34px', fontWeight: '900', color: '#111827', lineHeight: '1' }}>Summary CH &amp; PZO</div>
+                                        <div style={{ fontSize: '16px', color: '#9CA3AF', fontWeight: '600', marginTop: '6px' }}>Last Update {currentWeek} · {dateStr}</div>
+                                    </div>
+                                    {/* NORMAL stat */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
+                                        <span style={{ fontSize: '48px', fontWeight: '900', color: '#111827', lineHeight: '1' }}>{avgNormal}%</span>
+                                        <span style={{ padding: '6px 18px', borderRadius: '24px', backgroundColor: '#5A732A', color: '#FFFFFF', fontSize: '17px', fontWeight: '900' }}>NORMAL</span>
+                                        {normalDelta !== 0 && (
+                                            <span style={{ fontSize: '15px', fontWeight: '700', color: normalDelta > 0 ? '#178242' : '#EF4444', whiteSpace: 'nowrap' }}>
+                                                {`${normalDelta > 0 ? '▲ Naik' : '▼ Turun'} ${Math.abs(normalDelta)}% vs minggu lalu`}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {/* KERING stat */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
+                                        <span style={{ fontSize: '48px', fontWeight: '900', color: '#111827', lineHeight: '1' }}>{avgKering}%</span>
+                                        <span style={{ padding: '6px 18px', borderRadius: '24px', backgroundColor: '#FF0D0D', color: '#FFFFFF', fontSize: '17px', fontWeight: '900' }}>KERING</span>
+                                        {keringDelta !== 0 && (
+                                            <span style={{ fontSize: '15px', fontWeight: '700', color: keringDelta > 0 ? '#EF4444' : '#178242', whiteSpace: 'nowrap' }}>
+                                                {`${keringDelta > 0 ? '▲ Naik' : '▼ Turun'} ${Math.abs(keringDelta)}% vs minggu lalu`}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                <div style={{ fontSize: '13px', color: '#9CA3AF', fontWeight: '600', marginTop: '6px' }}>
-                                    Last Update {currentWeek} · {dateStr}
+
+                                {/* 3×3 grid */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px', flex: 1, minHeight: 0 }}>
+                                    {displayData.map(item => (
+                                        <ReportCard key={item.companyCode} item={item} currentWeek={currentWeek} prevWeek={prevWeek} />
+                                    ))}
+                                </div>
+
+                                {/* Footer */}
+                                <div style={{ textAlign: 'center', fontSize: '14px', color: '#94A3B8', fontWeight: '600', flexShrink: 0 }}>
+                                    {`Generated ${new Date().toLocaleString('id-ID')} · WM Forecast System`}
                                 </div>
                             </div>
-
-                            {/* NORMAL stat */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                                <span style={{ fontSize: '36px', fontWeight: '900', color: '#111827', lineHeight: '1' }}>{avgNormal}%</span>
-                                <span style={{ padding: '5px 14px', borderRadius: '20px', backgroundColor: '#5A732A', color: '#FFFFFF', fontSize: '13px', fontWeight: '900', textTransform: 'uppercase' }}>NORMAL</span>
-                                {normalDelta !== 0 && (
-                                    <span style={{ fontSize: '13px', fontWeight: '700', color: normalDelta > 0 ? '#178242' : '#EF4444', whiteSpace: 'nowrap' }}>
-                                        {`${normalDelta > 0 ? '▲ Naik' : '▼ Turun'} ${Math.abs(normalDelta)}% vs minggu lalu`}
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* KERING stat */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                                <span style={{ fontSize: '36px', fontWeight: '900', color: '#111827', lineHeight: '1' }}>{avgKering}%</span>
-                                <span style={{ padding: '5px 14px', borderRadius: '20px', backgroundColor: '#FF0D0D', color: '#FFFFFF', fontSize: '13px', fontWeight: '900', textTransform: 'uppercase' }}>KERING</span>
-                                {keringDelta !== 0 && (
-                                    <span style={{ fontSize: '13px', fontWeight: '700', color: keringDelta > 0 ? '#EF4444' : '#178242', whiteSpace: 'nowrap' }}>
-                                        {`${keringDelta > 0 ? '▲ Naik' : '▼ Turun'} ${Math.abs(keringDelta)}% vs minggu lalu`}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* ── 3-column card grid ── */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-                            {data.map(item => (
-                                <MiniCard
-                                    key={item.companyCode}
-                                    item={item}
-                                    currentWeek={currentWeek}
-                                    prevWeek={prevWeek}
-                                />
-                            ))}
-                        </div>
-
-                        {/* Footer */}
-                        <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '11px', color: '#9CA3AF', fontWeight: '600' }}>
-                            {`Generated ${new Date().toLocaleString('id-ID')} · WM Forecast System`}
                         </div>
                     </div>
                 </div>
