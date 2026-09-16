@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { CalendarDays, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, CloudRain, Database } from 'lucide-react';
+import { CalendarDays, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, CloudRain, Database, FileImage } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 import CompanyComparisonCard from './CompanyComparisonCard';
+import ReportModal from './ReportModal';
 
 export default function ComparisonGridClient() {
     const [week, setWeek] = useState('');
@@ -18,9 +19,12 @@ export default function ComparisonGridClient() {
     const [syncing, setSyncing] = useState(false);
     const [syncProgress, setSyncProgress] = useState(0);
     const [syncMessage, setSyncMessage] = useState('');
-    const [syncPhase, setSyncPhase] = useState(null); // 'rainfall' | 'gis' | null
-    const [syncStepDone, setSyncStepDone] = useState([]); // ['rainfall'] | ['rainfall','gis']
+    const [syncPhase, setSyncPhase] = useState(null);
+    const [syncStepDone, setSyncStepDone] = useState([]);
     const esRef = useRef(null);
+
+    // Report modal
+    const [showReport, setShowReport] = useState(false);
 
     // 1. Fetch weeks list
     useEffect(() => {
@@ -168,6 +172,15 @@ export default function ComparisonGridClient() {
                             <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
                             <span>{syncing ? 'Syncing…' : 'Sync Data'}</span>
                         </button>
+                        <button
+                            onClick={() => setShowReport(true)}
+                            disabled={!data || data.length === 0 || loading}
+                            className="flex items-center gap-2 px-5 py-4 mt-6 bg-gray-800 hover:bg-gray-900 text-white font-bold text-sm rounded-2xl transition-all shadow-sm disabled:opacity-40 whitespace-nowrap cursor-pointer"
+                            title="Buat report gambar semua PT"
+                        >
+                            <FileImage size={18} />
+                            <span>Report</span>
+                        </button>
                     </div>
                 </div>
 
@@ -250,6 +263,16 @@ export default function ComparisonGridClient() {
                     </div>
                     <p className="text-gray-500 font-bold text-xl">Tidak ada data untuk periode ini.</p>
                 </div>
+            )}
+
+            {/* Report Modal */}
+            {showReport && (
+                <ReportModal
+                    data={data}
+                    currentWeek={week}
+                    prevWeek={prevWeekName}
+                    onClose={() => setShowReport(false)}
+                />
             )}
         </div>
     );
