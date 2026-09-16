@@ -380,7 +380,7 @@ export default function RainfallWeeklySummary() {
                                         onClick={() => handleSort('total_ch_mm')}
                                     >
                                         <div className="flex items-center justify-end gap-1.5">
-                                            <span>Rata-rata Mingguan (mm)</span>
+                                            <span>Total Mingguan (mm)</span>
                                             {sortConfig.key === 'total_ch_mm' && (sortConfig.direction === 'asc' ? '▲' : '▼')}
                                         </div>
                                     </th>
