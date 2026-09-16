@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { CloudRain, Building2, CalendarDays, RefreshCw, AlertTriangle, TrendingUp, Map, Filter, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
+import RainfallWeeklySummary from './RainfallWeeklySummary';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler, LineController, BarController } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 
@@ -418,6 +419,9 @@ export default function RainfallClient() {
                     </div>
                 </div>
             </div>
+
+            {/* Weekly Summary per PT (calendar_weeks) */}
+            <RainfallWeeklySummary />
 
             {/* Estate Detail Table */}
             <div className="glass-card overflow-hidden">
