@@ -7,6 +7,15 @@ import {
 } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
+function getRainCategory(totalMm) {
+    const val = Number(totalMm) || 0;
+    if (val === 0) return { label: 'Kering', color: '#9CA3AF', bg: '#F3F4F6' };
+    if (val <= 50) return { label: 'Rendah', color: '#2563EB', bg: '#EFF6FF' };
+    if (val <= 100) return { label: 'Sedang', color: '#D97706', bg: '#FEF3C7' };
+    if (val <= 150) return { label: 'Tinggi', color: '#DC2626', bg: '#FEE2E2' };
+    return { label: 'Sangat Tinggi', color: '#7F1D1D', bg: '#FEE2E2' };
+}
+
 function MetricCard({ title, value, sub, icon, color = '#2563EB', loading }) {
     return (
         <div className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm flex flex-col gap-2">
