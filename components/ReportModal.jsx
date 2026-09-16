@@ -11,7 +11,7 @@ const COLORS_LW = ['#999999', '#B3C5DF', '#99ECFF', '#BDC7A9', '#FFFD99', '#FF99
 const PT_ORDER = ['PT.THIP', 'PT.JJP', 'PT.PTW', 'PT.SIP', 'PT.PANPS', 'PT.SAM', 'PT.GAN', 'PT.PLDK', 'PT.SUMK'];
 
 const getDomColor = (s) => { const i = ['Banjir','Tergenang','A Tergenang','Normal','A Kering','Kering'].indexOf(s); return i !== -1 ? COLORS_TW[i] : '#CCCCCC'; };
-const getDomTextColor = (s) => (['A Kering','Normal','No Data'].includes(s) || !s) ? '#111827' : '#FFFFFF';
+const getDomTextColor = (s) => (['A Kering', 'No Data'].includes(s) || !s) ? '#111827' : '#FFFFFF';
 
 // ── Shared card component (used in both capture and preview) ──────────────
 function ReportCard({ item, currentWeek, prevWeek }) {

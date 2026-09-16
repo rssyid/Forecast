@@ -21,9 +21,9 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
         return idx !== -1 ? COLORS_TW[idx] : '#CCCCCC';
     };
 
-    // Helper to get text color – dark text on light backgrounds (A Kering = yellow, No Data = grey)
+    // Helper to get text color – dark text only on light backgrounds (A Kering=yellow, No Data=grey)
     const getDominantTextColor = () => {
-        if (dominantStatus === 'A Kering' || dominantStatus === 'Normal' || dominantStatus === 'No Data' || !dominantStatus) {
+        if (dominantStatus === 'A Kering' || dominantStatus === 'No Data' || !dominantStatus) {
             return '#111827';
         }
         return '#FFFFFF';
