@@ -179,10 +179,15 @@ export async function GET(request) {
             };
         });
 
+        // Fetch max updated_at for last sync timestamp
+        const lastSyncRes = await pool.query(`SELECT MAX(updated_at) AS last_updated FROM gis_comparison_data`);
+        const lastSyncTime = lastSyncRes.rows[0]?.last_updated || null;
+
         return Response.json({
             weeks: { current: weekFilter, prev: prevWeekName },
             currentWeekId,
             prevWeekId,
+            lastSyncTime,
             data: result
         });
 

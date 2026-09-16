@@ -21,10 +21,28 @@ export default function ComparisonGridClient() {
     const [syncMessage, setSyncMessage] = useState('');
     const [syncPhase, setSyncPhase] = useState(null);
     const [syncStepDone, setSyncStepDone] = useState([]);
+    const [lastSyncTime, setLastSyncTime] = useState('');
     const esRef = useRef(null);
 
     // Report modal
     const [showReport, setShowReport] = useState(false);
+
+    const formatDateTime = (dateInput) => {
+        if (!dateInput) return null;
+        const d = new Date(dateInput);
+        if (isNaN(d.getTime())) return null;
+        const dateStr = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+        return `${dateStr}, ${timeStr} WIB`;
+    };
+
+    // Load initial cached last sync timestamp from localStorage
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('forecast_last_sync');
+            if (saved) setLastSyncTime(saved);
+        } catch (_) {}
+    }, []);
 
     // 1. Fetch weeks list
     useEffect(() => {
@@ -51,6 +69,13 @@ export default function ComparisonGridClient() {
             setData(json.data);
             setPrevWeekName(json.weeks?.prev || '');
             if (json.currentWeekId) setServerWeekId(json.currentWeekId);
+            if (json.lastSyncTime) {
+                const formatted = formatDateTime(json.lastSyncTime);
+                if (formatted) {
+                    setLastSyncTime(formatted);
+                    try { localStorage.setItem('forecast_last_sync', formatted); } catch (_) {}
+                }
+            }
         } catch (err) {
             setError(err.message);
         } finally {
@@ -99,6 +124,11 @@ export default function ComparisonGridClient() {
                 if (d.completed) {
                     setSyncStepDone(['rainfall', 'gis']);
                     es.close();
+                    const nowFormatted = formatDateTime(new Date());
+                    if (nowFormatted) {
+                        setLastSyncTime(nowFormatted);
+                        try { localStorage.setItem('forecast_last_sync', nowFormatted); } catch (_) {}
+                    }
                     // Refresh data after sync
                     setTimeout(() => {
                         setSyncing(false);
@@ -149,7 +179,7 @@ export default function ComparisonGridClient() {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-start gap-3">
                         <div className="w-72">
                             <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2 mb-2 block">
                                 Pilih Periode Analisis
@@ -163,15 +193,24 @@ export default function ComparisonGridClient() {
                                 autoSort={false}
                             />
                         </div>
-                        <button
-                            onClick={handleSync}
-                            disabled={syncing || loading}
-                            className="flex items-center gap-2 px-5 py-4 mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-2xl transition-all shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer"
-                            title="Sinkronisasi curah hujan dan data GIS dari server"
-                        >
-                            <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
-                            <span>{syncing ? 'Syncing…' : 'Sync Data'}</span>
-                        </button>
+
+                        <div className="flex flex-col items-center">
+                            <button
+                                onClick={handleSync}
+                                disabled={syncing || loading}
+                                className="flex items-center gap-2 px-5 py-4 mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-2xl transition-all shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer"
+                                title="Sinkronisasi curah hujan dan data GIS dari server"
+                            >
+                                <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
+                                <span>{syncing ? 'Syncing…' : 'Sync Data'}</span>
+                            </button>
+                            {lastSyncTime && (
+                                <span className="text-[11px] font-bold text-gray-400 mt-1.5 whitespace-nowrap">
+                                    Last update: {lastSyncTime}
+                                </span>
+                            )}
+                        </div>
+
                         <button
                             onClick={() => setShowReport(true)}
                             disabled={!data || data.length === 0 || loading}
