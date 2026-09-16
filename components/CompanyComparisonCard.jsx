@@ -131,8 +131,8 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                 <div style={{ display: 'table', width: '100%', marginBottom: '24px' }}>
                     <div style={{ display: 'table-row' }}>
                         <div style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'left' }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap', paddingBottom: '4px' }}>
-                                <h1 style={{ fontSize: '40px', fontWeight: '900', color: '#000000', textTransform: 'uppercase', margin: 0, lineHeight: '1' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'nowrap', whiteSpace: 'nowrap', paddingBottom: '4px' }}>
+                                <h1 style={{ fontSize: '40px', fontWeight: '900', color: '#000000', textTransform: 'uppercase', margin: 0, lineHeight: '1', flexShrink: 0 }}>
                                     {companyName.replace('PT.', '')}
                                 </h1>
                                 {tmat && (
@@ -141,12 +141,11 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
                                         fontWeight: '900', 
                                         color: tmat.delta < 0 ? '#EF4444' : tmat.delta > 0 ? '#178242' : '#9CA3AF',
                                         lineHeight: '1',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
+                                        whiteSpace: 'nowrap',
+                                        flexShrink: 0,
                                         marginBottom: '2px'
                                     }}>
-                                        {tmat.delta < 0 ? '▼' : tmat.delta > 0 ? '▲' : '▬'} {tmat.delta > 0 ? '+' : ''}{tmat.delta}
+                                        {`${tmat.delta < 0 ? '▼' : tmat.delta > 0 ? '▲' : '▬'} ${tmat.delta > 0 ? '+' : ''}${tmat.delta}`}
                                     </span>
                                 )}
                             </div>
