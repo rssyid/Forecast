@@ -137,10 +137,6 @@ function ReportCanvas({ displayData, currentWeek, prevWeek, avgNormal, avgKering
                 ))}
             </div>
 
-            {/* Footer */}
-            <div style={{ textAlign: 'center', fontSize: '14px', color: '#94A3B8', fontWeight: '600', flexShrink: 0 }}>
-                {`Generated ${new Date().toLocaleString('id-ID')} · WM Forecast System`}
-            </div>
         </div>
     );
 }
