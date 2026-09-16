@@ -113,17 +113,12 @@ function ReportCanvas({ displayData, currentWeek, prevWeek, avgNormal, avgKering
                     <div style={{ fontSize: '34px', fontWeight: '900', color: '#111827', lineHeight: '1' }}>Summary CH &amp; PZO</div>
                     <div style={{ fontSize: '16px', color: '#9CA3AF', fontWeight: '600', marginTop: '6px' }}>Last Update {currentWeek} · {dateStr}</div>
                 </div>
-                {/* NORMAL stat */}
+                {/* NORMAL stat — no trend text, just the number and badge */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
                     <span style={{ fontSize: '48px', fontWeight: '900', color: '#111827', lineHeight: '1' }}>{avgNormal}%</span>
                     <span style={{ padding: '6px 18px', borderRadius: '24px', backgroundColor: '#5A732A', color: '#FFFFFF', fontSize: '17px', fontWeight: '900' }}>NORMAL</span>
-                    {normalDelta !== 0 && (
-                        <span style={{ fontSize: '15px', fontWeight: '700', color: normalDelta > 0 ? '#178242' : '#EF4444', whiteSpace: 'nowrap' }}>
-                            {`${normalDelta > 0 ? '▲ Naik' : '▼ Turun'} ${Math.abs(normalDelta)}% vs minggu lalu`}
-                        </span>
-                    )}
                 </div>
-                {/* KERING stat */}
+                {/* KERING stat — trend text sits right beside the red badge */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
                     <span style={{ fontSize: '48px', fontWeight: '900', color: '#111827', lineHeight: '1' }}>{avgKering}%</span>
                     <span style={{ padding: '6px 18px', borderRadius: '24px', backgroundColor: '#FF0D0D', color: '#FFFFFF', fontSize: '17px', fontWeight: '900' }}>KERING</span>
