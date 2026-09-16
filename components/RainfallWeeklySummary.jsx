@@ -107,6 +107,94 @@ export default function RainfallWeeklySummary() {
         );
     }, [data?.companies, searchTerm]);
 
+    // Averages for Single Week View (Footer Row)
+    const singleAverages = useMemo(() => {
+        if (!filteredSingleData || filteredSingleData.length === 0) return null;
+        const n = filteredSingleData.length;
+        const avgWeekly = Number((filteredSingleData.reduce((acc, r) => acc + r.total_ch_mm, 0) / n).toFixed(1));
+        const avgDaily = Number((filteredSingleData.reduce((acc, r) => acc + r.avg_daily_mm, 0) / n).toFixed(1));
+        const avgHH = Number((filteredSingleData.reduce((acc, r) => acc + r.hari_hujan, 0) / n).toFixed(1));
+        const prevAvgWeekly = Number((filteredSingleData.reduce((acc, r) => acc + r.prev_total_ch_mm, 0) / n).toFixed(1));
+        const delta = Number((avgWeekly - prevAvgWeekly).toFixed(1));
+        const category = getRainCategory(avgWeekly);
+        return {
+            avgWeekly,
+            avgDaily,
+            avgHH,
+            delta,
+            category
+        };
+    }, [filteredSingleData]);
+
+    // Averages for Matrix View (Row Averages, Column Averages, and Overall)
+    const matrixAverages = useMemo(() => {
+        if (!data?.weeks || !filteredMatrixCompanies || filteredMatrixCompanies.length === 0) return null;
+        const weeks = data.weeks;
+        const comps = filteredMatrixCompanies;
+        const nComps = comps.length;
+        const nWeeks = weeks.length;
+
+        // 1. Column averages (per week across all PT)
+        const weekAverages = {};
+        weeks.forEach(w => {
+            let sumTotal = 0;
+            let sumDaily = 0;
+            let sumHH = 0;
+            comps.forEach(c => {
+                const cell = data.matrix?.[c.code]?.[w.formatted_name];
+                sumTotal += cell?.total_ch_mm || 0;
+                sumDaily += cell?.avg_daily_mm || 0;
+                sumHH += cell?.hari_hujan || 0;
+            });
+            weekAverages[w.formatted_name] = {
+                avgWeekly: Number((sumTotal / nComps).toFixed(1)),
+                avgDaily: Number((sumDaily / nComps).toFixed(1)),
+                avgHH: Number((sumHH / nComps).toFixed(1))
+            };
+        });
+
+        // 2. Row averages (per PT across all weeks)
+        const companyAverages = {};
+        comps.forEach(c => {
+            let sumTotal = 0;
+            let sumDaily = 0;
+            let sumHH = 0;
+            weeks.forEach(w => {
+                const cell = data.matrix?.[c.code]?.[w.formatted_name];
+                sumTotal += cell?.total_ch_mm || 0;
+                sumDaily += cell?.avg_daily_mm || 0;
+                sumHH += cell?.hari_hujan || 0;
+            });
+            companyAverages[c.code] = {
+                avgWeekly: Number((sumTotal / nWeeks).toFixed(1)),
+                avgDaily: Number((sumDaily / nWeeks).toFixed(1)),
+                avgHH: Number((sumHH / nWeeks).toFixed(1))
+            };
+        });
+
+        // 3. Overall grand average
+        let grandTotal = 0;
+        let grandDaily = 0;
+        let grandHH = 0;
+        comps.forEach(c => {
+            const ca = companyAverages[c.code];
+            grandTotal += ca.avgWeekly;
+            grandDaily += ca.avgDaily;
+            grandHH += ca.avgHH;
+        });
+        const overall = {
+            avgWeekly: Number((grandTotal / nComps).toFixed(1)),
+            avgDaily: Number((grandDaily / nComps).toFixed(1)),
+            avgHH: Number((grandHH / nComps).toFixed(1))
+        };
+
+        return {
+            weekAverages,
+            companyAverages,
+            overall
+        };
+    }, [data?.weeks, data?.matrix, filteredMatrixCompanies]);
+
     const handleSort = (key) => {
         setSortConfig(prev => ({
             key,
@@ -283,7 +371,7 @@ export default function RainfallWeeklySummary() {
                                         onClick={() => handleSort('total_ch_mm')}
                                     >
                                         <div className="flex items-center justify-end gap-1.5">
-                                            <span>Total Curah Hujan (mm)</span>
+                                            <span>Rata-rata Mingguan (mm)</span>
                                             {sortConfig.key === 'total_ch_mm' && (sortConfig.direction === 'asc' ? '▲' : '▼')}
                                         </div>
                                     </th>
@@ -381,6 +469,63 @@ export default function RainfallWeeklySummary() {
                                     })
                                 )}
                             </tbody>
+                            {singleAverages && !loading && filteredSingleData.length > 0 && (
+                                <tfoot className="bg-gray-100/90 border-t-2 border-gray-200 font-black text-xs text-gray-900">
+                                    <tr>
+                                        <td className="py-4 px-4 text-center text-gray-400 font-bold">#</td>
+                                        <td className="py-4 px-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-black text-blue-900 uppercase tracking-wider">
+                                                    RATA-RATA SEMUA PT
+                                                </span>
+                                                <span className="text-[10px] text-gray-500 font-normal">
+                                                    Rata-rata seluruh perusahaan
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-4 text-right">
+                                            <span className="text-sm font-black text-blue-900">{singleAverages.avgWeekly}</span>
+                                            <span className="text-[10px] text-gray-500 ml-1">mm</span>
+                                        </td>
+                                        <td className="py-4 px-4 text-right">
+                                            <span className="text-xs font-black text-blue-800 bg-blue-100/80 px-2 py-1 rounded-lg">
+                                                {singleAverages.avgDaily} mm/hari
+                                            </span>
+                                        </td>
+                                        <td className="py-4 px-4 text-center">
+                                            <span className="text-xs font-black text-purple-900">
+                                                {singleAverages.avgHH} <span className="text-gray-500 font-normal">/ 7 Hari</span>
+                                            </span>
+                                        </td>
+                                        <td className="py-4 px-4 text-center">
+                                            <span 
+                                                className="inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
+                                                style={{ 
+                                                    backgroundColor: singleAverages.category?.bg || '#F3F4F6', 
+                                                    color: singleAverages.category?.color || '#374151' 
+                                                }}
+                                            >
+                                                {singleAverages.category?.label || '–'}
+                                            </span>
+                                        </td>
+                                        <td className="py-4 px-4 text-right">
+                                            {singleAverages.delta > 0 ? (
+                                                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
+                                                    <TrendingUp size={13} /> +{singleAverages.delta} mm
+                                                </span>
+                                            ) : singleAverages.delta < 0 ? (
+                                                <span className="inline-flex items-center gap-1 text-xs font-bold text-red-500">
+                                                    <TrendingDown size={13} /> {singleAverages.delta} mm
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-400">
+                                                    <Minus size={13} /> 0.0 mm
+                                                </span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            )}
                         </table>
                     </div>
                 </div>
@@ -443,68 +588,142 @@ export default function RainfallWeeklySummary() {
                                             </div>
                                         </th>
                                     ))}
+                                    {/* Summary Column for Row Averages */}
+                                    <th className="py-4 px-3 text-center min-w-[140px] border-l-2 border-blue-200 bg-blue-50/80 text-blue-900 font-black">
+                                        <div className="flex flex-col items-center">
+                                            <span>Rata-rata Mingguan</span>
+                                            <span className="text-[9px] text-blue-600 font-medium">
+                                                ({data?.weeks?.length || 0} Minggu Terpilih)
+                                            </span>
+                                        </div>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
                                 {loading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={i} className="animate-pulse">
-                                            <td colSpan={(data?.weeks?.length || 8) + 1} className="py-4 px-4 text-center text-gray-300">
+                                            <td colSpan={(data?.weeks?.length || 8) + 2} className="py-4 px-4 text-center text-gray-300">
                                                 Memuat matriks mingguan...
                                             </td>
                                         </tr>
                                     ))
                                 ) : filteredMatrixCompanies.length === 0 ? (
                                     <tr>
-                                        <td colSpan={(data?.weeks?.length || 8) + 1} className="py-8 text-center text-gray-400 italic">
+                                        <td colSpan={(data?.weeks?.length || 8) + 2} className="py-8 text-center text-gray-400 italic">
                                             Tidak ada data.
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredMatrixCompanies.map(comp => (
-                                        <tr key={comp.code} className="hover:bg-blue-50/30 transition-colors">
-                                            <td className="py-3.5 px-4 sticky left-0 bg-white z-10 font-bold text-gray-900 shadow-[1px_0_0_#f1f5f9]">
-                                                {comp.code}
-                                            </td>
-                                            {data?.weeks?.map(w => {
-                                                const cell = data.matrix?.[comp.code]?.[w.formatted_name];
-                                                const total = cell?.total_ch_mm || 0;
-                                                const avg = cell?.avg_daily_mm || 0;
-                                                const hh = cell?.hari_hujan || 0;
-                                                const cat = cell?.category;
+                                    filteredMatrixCompanies.map(comp => {
+                                        const compAvg = matrixAverages?.companyAverages?.[comp.code];
+                                        return (
+                                            <tr key={comp.code} className="hover:bg-blue-50/30 transition-colors">
+                                                <td className="py-3.5 px-4 sticky left-0 bg-white z-10 font-bold text-gray-900 shadow-[1px_0_0_#f1f5f9]">
+                                                    {comp.code}
+                                                </td>
+                                                {data?.weeks?.map(w => {
+                                                    const cell = data.matrix?.[comp.code]?.[w.formatted_name];
+                                                    const total = cell?.total_ch_mm || 0;
+                                                    const avg = cell?.avg_daily_mm || 0;
+                                                    const hh = cell?.hari_hujan || 0;
 
-                                                return (
-                                                    <td key={w.id} className="py-3 px-3 text-center border-l border-gray-100">
-                                                        <div className="flex flex-col items-center gap-0.5">
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="text-xs font-black text-gray-900">
-                                                                    {total}
-                                                                </span>
-                                                                <span className="text-[9px] text-gray-400">mm</span>
+                                                    return (
+                                                        <td key={w.id} className="py-3 px-3 text-center border-l border-gray-100">
+                                                            <div className="flex flex-col items-center gap-0.5">
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="text-xs font-black text-gray-900">
+                                                                        {total}
+                                                                    </span>
+                                                                    <span className="text-[9px] text-gray-400">mm</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1 text-[10px] text-gray-500 font-semibold">
+                                                                    <span className="text-blue-600 font-bold">{avg} mm/hr</span>
+                                                                    <span>·</span>
+                                                                    <span className="text-purple-700 font-bold">{hh} HH</span>
+                                                                </div>
                                                             </div>
-                                                            <div className="flex items-center gap-1 text-[10px] text-gray-500 font-semibold">
-                                                                <span className="text-blue-600 font-bold">{avg} mm/hr</span>
-                                                                <span>·</span>
-                                                                <span className="text-purple-700 font-bold">{hh} HH</span>
-                                                            </div>
+                                                        </td>
+                                                    );
+                                                })}
+                                                {/* Per-Company Average across all selected weeks */}
+                                                <td className="py-3 px-3 text-center border-l-2 border-blue-200 bg-blue-50/40">
+                                                    <div className="flex flex-col items-center gap-0.5">
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-xs font-black text-blue-900">
+                                                                {compAvg?.avgWeekly ?? 0}
+                                                            </span>
+                                                            <span className="text-[9px] text-blue-600 font-bold">mm/mgg</span>
                                                         </div>
-                                                    </td>
-                                                );
-                                            })}
-                                        </tr>
-                                    ))
+                                                        <div className="flex items-center gap-1 text-[10px] text-blue-800 font-semibold">
+                                                            <span>{compAvg?.avgDaily ?? 0} mm/hr</span>
+                                                            <span>·</span>
+                                                            <span>{compAvg?.avgHH ?? 0} HH</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
+                            {matrixAverages && !loading && filteredMatrixCompanies.length > 0 && (
+                                <tfoot className="bg-gray-100/90 border-t-2 border-gray-200 text-xs font-black">
+                                    <tr>
+                                        <td className="py-3.5 px-4 sticky left-0 bg-gray-100 z-10 font-black text-blue-900 uppercase tracking-wider shadow-[1px_0_0_#e2e8f0]">
+                                            RATA-RATA SEMUA PT
+                                        </td>
+                                        {data?.weeks?.map(w => {
+                                            const wAvg = matrixAverages.weekAverages?.[w.formatted_name];
+                                            return (
+                                                <td key={w.id} className="py-3 px-3 text-center border-l border-gray-200">
+                                                    <div className="flex flex-col items-center gap-0.5">
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-xs font-black text-blue-900">
+                                                                {wAvg?.avgWeekly ?? 0}
+                                                            </span>
+                                                            <span className="text-[9px] text-gray-500">mm</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 text-[10px] text-gray-600 font-bold">
+                                                            <span className="text-blue-700">{wAvg?.avgDaily ?? 0} mm/hr</span>
+                                                            <span>·</span>
+                                                            <span className="text-purple-800">{wAvg?.avgHH ?? 0} HH</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            );
+                                        })}
+                                        {/* Grand Overall Average */}
+                                        <td className="py-3 px-3 text-center border-l-2 border-blue-200 bg-blue-100/80">
+                                            <div className="flex flex-col items-center gap-0.5">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs font-black text-blue-950">
+                                                        {matrixAverages.overall?.avgWeekly ?? 0}
+                                                    </span>
+                                                    <span className="text-[9px] text-blue-800 font-bold">mm/mgg</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-[10px] text-blue-900 font-black">
+                                                    <span>{matrixAverages.overall?.avgDaily ?? 0} mm/hr</span>
+                                                    <span>·</span>
+                                                    <span>{matrixAverages.overall?.avgHH ?? 0} HH</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            )}
                         </table>
                     </div>
 
-                    <div className="flex items-center gap-4 text-[10px] text-gray-400 font-bold pt-1">
+                    <div className="flex flex-wrap items-center gap-4 text-[10px] text-gray-400 font-bold pt-1">
                         <span>💡 Keterangan sel matriks:</span>
                         <span className="text-gray-700 font-black">Total Curah Hujan (mm)</span>
                         <span>·</span>
                         <span className="text-blue-600 font-bold">Rata-rata per Hari (mm/hr)</span>
                         <span>·</span>
                         <span className="text-purple-700 font-bold">Hari Hujan (HH)</span>
+                        <span>·</span>
+                        <span className="text-blue-900 font-black bg-blue-50 px-2 py-0.5 rounded">Kolom/Baris Biru: Rata-rata Mingguan</span>
                     </div>
                 </div>
             )}
