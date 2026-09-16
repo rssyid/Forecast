@@ -108,7 +108,7 @@ function ReportCanvas({ displayData, currentWeek, prevWeek, avgNormal, avgKering
             display: 'flex', flexDirection: 'column', gap: '18px'
         }}>
             {/* Header */}
-            <div style={{ backgroundColor: '#F8FAFC', borderRadius: '24px', padding: '20px 32px', display: 'flex', alignItems: 'center', gap: '36px', flexShrink: 0, border: '1px solid #E2E8F0' }}>
+            <div style={{ backgroundColor: '#FAFAFA', borderRadius: '24px', padding: '20px 32px', display: 'flex', alignItems: 'center', gap: '36px', flexShrink: 0, border: '1px solid #EEEEEE' }}>
                 <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '34px', fontWeight: '900', color: '#111827', lineHeight: '1' }}>Summary CH &amp; PZO</div>
                     <div style={{ fontSize: '16px', color: '#9CA3AF', fontWeight: '600', marginTop: '6px' }}>Last Update {currentWeek} · {dateStr}</div>
@@ -237,12 +237,12 @@ export default function ReportModal({ data, currentWeek, prevWeek, onClose }) {
                     </div>
 
                     {/* Scaled preview (visual only, not captured) */}
-                    <div style={{ overflow: 'auto', padding: '20px', backgroundColor: '#E2E8F0', flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+                    <div style={{ overflow: 'auto', padding: '20px', backgroundColor: '#FFFFFF', flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
                         <div style={{
                             width: `${PREVIEW_W}px`,
                             height: `${CANVAS_H * PREVIEW_SCALE}px`,
                             flexShrink: 0, position: 'relative', overflow: 'hidden',
-                            borderRadius: '8px', boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+                            borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
                         }}>
                             <div style={{ position: 'absolute', top: 0, left: 0, transformOrigin: 'top left', transform: `scale(${PREVIEW_SCALE})` }}>
                                 <ReportCanvas {...canvasProps} />
