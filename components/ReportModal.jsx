@@ -122,11 +122,9 @@ function ReportCanvas({ displayData, currentWeek, prevWeek, avgNormal, avgKering
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
                     <span style={{ fontSize: '48px', fontWeight: '900', color: '#111827', lineHeight: '1' }}>{avgKering}%</span>
                     <span style={{ padding: '6px 18px', borderRadius: '24px', backgroundColor: '#FF0D0D', color: '#FFFFFF', fontSize: '17px', fontWeight: '900' }}>KERING</span>
-                    {keringDelta !== 0 && (
-                        <span style={{ fontSize: '15px', fontWeight: '700', color: keringDelta > 0 ? '#EF4444' : '#178242', whiteSpace: 'nowrap' }}>
-                            {`${keringDelta > 0 ? '▲ Naik' : '▼ Turun'} ${Math.abs(keringDelta)}% vs minggu lalu`}
-                        </span>
-                    )}
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: keringDelta > 0 ? '#EF4444' : keringDelta < 0 ? '#178242' : '#9CA3AF', whiteSpace: 'nowrap' }}>
+                        {keringDelta > 0 ? `▲ Naik ${keringDelta}% vs minggu lalu` : keringDelta < 0 ? `▼ Turun ${Math.abs(keringDelta)}% vs minggu lalu` : `▬ 0% vs minggu lalu`}
+                    </span>
                 </div>
             </div>
 
@@ -162,17 +160,25 @@ export default function ReportModal({ data, currentWeek, prevWeek, onClose }) {
     const displayData = [...ordered, ...extras].slice(0, 9);
 
     // Summary stats
-    const getEff = (item, idx) => {
-        const c = item.currentWeek?.percentages?.[idx] || 0;
-        return c > 0 ? c : (item.prevWeek?.percentages?.[idx] || 0);
-    };
+    const hasCurrData = displayData.some(d => (d.currentWeek?.percentages?.reduce((a, b) => a + b, 0) || 0) > 0);
     const n = displayData.length || 1;
-    const avgNormal = Math.round(displayData.reduce((s, d) => s + getEff(d, 3), 0) / n);
-    const avgKering = Math.round(displayData.reduce((s, d) => s + getEff(d, 5), 0) / n);
-    const prevNormal = Math.round(displayData.reduce((s, d) => s + (d.prevWeek?.percentages?.[3] || 0), 0) / n);
-    const prevKering = Math.round(displayData.reduce((s, d) => s + (d.prevWeek?.percentages?.[5] || 0), 0) / n);
+
+    const avgNormal = Math.round(
+        displayData.reduce((s, d) => s + (hasCurrData ? (d.currentWeek?.percentages?.[3] || 0) : (d.prevWeek?.percentages?.[3] || 0)), 0) / n
+    );
+    const avgKering = Math.round(
+        displayData.reduce((s, d) => s + (hasCurrData ? (d.currentWeek?.percentages?.[5] || 0) : (d.prevWeek?.percentages?.[5] || 0)), 0) / n
+    );
+    const prevNormal = Math.round(
+        displayData.reduce((s, d) => s + (d.prevWeek?.percentages?.[3] || 0), 0) / n
+    );
+    const prevKering = Math.round(
+        displayData.reduce((s, d) => s + (d.prevWeek?.percentages?.[5] || 0), 0) / n
+    );
+
     const normalDelta = avgNormal - prevNormal;
-    const keringDelta = avgKering - prevKering;
+    const keringDelta = hasCurrData ? (avgKering - prevKering) : 0;
+
 
     const canvasProps = { displayData, currentWeek, prevWeek, avgNormal, avgKering, normalDelta, keringDelta };
 
