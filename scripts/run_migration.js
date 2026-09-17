@@ -29,11 +29,14 @@ const pool = new pg.Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-const sql = fs.readFileSync(path.join(__dirname, 'create_ecmwf_table.sql'), 'utf8');
+const sql1 = fs.readFileSync(path.join(__dirname, 'create_ecmwf_table.sql'), 'utf8');
+const sql2 = fs.readFileSync(path.join(__dirname, 'create_bulletin_tables.sql'), 'utf8');
 
 try {
-    await pool.query(sql);
-    console.log('✅ Table ecmwf_forecast_data created successfully');
+    await pool.query(sql1);
+    console.log('✅ Table ecmwf_forecast_data verified');
+    await pool.query(sql2);
+    console.log('✅ Tables ecmwf_gis_layers & ecmwf_bulletin_settings created successfully');
 } catch (err) {
     console.error('❌ Error:', err.message);
 } finally {
