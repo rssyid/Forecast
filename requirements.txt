@@ -1,0 +1,7 @@
+ecmwf-opendata
+xarray
+cfgrib
+geopandas
+shapely
+pandas
+eccodes

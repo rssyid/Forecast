@@ -26,9 +26,11 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install system & Python dependencies
         run: |
-          pip install ecmwf-opendata xarray cfgrib geopandas shapely pandas
+          sudo apt-get update
+          sudo apt-get install -y libeccodes-tools libeccodes-dev
+          pip install -r requirements.txt
 
       - name: Determine forecast date
         id: date
