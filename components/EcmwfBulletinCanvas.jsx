@@ -1,16 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from 'react';
-import dynamic from 'next/dynamic';
-import { Download, FileText, Loader2, Maximize2, RefreshCw } from 'lucide-react';
+import { MapContainer, GeoJSON, Rectangle, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { Download, FileText, Loader2 } from 'lucide-react';
 import { domToPng } from 'modern-screenshot';
 import jsPDF from 'jspdf';
-
-// Dynamic import for Leaflet maps to prevent SSR issues
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const GeoJSON = dynamic(() => import('react-leaflet').then(mod => mod.GeoJSON), { ssr: false });
-const Rectangle = dynamic(() => import('react-leaflet').then(mod => mod.Rectangle), { ssr: false });
-const useMap = dynamic(() => import('react-leaflet').then(mod => mod.useMap), { ssr: false });
 
 // 12-level ECMWF palette
 const LEVELS = [0.1, 1, 2, 5, 10, 15, 20, 30, 40, 50, 100, 300, 1000];
@@ -19,12 +15,11 @@ const COLORS = [
   "#2f6ee8", "#e9d96c", "#f7a600", "#ff0d0d", "#a32323", "#ef23ff"
 ];
 
-// Fallback boundaries for default 5 PTs if user hasn't uploaded custom GIS yet
+// Fallback coordinates for default 5 PTs if DB has no record
 const DEFAULT_PT_COORDS = {
   'SIP': [
-    [0.15, 101.85], [0.15, 102.15], [0.35, 102.15], [0.35, 102.25], 
-    [0.25, 102.25], [0.25, 102.35], [0.05, 102.35], [0.05, 102.05], 
-    [-0.05, 102.05], [-0.05, 101.85]
+    [-2.83, 104.56], [-2.83, 104.70], [-2.70, 104.70], [-2.70, 104.60],
+    [-2.75, 104.60], [-2.75, 104.56]
   ],
   'THIP': [
     [-0.30, 103.10], [-0.30, 103.45], [-0.05, 103.45], [-0.05, 103.25],
@@ -44,19 +39,65 @@ const DEFAULT_PT_COORDS = {
   ]
 };
 
-// Component to dynamically fit map bounds inside Leaflet
-function MapController({ bounds, padding = [10, 10] }) {
+// Map controller for Pane 1: Fixed Macro extent
+function MacroFitController({ bounds }) {
   const map = useMap();
   useEffect(() => {
     if (bounds && map) {
       try {
-        map.fitBounds(bounds, { padding, animate: false });
-        map.invalidateSize();
+        map.fitBounds(bounds, { padding: [0, 0], animate: false });
+        setTimeout(() => map.invalidateSize(), 50);
       } catch (e) {
-        console.error('Fit bounds error:', e);
+        console.error('Macro fit error:', e);
       }
     }
-  }, [bounds, map, padding]);
+  }, [bounds, map]);
+  return null;
+}
+
+// Map controller for Pane 2: Regional zoom with buffer km around PT
+function RegionalFitController({ ptGeom, bufferKm = 150 }) {
+  const map = useMap();
+  useEffect(() => {
+    if (ptGeom && map) {
+      try {
+        const layer = L.geoJSON(ptGeom);
+        const bounds = layer.getBounds();
+        if (bounds.isValid()) {
+          const bufferDeg = bufferKm / 111;
+          const regBounds = [
+            [bounds.getSouth() - bufferDeg, bounds.getWest() - bufferDeg * 1.3],
+            [bounds.getNorth() + bufferDeg, bounds.getEast() + bufferDeg * 1.3]
+          ];
+          map.fitBounds(regBounds, { animate: false });
+          setTimeout(() => map.invalidateSize(), 50);
+        }
+      } catch (e) {
+        console.error('Regional fit error:', e);
+      }
+    }
+  }, [ptGeom, map, bufferKm]);
+  return null;
+}
+
+// Map controller for Pane 3: Direct zoom to PT concession with padding %
+function LocalPtFitController({ ptGeom, paddingPct = 20 }) {
+  const map = useMap();
+  useEffect(() => {
+    if (ptGeom && map) {
+      try {
+        const layer = L.geoJSON(ptGeom);
+        const bounds = layer.getBounds();
+        if (bounds.isValid()) {
+          const padRatio = Math.max(0.08, paddingPct / 100);
+          map.fitBounds(bounds.pad(padRatio), { animate: false });
+          setTimeout(() => map.invalidateSize(), 50);
+        }
+      } catch (e) {
+        console.error('Local PT fit error:', e);
+      }
+    }
+  }, [ptGeom, map, paddingPct]);
   return null;
 }
 
@@ -75,19 +116,13 @@ export default function EcmwfBulletinCanvas({
   const [ptGeom, setPtGeom] = useState(null);
   const [coastlineGeom, setCoastlineGeom] = useState(null);
 
-  // Settings with defaults
+  // Settings
   const regionalBufferKm = Number(settings.regional_buffer_km) || 150;
   const localPaddingPct = Number(settings.local_padding_pct) || 20;
   const logoData = settings.logo_data || null;
   const logoWidth = Number(settings.logo_width_px) || 130;
-  const colors = settings.colors || {
-    water: '#9fc5e8',
-    land: '#e4decb',
-    pt_outline: '#0040ff',
-    pt_rect: '#e60000'
-  };
 
-  // Fetch PT geometry from DB or use default coords
+  // Load PT geometry and Coastline from API
   useEffect(() => {
     let isMounted = true;
     async function loadPt() {
@@ -98,11 +133,10 @@ export default function EcmwfBulletinCanvas({
           if (json.found && json.geojson) {
             setPtGeom(json.geojson);
           } else {
-            // Build polygon GeoJSON from default coordinates
+            // Fallback default polygon
             const coords = DEFAULT_PT_COORDS[selectedCompany] || DEFAULT_PT_COORDS['SIP'];
-            // GeoJSON expects [lon, lat]
             const lonLat = coords.map(([lat, lon]) => [lon, lat]);
-            lonLat.push(lonLat[0]); // close polygon
+            lonLat.push(lonLat[0]);
             setPtGeom({
               type: 'FeatureCollection',
               features: [{
@@ -139,86 +173,35 @@ export default function EcmwfBulletinCanvas({
     return () => { isMounted = false; };
   }, [selectedCompany]);
 
-  // Calculate Bounding Box of selected PT
-  const ptBBox = useMemo(() => {
-    if (!ptGeom?.features?.length) {
-      const coords = DEFAULT_PT_COORDS[selectedCompany] || DEFAULT_PT_COORDS['SIP'];
-      const lats = coords.map(c => c[0]);
-      const lons = coords.map(c => c[1]);
-      return {
-        minLat: Math.min(...lats),
-        maxLat: Math.max(...lats),
-        minLon: Math.min(...lons),
-        maxLon: Math.max(...lons)
-      };
-    }
+  // PT Bounding Box for Red Marker Rectangle in Pane 2
+  const ptBounds = useMemo(() => {
+    if (!ptGeom) return null;
+    try {
+      const layer = L.geoJSON(ptGeom);
+      const b = layer.getBounds();
+      if (b.isValid()) return b;
+    } catch (e) {}
+    return null;
+  }, [ptGeom]);
 
-    let minLat = 90, maxLat = -90, minLon = 180, maxLon = -180;
-    function scanCoords(arr) {
-      if (typeof arr[0] === 'number') {
-        const [lon, lat] = arr;
-        if (lat < minLat) minLat = lat;
-        if (lat > maxLat) maxLat = lat;
-        if (lon < minLon) minLon = lon;
-        if (lon > maxLon) maxLon = lon;
-      } else {
-        arr.forEach(scanCoords);
-      }
-    }
-    ptGeom.features.forEach(f => {
-      if (f.geometry?.coordinates) scanCoords(f.geometry.coordinates);
-    });
-
-    return { minLat, maxLat, minLon, maxLon };
-  }, [ptGeom, selectedCompany]);
-
-  // Macro Extent: SE Asia & Indonesia [lon 90-141, lat -12 to 24]
+  // Macro Bounds: SE Asia & Indonesia [lon 90-141, lat -12 to 24]
   const macroBounds = useMemo(() => [
     [-12, 90],
     [24, 141]
   ], []);
 
-  // Regional Extent: PT Bounding Box + buffer km (1 deg lat ≈ 111 km)
-  const regionalBounds = useMemo(() => {
-    const bufferDeg = regionalBufferKm / 111;
-    return [
-      [ptBBox.minLat - bufferDeg, ptBBox.minLon - bufferDeg * 1.2],
-      [ptBBox.maxLat + bufferDeg, ptBBox.maxLon + bufferDeg * 1.2]
-    ];
-  }, [ptBBox, regionalBufferKm]);
-
-  // Local Extent: PT Concession + padding %
-  const localBounds = useMemo(() => {
-    const latSpan = Math.max(0.05, ptBBox.maxLat - ptBBox.minLat);
-    const lonSpan = Math.max(0.05, ptBBox.maxLon - ptBBox.minLon);
-    const padLat = latSpan * (localPaddingPct / 100);
-    const padLon = lonSpan * (localPaddingPct / 100);
-    return [
-      [ptBBox.minLat - padLat, ptBBox.minLon - padLon],
-      [ptBBox.maxLat + padLat, ptBBox.maxLon + padLon]
-    ];
-  }, [ptBBox, localPaddingPct]);
-
-  // Rectangle bounds for Red PT Indicator Box
-  const ptRectBounds = useMemo(() => [
-    [ptBBox.minLat, ptBBox.minLon],
-    [ptBBox.maxLat, ptBBox.maxLon]
-  ], [ptBBox]);
-
-  // Date strings formatting for Header & Footer
+  // Format header dates
   const headerDates = useMemo(() => {
     const d = new Date(forecastDate + 'T00:00:00Z');
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const months = ['Jan', 'Feb', 'Mar', 'Sep', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    // Base time: e.g. Wed 16 Sep 2026 00 UTC
     const baseDay = days[d.getUTCDay()];
     const baseDate = d.getUTCDate();
     const baseMonth = months[d.getUTCMonth()];
     const baseYear = d.getUTCFullYear();
     const baseStr = `Base time: ${baseDay} ${baseDate} ${baseMonth} ${baseYear} 00 UTC`;
 
-    // Valid time (+162h = 6 days + 18h)
     const v = new Date(d.getTime() + 162 * 3600 * 1000);
     const validDay = days[v.getUTCDay()];
     const validDate = v.getUTCDate();
@@ -279,7 +262,6 @@ export default function EcmwfBulletinCanvas({
         format: 'a4'
       });
 
-      // A4 dimensions: 297mm x 210mm
       pdf.addImage(dataUrl, 'PNG', 0, 0, 297, 210, undefined, 'FAST');
       pdf.save(`ECMWF_AIFS_${selectedCompany}_${forecastDate}.pdf`);
     } catch (err) {
@@ -300,14 +282,14 @@ export default function EcmwfBulletinCanvas({
           <select
             value={selectedCompany}
             onChange={(e) => onCompanyChange && onCompanyChange(e.target.value)}
-            className="px-3 py-2 text-sm font-semibold bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all shadow-xs"
+            className="px-3 py-2 text-sm font-semibold bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all shadow-xs cursor-pointer"
           >
             {companyList.map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
           <span className="text-xs text-gray-400">
-            (Menyesuaikan 2 peta di kanan)
+            (Peta kanan atas & bawah otomatis memusat ke batas PT)
           </span>
         </div>
 
@@ -340,7 +322,7 @@ export default function EcmwfBulletinCanvas({
         </div>
       </div>
 
-      {/* Main Poster Container (Styled exactly like official ECMWF Bulletin) */}
+      {/* Main Poster Container (Exact Replica of official ECMWF Bulletin) */}
       <div className="overflow-x-auto pb-4">
         <div
           ref={posterRef}
@@ -363,14 +345,11 @@ export default function EcmwfBulletinCanvas({
 
           {/* 3 Map Panes Container with Crisp Black Grid Border */}
           <div 
-            className="grid grid-cols-12 border-2 border-black" 
+            className="grid grid-cols-12 border-2 border-black bg-white" 
             style={{ height: '510px' }}
           >
             {/* Pane 1: Macro View (Southeast Asia & Indonesia) */}
-            <div 
-              className="col-span-7 border-r-2 border-black relative overflow-hidden" 
-              style={{ backgroundColor: colors.water }}
-            >
+            <div className="col-span-7 border-r-2 border-black relative overflow-hidden bg-white">
               <MapContainer
                 bounds={macroBounds}
                 zoomControl={false}
@@ -378,19 +357,18 @@ export default function EcmwfBulletinCanvas({
                 dragging={false}
                 scrollWheelZoom={false}
                 doubleClickZoom={false}
-                className="w-full h-full"
-                style={{ backgroundColor: colors.water }}
+                className="w-full h-full bg-white"
               >
-                <MapController bounds={macroBounds} padding={[0, 0]} />
+                <MacroFitController bounds={macroBounds} />
 
                 {/* Rainfall categorized polygons */}
                 {geojsonData && (
                   <GeoJSON
-                    key={`macro-rain-${JSON.stringify(geojsonData).slice(0, 40)}`}
+                    key={`macro-rain-${selectedCompany}`}
                     data={geojsonData}
                     style={(f) => ({
                       fillColor: f.properties?.color || '#ccc',
-                      fillOpacity: 0.85,
+                      fillOpacity: 0.9,
                       weight: 0.1,
                       color: '#444'
                     })}
@@ -404,9 +382,9 @@ export default function EcmwfBulletinCanvas({
                     data={coastlineGeom}
                     style={{
                       fillColor: 'transparent',
-                      weight: 0.7,
+                      weight: 0.75,
                       color: '#000',
-                      opacity: 0.9
+                      opacity: 0.95
                     }}
                   />
                 )}
@@ -414,32 +392,29 @@ export default function EcmwfBulletinCanvas({
             </div>
 
             {/* Right Column: 2 Panes (Regional Zoom & Local Concession) */}
-            <div className="col-span-5 grid grid-rows-2 h-full">
+            <div className="col-span-5 grid grid-rows-2 h-full bg-white">
               {/* Pane 2: Top-Right Regional Zoom with Red PT Indicator Box */}
-              <div 
-                className="border-b-2 border-black relative overflow-hidden" 
-                style={{ backgroundColor: colors.water }}
-              >
+              <div className="border-b-2 border-black relative overflow-hidden bg-white">
                 <MapContainer
-                  bounds={regionalBounds}
+                  center={ptBounds ? ptBounds.getCenter() : [-2.8, 104.6]}
+                  zoom={7}
                   zoomControl={false}
                   attributionControl={false}
                   dragging={false}
                   scrollWheelZoom={false}
                   doubleClickZoom={false}
-                  className="w-full h-full"
-                  style={{ backgroundColor: colors.water }}
+                  className="w-full h-full bg-white"
                 >
-                  <MapController bounds={regionalBounds} padding={[5, 5]} />
+                  <RegionalFitController ptGeom={ptGeom} bufferKm={regionalBufferKm} />
 
                   {/* Rainfall polygons */}
                   {geojsonData && (
                     <GeoJSON
-                      key={`reg-rain-${JSON.stringify(geojsonData).slice(0, 40)}`}
+                      key={`reg-rain-${selectedCompany}`}
                       data={geojsonData}
                       style={(f) => ({
                         fillColor: f.properties?.color || '#ccc',
-                        fillOpacity: 0.85,
+                        fillOpacity: 0.9,
                         weight: 0.1,
                         color: '#444'
                       })}
@@ -453,42 +428,41 @@ export default function EcmwfBulletinCanvas({
                       data={coastlineGeom}
                       style={{
                         fillColor: 'transparent',
-                        weight: 0.8,
+                        weight: 0.85,
                         color: '#000',
-                        opacity: 0.95
+                        opacity: 1
                       }}
                     />
                   )}
 
                   {/* Red Solid Rectangle Bounding Box of selected PT */}
-                  <Rectangle
-                    bounds={ptRectBounds}
-                    pathOptions={{
-                      color: colors.pt_rect || '#e60000',
-                      weight: 2,
-                      fillColor: colors.pt_rect || '#e60000',
-                      fillOpacity: 0.75
-                    }}
-                  />
+                  {ptBounds && (
+                    <Rectangle
+                      bounds={ptBounds}
+                      pathOptions={{
+                        color: '#e60000',
+                        weight: 2,
+                        fillColor: '#e60000',
+                        fillOpacity: 0.85
+                      }}
+                    />
+                  )}
                 </MapContainer>
               </div>
 
               {/* Pane 3: Bottom-Right Local PT Concession Outline + Badge */}
-              <div 
-                className="relative overflow-hidden" 
-                style={{ backgroundColor: colors.water }}
-              >
+              <div className="relative overflow-hidden bg-white">
                 <MapContainer
-                  bounds={localBounds}
+                  center={ptBounds ? ptBounds.getCenter() : [-2.8, 104.6]}
+                  zoom={11}
                   zoomControl={false}
                   attributionControl={false}
                   dragging={false}
                   scrollWheelZoom={false}
                   doubleClickZoom={false}
-                  className="w-full h-full"
-                  style={{ backgroundColor: colors.water }}
+                  className="w-full h-full bg-white"
                 >
-                  <MapController bounds={localBounds} padding={[15, 15]} />
+                  <LocalPtFitController ptGeom={ptGeom} paddingPct={localPaddingPct} />
 
                   {/* Coastline in local view */}
                   {coastlineGeom && (
@@ -496,25 +470,25 @@ export default function EcmwfBulletinCanvas({
                       key="local-coastline"
                       data={coastlineGeom}
                       style={{
-                        fillColor: colors.land,
-                        fillOpacity: 0.9,
+                        fillColor: '#dcd8cc',
+                        fillOpacity: 0.85,
                         weight: 1.0,
-                        color: '#000',
+                        color: '#222',
                         opacity: 1
                       }}
                     />
                   )}
 
-                  {/* Thick Blue Concession Outline */}
+                  {/* Thick Blue Concession Outline (Guaranteed on top) */}
                   {ptGeom && (
                     <GeoJSON
-                      key={`local-pt-${selectedCompany}`}
+                      key={`local-pt-${selectedCompany}-${JSON.stringify(ptGeom).length}`}
                       data={ptGeom}
                       style={{
                         fillColor: '#0040ff',
-                        fillOpacity: 0.08,
-                        weight: 2.8,
-                        color: colors.pt_outline || '#0040ff',
+                        fillOpacity: 0.12,
+                        weight: 3.5,
+                        color: '#0040ff',
                         opacity: 1
                       }}
                     />
