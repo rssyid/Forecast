@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS ecmwf_forecast_data (
     step INTEGER DEFAULT 162,
     geojson_data JSONB NOT NULL,
     feature_count INTEGER,
-    created_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
     processing_time_sec REAL
 );
 
