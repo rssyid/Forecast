@@ -1,15 +1,15 @@
-name: ECMWF AIFS Forecast Download
+name: ECMWF Forecast Download
 
 on:
-  schedule:
-    # Every Wednesday at 00:00 UTC = 07:00 WIB
-    - cron: '0 0 * * 3'
   workflow_dispatch:
     inputs:
       forecast_date:
-        description: 'Forecast date (YYYY-MM-DD, must be Wednesday)'
+        description: 'Forecast date (YYYY-MM-DD)'
         required: false
+        default: ''
         type: string
+  schedule:
+    - cron: '0 0 * * 3'
 
 jobs:
   download-and-process:
