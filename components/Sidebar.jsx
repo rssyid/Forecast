@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CalendarDays, BarChart2, Settings, ChevronLeft, ChevronDown, ChevronRight, Waves, Activity } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, BarChart2, Settings, ChevronLeft, ChevronDown, ChevronRight, Waves, Activity, CloudRain } from 'lucide-react';
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   const pathname = usePathname();
@@ -12,7 +12,15 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   const menuItems = [
     { href: '/overview', icon: <Activity size={18} />, label: 'Command Center' },
     { href: '/', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
-    { href: '/forecast', icon: <BarChart2 size={18} />, label: 'Forecast & AI' },
+    { 
+      id: 'forecast',
+      icon: <BarChart2 size={18} />, 
+      label: 'Forecast & AI',
+      items: [
+        { href: '/forecast', label: 'Dashboard Forecast' },
+        { href: '/forecast/ecmwf', label: 'ECMWF AIFS Map' }
+      ]
+    },
     { 
       id: 'piezometer',
       icon: <Waves size={18} />, 

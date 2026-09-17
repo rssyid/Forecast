@@ -59,6 +59,8 @@ coverage/
 *.tmp
 *.temp
 Test.md
+__pycache__/
+*.pyc
 
 # ========================
 # TypeScript
