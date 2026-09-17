@@ -43,31 +43,9 @@ jobs:
           fi
           echo "Using forecast date: $(grep FORECAST_DATE $GITHUB_OUTPUT)"
 
-      - name: Download and process ECMWF data
-        run: |
-          python scripts/download_ecmwf.py --date ${{ steps.date.outputs.FORECAST_DATE }} > /tmp/ecmwf_output.geojson
-
-      - name: Upload to Vercel API
+      - name: Download, process and upload to Vercel
         env:
           VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
           ECMWF_API_SECRET: ${{ secrets.ECMWF_API_SECRET }}
         run: |
-          FORECAST_DATE="${{ steps.date.outputs.FORECAST_DATE }}"
-          
-          python -c "import json; geojson = json.load(open('/tmp/ecmwf_output.geojson')); payload = {'date': '${FORECAST_DATE}', 'geojson': geojson, 'processing_time_sec': 0}; json.dump(payload, open('/tmp/ecmwf_payload.json', 'w')); print(f'Features: {len(geojson.get(\"features\", []))}')"
-          
-          HTTP_CODE=$(curl -s -o /tmp/ecmwf_response.json -w "%{http_code}" \
-            -X POST "${VERCEL_APP_URL}/api/ecmwf-forecast" \
-            -H "Content-Type: application/json" \
-            -H "x-api-key: ${ECMWF_API_SECRET}" \
-            --data-binary @/tmp/ecmwf_payload.json)
-          
-          echo "Response status: $HTTP_CODE"
-          cat /tmp/ecmwf_response.json
-          
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "ERROR: Upload failed with status $HTTP_CODE"
-            exit 1
-          fi
-          
-          echo "Data successfully uploaded for $FORECAST_DATE"
+          python scripts/download_ecmwf.py --date ${{ steps.date.outputs.FORECAST_DATE }} --upload

@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import os
 import sys
 import json
@@ -16,6 +13,7 @@ import xarray as xr
 import geopandas as gpd
 from shapely.geometry import box as shapely_box
 from ecmwf.opendata import Client
+import requests
 
 # Suppress warnings
 warnings.filterwarnings('ignore')
@@ -38,7 +36,7 @@ CATEGORY_LABELS = [
 ]
 
 def log(msg):
-    """Print to stderr so stdout stays clean for JSON output"""
+    """Print progress logs to stderr"""
     print(msg, file=sys.stderr, flush=True)
 
 def get_last_wednesday():
@@ -62,6 +60,8 @@ def categorize_tp(values):
 def main():
     parser = argparse.ArgumentParser(description='Download ECMWF AIFS forecast and convert to GeoJSON')
     parser.add_argument('--date', type=str, help='Forecast date (YYYY-MM-DD), must be Wednesday')
+    parser.add_argument('--output', type=str, default='', help='Path to save output GeoJSON file')
+    parser.add_argument('--upload', action='store_true', help='Upload directly to Vercel API')
     args = parser.parse_args()
 
     if args.date:
@@ -96,9 +96,8 @@ def main():
         try:
             client.retrieve(**request)
         except Exception as e:
-            log(f'Error downloading: {e}')
-            # Try without specific date (latest available)
-            log('Retrying with latest available data...')
+            log(f'Error downloading specific date: {e}')
+            log('Retrying with latest available ECMWF operational data...')
             del request['date']
             client.retrieve(**request)
         
@@ -174,11 +173,53 @@ def main():
         )
 
         elapsed = round(time.time() - start_time, 1)
-        log(f'Processing complete in {elapsed}s. Features: {len(dissolved)}')
+        feature_count = len(dissolved)
+        log(f'Processing complete in {elapsed}s. Features: {feature_count}')
 
-        # Output GeoJSON to stdout
-        geojson_str = dissolved.to_json()
-        print(geojson_str)
+        # Convert to python dict directly (avoids any string encoding / JSON escaping issues)
+        geojson_dict = json.loads(dissolved.to_json())
+
+        # Save to file if requested
+        if args.output:
+            with open(args.output, 'w', encoding='utf-8') as f:
+                json.dump(geojson_dict, f)
+            log(f'GeoJSON saved to file: {args.output}')
+
+        # Direct upload to Vercel API if requested or env vars exist
+        vercel_url = os.environ.get('VERCEL_APP_URL', '').rstrip('/')
+        api_secret = os.environ.get('ECMWF_API_SECRET', '')
+
+        if args.upload or (vercel_url and api_secret):
+            if not vercel_url or not api_secret:
+                log('ERROR: VERCEL_APP_URL and ECMWF_API_SECRET must be set for upload')
+                sys.exit(1)
+
+            upload_url = f'{vercel_url}/api/ecmwf-forecast'
+            log(f'Uploading data directly to: {upload_url}')
+            
+            payload = {
+                'date': str(forecast_date),
+                'geojson': geojson_dict,
+                'processing_time_sec': elapsed
+            }
+
+            headers = {
+                'Content-Type': 'application/json',
+                'x-api-key': api_secret
+            }
+
+            resp = requests.post(upload_url, json=payload, headers=headers, timeout=60)
+            log(f'Vercel API Response Code: {resp.status_code}')
+            log(f'Vercel API Response Body: {resp.text}')
+
+            if resp.status_code != 200:
+                log(f'ERROR: Upload failed with status {resp.status_code}: {resp.text}')
+                sys.exit(1)
+            
+            log(f'SUCCESS: Forecast data for {forecast_date} successfully uploaded to DB!')
+        else:
+            # Print to stdout if not uploaded
+            print(json.dumps(geojson_dict))
 
 if __name__ == '__main__':
     main()
