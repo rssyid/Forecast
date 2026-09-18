@@ -19,7 +19,7 @@ import requests
 warnings.filterwarnings('ignore')
 
 # Fixed configuration
-EXTENT = [90, 141, -12, 24]  # [lon_min, lon_max, lat_min, lat_max]
+EXTENT = [89, 142, -13, 25]  # [lon_min, lon_max, lat_min, lat_max]
 STEP = 162
 MODEL = 'aifs-single'
 PARAM = ['tp']
