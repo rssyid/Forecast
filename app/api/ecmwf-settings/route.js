@@ -23,7 +23,7 @@ export async function GET() {
                         water: '#9fc5e8',
                         land: '#dcd8cc',
                         pt_outline: '#0040ff',
-                        pt_rect: '#e60000'
+                        pt_rect: '#000000'
                     }
                 }
             });
@@ -60,7 +60,7 @@ export async function POST(request) {
                 COALESCE($3, 20),
                 $4,
                 COALESCE($5, 130),
-                COALESCE($6, '{"water": "#9fc5e8", "land": "#dcd8cc", "pt_outline": "#0040ff", "pt_rect": "#e60000"}'::jsonb),
+                COALESCE($6, '{"water": "#9fc5e8", "land": "#dcd8cc", "pt_outline": "#0040ff", "pt_rect": "#000000"}'::jsonb),
                 NOW()
             )
             ON CONFLICT (id) DO UPDATE SET

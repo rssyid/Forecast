@@ -197,7 +197,7 @@ export default function EcmwfForecastClient() {
       water: '#9fc5e8',
       land: '#e4decb',
       pt_outline: '#0040ff',
-      pt_rect: '#e60000'
+      pt_rect: '#000000'
     }
   });
 

@@ -435,14 +435,14 @@ export default function EcmwfBulletinCanvas({
                     />
                   )}
 
-                  {/* Red Solid Rectangle Bounding Box of selected PT */}
+                  {/* Black Solid Rectangle Bounding Box of selected PT */}
                   {ptBounds && (
                     <Rectangle
                       bounds={ptBounds}
                       pathOptions={{
-                        color: '#e60000',
-                        weight: 2,
-                        fillColor: '#e60000',
+                        color: '#000000',
+                        weight: 2.5,
+                        fillColor: '#000000',
                         fillOpacity: 0.85
                       }}
                     />
@@ -464,16 +464,29 @@ export default function EcmwfBulletinCanvas({
                 >
                   <LocalPtFitController ptGeom={ptGeom} paddingPct={localPaddingPct} />
 
-                  {/* Coastline in local view */}
+                  {/* ECMWF Rainfall categorized polygons as background */}
+                  {geojsonData && (
+                    <GeoJSON
+                      key={`local-rain-${selectedCompany}`}
+                      data={geojsonData}
+                      style={(f) => ({
+                        fillColor: f.properties?.color || '#ccc',
+                        fillOpacity: 0.9,
+                        weight: 0.1,
+                        color: '#444'
+                      })}
+                    />
+                  )}
+
+                  {/* Coastline in local view (transparent fill to show ECMWF rainfall background) */}
                   {coastlineGeom && (
                     <GeoJSON
                       key="local-coastline"
                       data={coastlineGeom}
                       style={{
-                        fillColor: '#dcd8cc',
-                        fillOpacity: 0.85,
+                        fillColor: 'transparent',
                         weight: 1.0,
-                        color: '#222',
+                        color: '#000',
                         opacity: 1
                       }}
                     />
