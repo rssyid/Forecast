@@ -101,6 +101,118 @@ function LocalPtFitController({ ptGeom, paddingPct = 20 }) {
   return null;
 }
 
+// Coastline overlay with dedicated Leaflet pane (z-index 650) to ensure it stays on top of all layers
+function CoastlineOverlay({ data, weight = 1.0, opacity = 1.0, paneName = 'coastlinePane' }) {
+  const map = useMap();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (map) {
+      if (!map.getPane(paneName)) {
+        const pane = map.createPane(paneName);
+        pane.style.zIndex = '650';
+        pane.style.pointerEvents = 'none';
+      }
+      setReady(true);
+    }
+  }, [map, paneName]);
+
+  if (!ready || !data) return null;
+
+  return (
+    <GeoJSON
+      key={`${paneName}-${data.features ? data.features.length : 1}`}
+      data={data}
+      pane={paneName}
+      style={{
+        fillColor: 'transparent',
+        weight: weight,
+        color: '#000000',
+        opacity: opacity
+      }}
+    />
+  );
+}
+
+// Regional company marker component (Pane 2) with 2x stroke weight (5.0px)
+function RegionalCompanyMarker({ bounds, geom, color = '#000000', weight = 5.0 }) {
+  const map = useMap();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (map) {
+      if (!map.getPane('regCompanyPane')) {
+        const pane = map.createPane('regCompanyPane');
+        pane.style.zIndex = '600'; // above rainfall (400), below coastline (650)
+      }
+      setReady(true);
+    }
+  }, [map]);
+
+  if (!ready || !bounds) return null;
+
+  return (
+    <>
+      <Rectangle
+        bounds={bounds}
+        pane="regCompanyPane"
+        pathOptions={{
+          color: color,
+          weight: weight,
+          fillColor: color,
+          fillOpacity: 0.25
+        }}
+      />
+      {geom && (
+        <GeoJSON
+          key={`reg-geom-${JSON.stringify(geom).length}`}
+          data={geom}
+          pane="regCompanyPane"
+          style={{
+            color: color,
+            weight: weight,
+            fillColor: 'transparent',
+            opacity: 1
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// Local PT concession outline (Pane 3)
+function LocalPtOutline({ geom, color = '#0040ff', weight = 3.5 }) {
+  const map = useMap();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (map) {
+      if (!map.getPane('localPtPane')) {
+        const pane = map.createPane('localPtPane');
+        pane.style.zIndex = '600'; // above rainfall (400), below coastline (650)
+      }
+      setReady(true);
+    }
+  }, [map]);
+
+  if (!ready || !geom) return null;
+
+  return (
+    <GeoJSON
+      key={`local-pt-${JSON.stringify(geom).length}`}
+      data={geom}
+      pane="localPtPane"
+      style={{
+        fillColor: color,
+        fillOpacity: 0.12,
+        weight: weight,
+        color: color,
+        opacity: 1
+      }}
+    />
+  );
+}
+
 export default function EcmwfBulletinCanvas({
   forecastDate = '2026-09-16',
   geojsonData,
@@ -375,25 +487,19 @@ export default function EcmwfBulletinCanvas({
                   />
                 )}
 
-                {/* Black Coastline */}
-                {coastlineGeom && (
-                  <GeoJSON
-                    key="macro-coastline"
-                    data={coastlineGeom}
-                    style={{
-                      fillColor: 'transparent',
-                      weight: 0.75,
-                      color: '#000',
-                      opacity: 0.95
-                    }}
-                  />
-                )}
+                {/* Black Coastline - Guaranteed on top in dedicated pane (zIndex 650) */}
+                <CoastlineOverlay
+                  data={coastlineGeom}
+                  paneName="macroCoastlinePane"
+                  weight={0.85}
+                  opacity={1.0}
+                />
               </MapContainer>
             </div>
 
             {/* Right Column: 2 Panes (Regional Zoom & Local Concession) */}
             <div className="col-span-5 grid grid-rows-2 h-full bg-white">
-              {/* Pane 2: Top-Right Regional Zoom with Red PT Indicator Box */}
+              {/* Pane 2: Top-Right Regional Zoom with Red/Black PT Indicator Box */}
               <div className="border-b-2 border-black relative overflow-hidden bg-white">
                 <MapContainer
                   center={ptBounds ? ptBounds.getCenter() : [-2.8, 104.6]}
@@ -421,32 +527,21 @@ export default function EcmwfBulletinCanvas({
                     />
                   )}
 
-                  {/* Coastline */}
-                  {coastlineGeom && (
-                    <GeoJSON
-                      key="reg-coastline"
-                      data={coastlineGeom}
-                      style={{
-                        fillColor: 'transparent',
-                        weight: 0.85,
-                        color: '#000',
-                        opacity: 1
-                      }}
-                    />
-                  )}
+                  {/* Company Boundary Marker (2x stroke weight = 5.0) */}
+                  <RegionalCompanyMarker
+                    bounds={ptBounds}
+                    geom={ptGeom}
+                    color={settings?.colors?.pt_rect || '#000000'}
+                    weight={5.0}
+                  />
 
-                  {/* Black Solid Rectangle Bounding Box of selected PT */}
-                  {ptBounds && (
-                    <Rectangle
-                      bounds={ptBounds}
-                      pathOptions={{
-                        color: '#000000',
-                        weight: 2.5,
-                        fillColor: '#000000',
-                        fillOpacity: 0.85
-                      }}
-                    />
-                  )}
+                  {/* Coastline - Guaranteed on top in dedicated pane (zIndex 650) */}
+                  <CoastlineOverlay
+                    data={coastlineGeom}
+                    paneName="regCoastlinePane"
+                    weight={1.0}
+                    opacity={1.0}
+                  />
                 </MapContainer>
               </div>
 
@@ -478,34 +573,20 @@ export default function EcmwfBulletinCanvas({
                     />
                   )}
 
-                  {/* Coastline in local view (transparent fill to show ECMWF rainfall background) */}
-                  {coastlineGeom && (
-                    <GeoJSON
-                      key="local-coastline"
-                      data={coastlineGeom}
-                      style={{
-                        fillColor: 'transparent',
-                        weight: 1.0,
-                        color: '#000',
-                        opacity: 1
-                      }}
-                    />
-                  )}
+                  {/* Thick Blue Concession Outline (in localPtPane, zIndex 600) */}
+                  <LocalPtOutline
+                    geom={ptGeom}
+                    color={settings?.colors?.pt_outline || '#0040ff'}
+                    weight={3.5}
+                  />
 
-                  {/* Thick Blue Concession Outline (Guaranteed on top) */}
-                  {ptGeom && (
-                    <GeoJSON
-                      key={`local-pt-${selectedCompany}-${JSON.stringify(ptGeom).length}`}
-                      data={ptGeom}
-                      style={{
-                        fillColor: '#0040ff',
-                        fillOpacity: 0.12,
-                        weight: 3.5,
-                        color: '#0040ff',
-                        opacity: 1
-                      }}
-                    />
-                  )}
+                  {/* Coastline in local view - Guaranteed on top in dedicated pane (zIndex 650) */}
+                  <CoastlineOverlay
+                    data={coastlineGeom}
+                    paneName="localCoastlinePane"
+                    weight={1.2}
+                    opacity={1.0}
+                  />
                 </MapContainer>
 
                 {/* White Floating Name Badge in Bottom-Right Corner */}
