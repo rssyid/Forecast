@@ -618,27 +618,30 @@ export default function EcmwfBulletinCanvas({
               AIFS Single: Total accumulated precipitation (kg/m2 (mm))
             </div>
 
-            {/* Swatches Container */}
-            <div className="inline-flex flex-col items-center">
-              {/* Swatch labels */}
-              <div className="w-[480px] flex justify-between text-[10px] font-semibold text-gray-800 mb-0.5 px-1">
-                {LEVELS.map((lvl) => (
-                  <span key={lvl} className="text-center w-8">{lvl}</span>
-                ))}
-              </div>
+            {/* Swatches Container — labels at END (right edge) of each class */}
+            <div className="inline-flex items-end gap-0">
+              {/* Start value: 0.1 before first swatch */}
+              <span className="text-[10px] font-semibold text-gray-800 mr-0.5 mb-0.5 shrink-0">
+                {LEVELS[0]}
+              </span>
 
-              {/* Color Bar */}
-              <div className="w-[480px] h-3.5 flex border border-gray-400 overflow-hidden">
-                {COLORS.map((col, idx) => (
+              {/* Each color swatch with its upper-boundary label at the right */}
+              {COLORS.map((col, idx) => (
+                <div key={idx} className="flex flex-col items-end" style={{ width: '36px' }}>
+                  {/* Label: upper boundary of this class */}
+                  <span className="text-[10px] font-semibold text-gray-800 mb-0.5 leading-none">
+                    {LEVELS[idx + 1]}
+                  </span>
+                  {/* Color swatch */}
                   <div
-                    key={idx}
-                    className="flex-1 h-full"
-                    style={{ backgroundColor: col }}
+                    className="h-3.5 w-full border-r border-gray-400 last:border-r-0"
+                    style={{ backgroundColor: col, borderTop: '1px solid #9CA3AF', borderBottom: '1px solid #9CA3AF', borderLeft: idx === 0 ? '1px solid #9CA3AF' : 'none' }}
                   />
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
+
 
           {/* Footer Bar: Copyright, Metadata & Logo */}
           <div className="mt-4 pt-3 border-t border-gray-200 flex items-end justify-between text-[9px] text-gray-700 leading-tight">
