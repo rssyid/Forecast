@@ -333,6 +333,19 @@ export default function EcmwfBulletinCanvas({
     return new Date().toISOString();
   }, [dataInfo]);
 
+  // Computed filename label: "ECMWF THIP 23 - 29 Sep"
+  // Base date = forecastDate, Valid date = forecastDate + 162h
+  const fileNameLabel = useMemo(() => {
+    const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const base = new Date(forecastDate + 'T00:00:00Z');
+    const valid = new Date(base.getTime() + 162 * 3600 * 1000);
+    const startDay = base.getUTCDate();
+    const endDay = valid.getUTCDate();
+    // Use valid month (end of range) for the month label
+    const monthName = MONTH_SHORT[valid.getUTCMonth()];
+    return `ECMWF ${selectedCompany} ${startDay} - ${endDay} ${monthName}`;
+  }, [forecastDate, selectedCompany]);
+
   // Export handlers
   const handleExportPNG = async () => {
     if (!posterRef.current) return;
@@ -345,7 +358,7 @@ export default function EcmwfBulletinCanvas({
         backgroundColor: '#ffffff'
       });
       const link = document.createElement('a');
-      link.download = `ECMWF_AIFS_${selectedCompany}_${forecastDate}.png`;
+      link.download = `${fileNameLabel}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -375,7 +388,7 @@ export default function EcmwfBulletinCanvas({
       });
 
       pdf.addImage(dataUrl, 'PNG', 0, 0, 297, 210, undefined, 'FAST');
-      pdf.save(`ECMWF_AIFS_${selectedCompany}_${forecastDate}.pdf`);
+      pdf.save(`${fileNameLabel}.pdf`);
     } catch (err) {
       console.error('Export PDF failed:', err);
       alert('Gagal mengekspor PDF: ' + err.message);
