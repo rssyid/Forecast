@@ -621,7 +621,7 @@ export default function EcmwfBulletinCanvas({
             {/* Swatches Container — labels at END (right edge) of each class */}
             <div className="inline-flex items-end gap-0">
               {/* Start value: 0.1 before first swatch */}
-              <span className="text-[10px] font-semibold text-gray-800 mr-0.5 mb-0.5 shrink-0">
+              <span className="text-[10px] font-semibold text-gray-800 mr-0.5 mb-0.5 shrink-0 self-start">
                 {LEVELS[0]}
               </span>
 
