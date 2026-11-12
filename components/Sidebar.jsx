@@ -18,6 +18,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       label: 'Forecast & AI',
       items: [
         { href: '/forecast', label: 'Dashboard Forecast' },
+        { href: '/forecast/multi-company', label: 'Komparasi Multi-PT' },
         { href: '/forecast/ecmwf', label: 'ECMWF AIFS Map' }
       ]
     },
