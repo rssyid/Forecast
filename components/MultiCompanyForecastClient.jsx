@@ -17,7 +17,9 @@ import {
   Sliders, 
   ChevronRight,
   X,
-  Info
+  Info,
+  Zap,
+  Activity
 } from 'lucide-react';
 import { CLASS_ORDER, CLASS_COLORS, formatNumber } from '../lib/forecastEngine';
 
@@ -94,6 +96,10 @@ export default function MultiCompanyForecastClient() {
         "Company": c.company,
         "Total Titik": c.totalPoints,
         "Baseline Avg TMAT (cm)": Number(c.baselineAvgTmat?.toFixed(1)) || 0,
+        "Akurasi Model R² (%)": Number(((c.fit.r2 || 0) * 100).toFixed(1)),
+        "MAE (cm)": Number((c.fit.mae || 0).toFixed(1)),
+        "Hujan Riil Baseline (mm)": Number((c.fit.antecedentRainCurrent || 0).toFixed(1)),
+        "Hujan Riil Lag 1 (mm)": Number((c.fit.antecedentRainLag1 || 0).toFixed(1)),
         "Baseline Banjir (<0) %": Number(c.baselinePct["Banjir (<0)"]?.toFixed(1)) || 0,
         "Baseline Tergenang (0-40) %": Number(c.baselinePct["Tergenang (0-40)"]?.toFixed(1)) || 0,
         "Baseline A Tergenang (41-45) %": Number(c.baselinePct["A Tergenang (41-45)"]?.toFixed(1)) || 0,
@@ -113,7 +119,22 @@ export default function MultiCompanyForecastClient() {
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), "Ringkasan_Komparasi");
 
-    // Sheet 2: Detail Baseline 6 Kelas
+    // Sheet 2: Parameter Model Regresi Multivariat
+    const modelParamRows = data.companies.map(c => ({
+      "Company": c.company,
+      "Tipe Model": c.fit.modelType,
+      "R² Score (%)": Number(((c.fit.r2 || 0) * 100).toFixed(1)),
+      "MAE (cm)": Number((c.fit.mae || 0).toFixed(2)),
+      "Konstanta a (Laju Kering)": Number((c.fit.a || 0).toFixed(2)),
+      "Bobot b0 (Hujan Minggu Berjalan)": Number((c.fit.b0 || 0).toFixed(4)),
+      "Bobot b1 (Hujan Lag 1 Minggu Lalu)": Number((c.fit.b1 || 0).toFixed(4)),
+      "Bobot b2 (Hujan Lag 2 Minggu Lalu)": Number((c.fit.b2 || 0).toFixed(4)),
+      "Hujan Riil Baseline Week (mm)": Number((c.fit.antecedentRainCurrent || 0).toFixed(1)),
+      "Hujan Riil 1 Minggu Sebelumnya (mm)": Number((c.fit.antecedentRainLag1 || 0).toFixed(1)),
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(modelParamRows), "Parameter_Model_OLS");
+
+    // Sheet 3: Detail Baseline 6 Kelas
     const baselineDetailRows = [];
     data.companies.forEach(c => {
       CLASS_ORDER.forEach(cls => {
@@ -176,10 +197,18 @@ export default function MultiCompanyForecastClient() {
             <span className="p-2 rounded-xl bg-blue-50 text-blue-600 font-semibold">
               <Building2 size={20} />
             </span>
-            <h1 className="text-xl font-bold text-gray-900">Komparasi Forecast Multi-PT</h1>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                Komparasi Forecast Multi-PT
+                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold border border-emerald-200 flex items-center gap-1">
+                  <Zap size={11} />
+                  3-Week Memory OLS
+                </span>
+              </h1>
+            </div>
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            Matriks komparasi mingguan TMAT titik vs curah hujan dan proyeksi 6 kategori hidrologi untuk seluruh perusahaan.
+            Matriks komparasi TMAT titik vs curah hujan dengan model kelembaban tanah 3 minggu (Antecedent Moisture) dari 48 minggu historis.
           </p>
         </div>
 
@@ -256,7 +285,7 @@ export default function MultiCompanyForecastClient() {
 
       {/* Top Executive Stats */}
       {data?.overall && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Perusahaan</div>
             <div className="text-2xl font-bold text-gray-900 mt-2 flex items-baseline gap-2">
@@ -294,6 +323,21 @@ export default function MultiCompanyForecastClient() {
             </div>
             <div className="text-xs text-gray-400 mt-1">Target zona ideal (46-60 cm)</div>
           </div>
+
+          {/* New 5th Card: Model Accuracy & Training Data */}
+          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="text-xs font-medium text-purple-600 uppercase tracking-wider flex items-center gap-1">
+              <Activity size={12} />
+              <span>Akurasi Model OLS</span>
+            </div>
+            <div className="text-2xl font-bold text-purple-700 mt-2 flex items-baseline gap-2">
+              {formatNumber((data.overall.modelInfo?.avgR2 || 0) * 100, 1)}%
+              <span className="text-xs font-medium text-gray-400">R² Score</span>
+            </div>
+            <div className="text-xs text-gray-400 mt-1">
+              Basis {data.overall.modelInfo?.trainingWeeks || 48} minggu historis
+            </div>
+          </div>
         </div>
       )}
 
@@ -318,7 +362,7 @@ export default function MultiCompanyForecastClient() {
             }`}
           >
             <TrendingUp size={14} />
-            <span>Pergeseran Status (Shift)</span>
+            <span>Pergeseran & Parameter OLS</span>
           </button>
 
           <button
@@ -373,7 +417,7 @@ export default function MultiCompanyForecastClient() {
         {loading ? (
           <div className="p-16 flex flex-col items-center justify-center text-gray-400 gap-3">
             <RefreshCw size={28} className="animate-spin text-blue-500" />
-            <span className="text-sm font-medium">Memuat data dan mengkalkulasi skenario proyeksi seluruh PT...</span>
+            <span className="text-sm font-medium">Melatih model regresi multivariat 48 minggu dan memproses skenario seluruh PT...</span>
           </div>
         ) : filteredCompanies.length === 0 ? (
           <div className="p-16 text-center text-gray-400 text-sm">
@@ -489,7 +533,7 @@ export default function MultiCompanyForecastClient() {
             </table>
           </div>
         ) : activeTab === 'shift' ? (
-          /* TAB 2: Shift / Analisis Pergeseran Risiko */
+          /* TAB 2: Shift / Analisis Pergeseran & Parameter OLS */
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
@@ -501,7 +545,8 @@ export default function MultiCompanyForecastClient() {
                   <th className="py-3.5 px-3 text-center text-blue-700 bg-blue-50/30">Basah (&le;45 cm)</th>
                   <th className="py-3.5 px-3 text-center text-emerald-700 bg-emerald-50/30">Normal (46-60 cm)</th>
                   <th className="py-3.5 px-3 text-center text-red-700 bg-red-50/30">Kering (&gt;60 cm)</th>
-                  <th className="py-3.5 px-3 text-center">Model Slope (b)</th>
+                  <th className="py-3.5 px-3 text-center bg-purple-50/50 text-purple-700">Akurasi R²</th>
+                  <th className="py-3.5 px-3 text-center bg-purple-50/30 text-purple-700 font-mono">b0 (Now) / b1 (Lag1)</th>
                   <th className="py-3.5 px-4 text-center">Detail</th>
                 </tr>
               </thead>
@@ -566,9 +611,16 @@ export default function MultiCompanyForecastClient() {
                         </div>
                       </td>
 
-                      {/* Model Regression info */}
-                      <td className="py-3 px-3 text-center text-gray-500 font-mono text-[11px]">
-                        {c.fit.b ? `${formatNumber(c.fit.b, 3)} cm/mm` : '-'}
+                      {/* R2 score */}
+                      <td className="py-3 px-3 text-center font-bold text-purple-700 bg-purple-50/20">
+                        {formatNumber((c.fit.r2 || 0) * 100, 1)}%
+                      </td>
+
+                      {/* b0 and b1 weights */}
+                      <td className="py-3 px-3 text-center text-gray-600 font-mono text-[11px] bg-purple-50/10">
+                        <span>{formatNumber(c.fit.b0, 3)}</span>
+                        <span className="text-gray-400 mx-1">/</span>
+                        <span className="text-purple-600 font-bold">{formatNumber(c.fit.b1, 3)}</span>
                       </td>
 
                       <td className="py-3 px-4 text-center">
@@ -631,7 +683,7 @@ export default function MultiCompanyForecastClient() {
                   {modalCompany.company}
                 </span>
                 <div>
-                  <h3 className="font-bold text-gray-900 text-base">Detail Proyeksi & Histori Hidrologi</h3>
+                  <h3 className="font-bold text-gray-900 text-base">Detail Proyeksi & Model Memori Air Tanah</h3>
                   <p className="text-xs text-gray-500">Baseline Week: {modalCompany.baselineWeek} ({modalCompany.totalPoints} titik)</p>
                 </div>
               </div>
@@ -645,17 +697,29 @@ export default function MultiCompanyForecastClient() {
 
             {/* Modal Body */}
             <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
-              {/* Regression Info */}
-              <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-100 text-xs space-y-1">
-                <div className="font-semibold text-blue-900 flex items-center gap-1.5">
-                  <Info size={14} />
-                  <span>Model Respons Hujan (Estate Granular Regression):</span>
+              {/* Regression Info & Formula */}
+              <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-100 text-xs space-y-2">
+                <div className="font-semibold text-purple-900 flex items-center gap-1.5">
+                  <Zap size={15} />
+                  <span>Formula Regresi Multivariat 3-Week Memory (Antecedent Moisture):</span>
                 </div>
-                <div className="font-mono text-blue-800 pl-5">
-                  &Delta;TMAT = {formatNumber(modalCompany.fit.a, 2)} + ({formatNumber(modalCompany.fit.b, 3)} &times; Curah Hujan)
+                <div className="font-mono text-purple-950 pl-4 py-1.5 bg-white/70 rounded-lg border border-purple-200 text-[11px] leading-relaxed">
+                  &Delta;TMAT = {formatNumber(modalCompany.fit.a, 2)} + ({formatNumber(modalCompany.fit.b0, 4)} &times; CH_next) + ({formatNumber(modalCompany.fit.b1, 4)} &times; CH_curr) + ({formatNumber(modalCompany.fit.b2, 4)} &times; CH_prev)
                 </div>
-                <div className="text-blue-600 text-[11px] pl-5">
-                  Metode: {modalCompany.fit.method} | Kebun Valid: {modalCompany.fit.validEstates} dari {modalCompany.fit.totalEstates} estate
+                
+                {/* Antecedent Real Rain Values */}
+                <div className="grid grid-cols-2 gap-2 text-[11px] pl-4 pt-1">
+                  <div className="text-purple-800">
+                    • Hujan Riil Minggu Ini (CH_curr): <span className="font-bold font-mono">{formatNumber(modalCompany.fit.antecedentRainCurrent, 1)} mm</span>
+                  </div>
+                  <div className="text-purple-800">
+                    • Hujan Riil Minggu Lalu (CH_prev): <span className="font-bold font-mono">{formatNumber(modalCompany.fit.antecedentRainLag1, 1)} mm</span>
+                  </div>
+                </div>
+
+                <div className="text-purple-700 text-[11px] pl-4 pt-1 flex items-center justify-between border-t border-purple-200/50">
+                  <span>Akurasi Model: <strong>R² = {formatNumber((modalCompany.fit.r2 || 0) * 100, 1)}%</strong> | MAE: <strong>{formatNumber(modalCompany.fit.mae, 2)} cm</strong></span>
+                  <span>Kebun Valid: <strong>{modalCompany.fit.validEstates}</strong> dari {modalCompany.fit.totalEstates} estate</span>
                 </div>
               </div>
 

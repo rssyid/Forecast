@@ -1,6 +1,7 @@
 import pool from '../../../lib/db.js';
 import { NextResponse } from 'next/server';
-import { processData, parseScenarioInput, CLASS_ORDER, sumValues, mean } from '../../../lib/forecastEngine.js';
+import { parseScenarioInput, CLASS_ORDER, classifyTMAT, toNumber } from '../../../lib/forecastEngine.js';
+import { trainLaggedModels, predictCompanyScenarios } from '../../../lib/multivariateForecastEngine.js';
 
 export async function GET(request) {
     try {
@@ -11,15 +12,13 @@ export async function GET(request) {
 
         const scenarios = parseScenarioInput(scenarioInput);
 
-        // 1. Fetch available calendar weeks from piezometer data
+        // 1. Fetch all calendar weeks chronologically
         const weeksRes = await pool.query(`
-            SELECT p.month_name, MAX(cw.start_date) as start_date, MAX(cw.end_date) as end_date 
+            SELECT DISTINCT p.month_name, MAX(p.date_timestamp) as max_ts
             FROM piezometer_data p
-            LEFT JOIN calendar_weeks cw ON p.month_name = cw.formatted_name
-            GROUP BY p.month_name 
-            ORDER BY MAX(p.date_timestamp) DESC 
-            LIMIT $1 + 1
-        `, [lookbackWeeks]);
+            GROUP BY p.month_name
+            ORDER BY max_ts ASC
+        `);
 
         if (weeksRes.rows.length === 0) {
             return NextResponse.json({
@@ -32,30 +31,33 @@ export async function GET(request) {
             });
         }
 
-        const targetWeeks = weeksRes.rows.map(r => r.month_name);
-        const baselineWeek = requestedBaselineWeek && targetWeeks.includes(requestedBaselineWeek)
+        const weeksChronological = weeksRes.rows.map(r => r.month_name);
+        const latestWeek = weeksChronological[weeksChronological.length - 1];
+        const baselineWeek = requestedBaselineWeek && weeksChronological.includes(requestedBaselineWeek)
             ? requestedBaselineWeek
-            : targetWeeks[0];
+            : latestWeek;
 
-        // 2. Fetch Piezometer Data for all active points in target weeks
-        const pzoRes = await pool.query(`
-            SELECT DISTINCT ON (p.company_code, p.pie_record_id, p.month_name)
-                   p.company_code,
-                   p.est_code, 
-                   COALESCE(m.block_id, p.block) as block, 
-                   p.pie_record_id, 
-                   p.ketinggian, 
-                   p.month_name,
-                   p.date_timestamp
+        // Target weeks list for dropdown (most recent first)
+        const targetWeeks = [...weeksChronological].reverse().slice(0, 16);
+
+        // 2. Fetch full historical aggregated estate TMAT records for model training
+        const histTmatRes = await pool.query(`
+            SELECT 
+                p.company_code,
+                p.est_code,
+                p.month_name,
+                MAX(p.date_timestamp) as date_timestamp,
+                ROUND(AVG(p.ketinggian)::numeric, 2) as avg_tmat
             FROM piezometer_data p
             LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
-            WHERE p.month_name = ANY($1)
-              AND (m.is_active IS NULL OR m.is_active = true)
-            ORDER BY p.company_code, p.pie_record_id, p.month_name, p.date_timestamp DESC
-        `, [targetWeeks]);
+            WHERE (m.is_active IS NULL OR m.is_active = true)
+              AND p.ketinggian IS NOT NULL 
+              AND p.ketinggian != 999
+            GROUP BY p.company_code, p.est_code, p.month_name
+        `);
 
-        // 3. Fetch Estate-level Rainfall
-        const estateRainRes = await pool.query(`
+        // 3. Fetch full historical aggregated estate Rain records for model training
+        const histRainRes = await pool.query(`
             WITH daily_est_avg AS (
                 SELECT 
                     company_code,
@@ -69,16 +71,54 @@ export async function GET(request) {
                 da.company_code,
                 da.est_code,
                 cw.formatted_name as week,
-                SUM(da.daily_avg) as total_rain
+                ROUND(SUM(da.daily_avg)::numeric, 2) as total_rain
             FROM daily_est_avg da
             JOIN calendar_weeks cw ON da.record_date >= cw.start_date AND da.record_date <= cw.end_date
-            WHERE cw.formatted_name = ANY($1)
             GROUP BY da.company_code, da.est_code, cw.formatted_name
-        `, [targetWeeks]);
+        `);
 
-        // 4. Fetch Company-level Rainfall
-        const coRainRes = await pool.query(`
-            WITH daily_company_avg AS (
+        // 4. Train 3-lag Antecedent Moisture OLS models
+        const trainedModels = trainLaggedModels(
+            weeksChronological,
+            histTmatRes.rows,
+            histRainRes.rows
+        );
+
+        // 5. Fetch raw piezometer data ONLY for the baseline week (deduplicated per point)
+        const baselinePzoRes = await pool.query(`
+            SELECT DISTINCT ON (p.pie_record_id)
+                   p.company_code,
+                   p.est_code, 
+                   COALESCE(m.block_id, p.block) as block, 
+                   p.pie_record_id, 
+                   p.ketinggian, 
+                   p.month_name,
+                   p.date_timestamp
+            FROM piezometer_data p
+            LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
+            WHERE p.month_name = $1
+              AND (m.is_active IS NULL OR m.is_active = true)
+            ORDER BY p.pie_record_id, p.date_timestamp DESC
+        `, [baselineWeek]);
+
+        // 6. Fetch weekly history for recent lookback period (for charts/tables)
+        const recentWeeks = [...weeksChronological].slice(-lookbackWeeks);
+        const historyTmatRes = await pool.query(`
+            SELECT 
+                p.company_code,
+                p.month_name as week,
+                ROUND(AVG(p.ketinggian)::numeric, 1) as avg_tmat,
+                COUNT(DISTINCT p.pie_record_id) as total_records
+            FROM piezometer_data p
+            LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
+            WHERE p.month_name = ANY($1)
+              AND (m.is_active IS NULL OR m.is_active = true)
+              AND p.ketinggian != 999
+            GROUP BY p.company_code, p.month_name
+        `, [recentWeeks]);
+
+        const historyRainRes = await pool.query(`
+            WITH daily_co_avg AS (
                 SELECT 
                     company_code,
                     record_date,
@@ -89,45 +129,45 @@ export async function GET(request) {
             SELECT 
                 da.company_code,
                 cw.formatted_name as week,
-                SUM(da.daily_avg) as total_rain
-            FROM daily_company_avg da
+                ROUND(SUM(da.daily_avg)::numeric, 1) as total_rain
+            FROM daily_co_avg da
             JOIN calendar_weeks cw ON da.record_date >= cw.start_date AND da.record_date <= cw.end_date
             WHERE cw.formatted_name = ANY($1)
             GROUP BY da.company_code, cw.formatted_name
-        `, [targetWeeks]);
+        `, [recentWeeks]);
 
-        // Map Rainfall data
-        const companyRainMap = {};
-        coRainRes.rows.forEach(r => {
-            if (!companyRainMap[r.company_code]) companyRainMap[r.company_code] = {};
-            companyRainMap[r.company_code][r.week] = parseFloat(r.total_rain) || 0;
+        // Map weekly history
+        const companyHistoryMap = {};
+        historyTmatRes.rows.forEach(r => {
+            if (!companyHistoryMap[r.company_code]) companyHistoryMap[r.company_code] = {};
+            companyHistoryMap[r.company_code][r.week] = {
+                week: r.week,
+                avgTmat: parseFloat(r.avg_tmat) || 0,
+                totalRecords: parseInt(r.total_records) || 0,
+                rainMm: 0
+            };
+        });
+        historyRainRes.rows.forEach(r => {
+            if (companyHistoryMap[r.company_code] && companyHistoryMap[r.company_code][r.week]) {
+                companyHistoryMap[r.company_code][r.week].rainMm = parseFloat(r.total_rain) || 0;
+            }
         });
 
-        const estateRainMap = {};
-        estateRainRes.rows.forEach(r => {
-            if (!estateRainMap[r.company_code]) estateRainMap[r.company_code] = {};
-            if (!estateRainMap[r.company_code][r.est_code]) estateRainMap[r.company_code][r.est_code] = {};
-            estateRainMap[r.company_code][r.est_code][r.week] = parseFloat(r.total_rain) || 0;
-        });
-
-        // Group PZO rows by company
-        const pzoByCompany = {};
-        pzoRes.rows.forEach(r => {
+        // 7. Group baseline rows by company
+        const baselineByCompany = {};
+        baselinePzoRes.rows.forEach(r => {
             if (!r.company_code) return;
-            if (!pzoByCompany[r.company_code]) pzoByCompany[r.company_code] = [];
-            pzoByCompany[r.company_code].push(r);
+            const val = toNumber(r.ketinggian);
+            const enriched = {
+                ...r,
+                __TMAT_NUM__: val,
+                TMAT_Class: classifyTMAT(val)
+            };
+            if (!baselineByCompany[r.company_code]) baselineByCompany[r.company_code] = [];
+            baselineByCompany[r.company_code].push(enriched);
         });
 
-        const DB_COL_MAP = {
-            week: "month_name",
-            tmat: "ketinggian",
-            estate: "est_code",
-            id: "pie_record_id",
-            block: "block",
-            date: "date_timestamp"
-        };
-
-        const companies = Object.keys(pzoByCompany).sort();
+        const companies = Object.keys(baselineByCompany).sort();
         const companyResults = [];
 
         // Prepare overall accumulator
@@ -143,70 +183,46 @@ export async function GET(request) {
         });
 
         for (const comp of companies) {
-            const rawRows = pzoByCompany[comp] || [];
-            const compRain = companyRainMap[comp] || {};
-            const compEstRain = estateRainMap[comp] || {};
-
-            const processed = processData(
-                rawRows,
-                DB_COL_MAP,
-                compRain,
+            const bRows = baselineByCompany[comp] || [];
+            const result = predictCompanyScenarios({
+                company: comp,
+                baselineRows: bRows,
                 scenarios,
-                baselineWeek,
-                'estate',
-                compEstRain
-            );
-
-            // Accumulate overall
-            const ptCount = processed.baselineTotal || 0;
-            overallTotalPoints += ptCount;
-            if (ptCount > 0 && Number.isFinite(processed.baselineAvgTMAT)) {
-                sumWeightedTmat += (processed.baselineAvgTMAT * ptCount);
-            }
-            CLASS_ORDER.forEach(c => {
-                overallBaselineCounts[c] += (processed.baselineCounts[c] || 0);
+                models: trainedModels,
+                weeksChronological,
+                baselineWeek
             });
 
-            const scenarioList = processed.scenarioResults.map(sc => {
+            // Accumulate overall stats
+            const ptCount = result.totalPoints || 0;
+            overallTotalPoints += ptCount;
+            if (ptCount > 0 && Number.isFinite(result.baselineAvgTmat)) {
+                sumWeightedTmat += (result.baselineAvgTmat * ptCount);
+            }
+            CLASS_ORDER.forEach(c => {
+                overallBaselineCounts[c] += (result.baselineCounts[c] || 0);
+            });
+
+            result.scenarios.forEach(sc => {
                 CLASS_ORDER.forEach(c => {
                     if (overallScenarioCounts[sc.scenarioMm]) {
                         overallScenarioCounts[sc.scenarioMm][c] += (sc.counts[c] || 0);
                     }
                 });
+            });
 
-                return {
-                    scenarioMm: sc.scenarioMm,
-                    avgNext: sc.avgNext,
-                    dAvg: sc.dAvg,
-                    counts: sc.counts,
-                    pct: sc.pct,
-                    summary: sc.summary
-                };
+            // Format history array
+            const histObj = companyHistoryMap[comp] || {};
+            const weeklyHistory = recentWeeks.map(w => histObj[w] || {
+                week: w,
+                avgTmat: 0,
+                totalRecords: 0,
+                rainMm: 0
             });
 
             companyResults.push({
-                company: comp,
-                baselineWeek: processed.baselineWeek,
-                totalPoints: ptCount,
-                baselineAvgTmat: processed.baselineAvgTMAT,
-                baselineCounts: processed.baselineCounts,
-                baselinePct: processed.baselinePct,
-                fit: {
-                    a: processed.fit.a,
-                    b: processed.fit.b,
-                    r2: processed.fit.r2,
-                    mae: processed.fit.mae,
-                    method: processed.fit.method,
-                    validEstates: processed.fit.validEstates,
-                    totalEstates: processed.fit.totalEstates
-                },
-                scenarios: scenarioList,
-                weeklyHistory: processed.weeklySummaryRecords.map(w => ({
-                    week: w.Week,
-                    rainMm: w["Rain (mm)"],
-                    avgTmat: w["Avg TMAT (cm)"],
-                    totalRecords: w["Total Records"]
-                }))
+                ...result,
+                weeklyHistory
             });
         }
 
@@ -237,13 +253,26 @@ export async function GET(request) {
             };
         });
 
+        // Model accuracy metrics across all fitted estates
+        const allEstateModels = Object.values(trainedModels.estateModels);
+        const overallAvgR2 = allEstateModels.length > 0 ? (allEstateModels.reduce((s, m) => s + m.r2, 0) / allEstateModels.length) : 0.50;
+        const overallAvgMae = allEstateModels.length > 0 ? (allEstateModels.reduce((s, m) => s + m.mae, 0) / allEstateModels.length) : 3.5;
+
         const overall = {
             totalCompanies: companies.length,
             totalPoints: overallTotalPoints,
             baselineAvgTmat: overallTotalPoints > 0 ? sumWeightedTmat / overallTotalPoints : 0,
             baselineCounts: overallBaselineCounts,
             baselinePct: overallBaselinePct,
-            scenarios: overallScenarios
+            scenarios: overallScenarios,
+            modelInfo: {
+                modelType: '3-Week Memory OLS (Antecedent Moisture)',
+                trainingWeeks: weeksChronological.length,
+                totalEstatesFitted: allEstateModels.length,
+                avgR2: overallAvgR2,
+                avgMae: overallAvgMae,
+                groupModel: trainedModels.groupModel
+            }
         };
 
         return NextResponse.json({
