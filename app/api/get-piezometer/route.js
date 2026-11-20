@@ -26,26 +26,36 @@ export async function GET(request) {
 
     const targetWeeks = weeksResult.rows.map(r => r.month_name);
 
-    // 1. Fetch Piezometer Data (deduplicated: latest record per piezometer per week)
-    let dataQuery = `
-      SELECT DISTINCT ON (p.pie_record_id, p.month_name)
-             p.data_taken, p.est_code, 
-             COALESCE(m.block_id, p.block) as block, 
-             p.pie_record_id, p.ketinggian, 
-             p.indicator_name, p.indicator_alias, p.month_name, p.date_timestamp, 
-             p.banyak, p.url_images, p.company_code
-      FROM piezometer_data p
-      LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
-      WHERE p.month_name = ANY($1)
-      AND (m.is_active IS NULL OR m.is_active = true)
-    `;
+    // 1. Fetch Piezometer Data (deduplicated per piezometer station, expanded per block via mapping)
+    let companyWhere = '';
     let params = [targetWeeks];
     if (companyCode && companyCode !== 'Semua') {
-       dataQuery += ` AND p.company_code = $2`;
+       companyWhere = ` AND p.company_code = $2`;
        params.push(companyCode);
     }
-    // DISTINCT ON requires ORDER BY matching the DISTINCT ON columns first, then the tiebreaker
-    dataQuery += ` ORDER BY p.pie_record_id, p.month_name, p.date_timestamp DESC`;
+
+    let dataQuery = `
+      WITH latest_pzo AS (
+        SELECT DISTINCT ON (p.pie_record_id, p.month_name)
+               p.data_taken, p.est_code, p.block as raw_block,
+               p.pie_record_id, p.ketinggian, 
+               p.indicator_name, p.indicator_alias, p.month_name, p.date_timestamp, 
+               p.banyak, p.url_images, p.company_code
+        FROM piezometer_data p
+        WHERE p.month_name = ANY($1) ${companyWhere}
+        ORDER BY p.pie_record_id, p.month_name, p.date_timestamp DESC
+      )
+      SELECT 
+        lp.data_taken, lp.est_code,
+        COALESCE(m.block_id, lp.raw_block) as block,
+        lp.pie_record_id, lp.ketinggian,
+        lp.indicator_name, lp.indicator_alias, lp.month_name, lp.date_timestamp,
+        lp.banyak, lp.url_images, lp.company_code
+      FROM latest_pzo lp
+      LEFT JOIN pzo_master_mapping m ON lp.pie_record_id = m.pie_record_id
+      WHERE (m.is_active IS NULL OR m.is_active = true)
+      ORDER BY COALESCE(m.block_id, lp.raw_block), lp.month_name
+    `;
     const dataResult = await pool.query(dataQuery, params);
 
     // 2. Fetch Total Weekly Rainfall (Sum of Daily Company Averages)

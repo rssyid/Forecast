@@ -94,7 +94,7 @@ export default function MultiCompanyForecastClient() {
     const summaryRows = data.companies.map(c => {
       const row = {
         "Company": c.company,
-        "Total Titik": c.totalPoints,
+        "Total Blok": c.totalBlocks || c.totalPoints,
         "Baseline Avg TMAT (cm)": Number(c.baselineAvgTmat?.toFixed(1)) || 0,
         "Akurasi Model R² (%)": Number(((c.fit.r2 || 0) * 100).toFixed(1)),
         "MAE (cm)": Number((c.fit.mae || 0).toFixed(1)),
@@ -142,7 +142,7 @@ export default function MultiCompanyForecastClient() {
           "Company": c.company,
           "Baseline Week": c.baselineWeek,
           "Kelas TMAT": cls,
-          "Jumlah Titik": c.baselineCounts[cls] || 0,
+          "Jumlah Blok": c.baselineCounts[cls] || 0,
           "Persentase (%)": Number(c.baselinePct[cls]?.toFixed(2)) || 0
         });
       });
@@ -160,10 +160,10 @@ export default function MultiCompanyForecastClient() {
             "Company": c.company,
             "Skenario Curah Hujan (mm)": scMm,
             "Kelas TMAT": cls,
-            "Jumlah Titik": scObj.counts[cls] || 0,
+            "Jumlah Blok": scObj.counts[cls] || 0,
             "Persentase (%)": Number(scObj.pct[cls]?.toFixed(2)) || 0,
-            "Baseline Titik": c.baselineCounts[cls] || 0,
-            "Delta Titik": (scObj.counts[cls] || 0) - (c.baselineCounts[cls] || 0)
+            "Baseline Blok": c.baselineCounts[cls] || 0,
+            "Delta Blok": (scObj.counts[cls] || 0) - (c.baselineCounts[cls] || 0)
           });
         });
       });
@@ -208,7 +208,7 @@ export default function MultiCompanyForecastClient() {
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            Matriks komparasi TMAT titik vs curah hujan dengan model kelembaban tanah 3 minggu (Antecedent Moisture) dari 48 minggu historis.
+            Matriks komparasi TMAT blok vs curah hujan dengan model kelembaban tanah 3 minggu (Antecedent Moisture) dari 48 minggu historis.
           </p>
         </div>
 
@@ -296,10 +296,10 @@ export default function MultiCompanyForecastClient() {
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Titik Pantau</div>
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Blok Pantau</div>
             <div className="text-2xl font-bold text-blue-600 mt-2 flex items-baseline gap-2">
-              {data.overall.totalPoints.toLocaleString('id-ID')}
-              <span className="text-xs font-medium text-gray-400">Piezometer</span>
+              {(data.overall.totalBlocks || data.overall.totalPoints).toLocaleString('id-ID')}
+              <span className="text-xs font-medium text-gray-400">Blok</span>
             </div>
             <div className="text-xs text-gray-400 mt-1">Pada minggu {data.baselineWeek}</div>
           </div>
@@ -318,7 +318,7 @@ export default function MultiCompanyForecastClient() {
             <div className="text-2xl font-bold text-emerald-600 mt-2 flex items-baseline gap-2">
               {formatNumber(data.overall.baselinePct["Normal (46-60)"], 1)}%
               <span className="text-xs font-medium text-gray-400">
-                ({(data.overall.baselineCounts["Normal (46-60)"] || 0).toLocaleString('id-ID')} titik)
+                ({(data.overall.baselineCounts["Normal (46-60)"] || 0).toLocaleString('id-ID')} blok)
               </span>
             </div>
             <div className="text-xs text-gray-400 mt-1">Target zona ideal (46-60 cm)</div>
@@ -430,7 +430,7 @@ export default function MultiCompanyForecastClient() {
               <thead>
                 <tr className="bg-gray-50/80 border-b border-gray-100 text-gray-600 font-semibold">
                   <th className="py-3.5 px-4 sticky left-0 bg-gray-50/90 backdrop-blur z-10 w-28">Perusahaan</th>
-                  <th className="py-3.5 px-3 text-center w-20">Titik</th>
+                  <th className="py-3.5 px-3 text-center w-20">Blok</th>
                   <th className="py-3.5 px-3 text-right w-24">TMAT (cm)</th>
                   <th className="py-3.5 px-3 text-center">Distribusi Status</th>
                   <th className="py-3.5 px-3 text-center text-zinc-600 bg-zinc-50/50">Banjir (&lt;0)</th>
@@ -454,9 +454,9 @@ export default function MultiCompanyForecastClient() {
                         </span>
                       </td>
 
-                      {/* Total Points */}
+                      {/* Total Blocks */}
                       <td className="py-3 px-3 text-center text-gray-600">
-                        {c.totalPoints}
+                        {c.totalBlocks || c.totalPoints}
                       </td>
 
                       {/* Avg TMAT Baseline vs Scenario */}
@@ -539,7 +539,7 @@ export default function MultiCompanyForecastClient() {
               <thead>
                 <tr className="bg-gray-50/80 border-b border-gray-100 text-gray-600 font-semibold">
                   <th className="py-3.5 px-4 sticky left-0 bg-gray-50/90 backdrop-blur z-10 w-28">Perusahaan</th>
-                  <th className="py-3.5 px-3 text-center w-20">Titik</th>
+                  <th className="py-3.5 px-3 text-center w-20">Blok</th>
                   <th className="py-3.5 px-3 text-center">Skenario Hujan</th>
                   <th className="py-3.5 px-3 text-center">TMAT Baseline ➔ Proyeksi</th>
                   <th className="py-3.5 px-3 text-center text-blue-700 bg-blue-50/30">Basah (&le;45 cm)</th>
@@ -573,7 +573,7 @@ export default function MultiCompanyForecastClient() {
                         </span>
                       </td>
 
-                      <td className="py-3 px-3 text-center text-gray-600">{c.totalPoints}</td>
+                      <td className="py-3 px-3 text-center text-gray-600">{c.totalBlocks || c.totalPoints}</td>
 
                       <td className="py-3 px-3 text-center">
                         <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold text-[11px]">
@@ -589,25 +589,25 @@ export default function MultiCompanyForecastClient() {
 
                       {/* Basah */}
                       <td className="py-3 px-3 text-center">
-                        <div className="font-semibold text-blue-700">{scBasah} titik</div>
+                        <div className="font-semibold text-blue-700">{scBasah} blok</div>
                         <div className={`text-[10px] font-mono ${deltaBasah > 0 ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>
-                          {deltaBasah > 0 ? `+${deltaBasah} titik` : deltaBasah === 0 ? '0' : `${deltaBasah} titik`}
+                          {deltaBasah > 0 ? `+${deltaBasah} blok` : deltaBasah === 0 ? '0' : `${deltaBasah} blok`}
                         </div>
                       </td>
 
                       {/* Normal */}
                       <td className="py-3 px-3 text-center">
-                        <div className="font-semibold text-emerald-700">{scNormal} titik</div>
+                        <div className="font-semibold text-emerald-700">{scNormal} blok</div>
                         <div className={`text-[10px] font-mono ${deltaNormal > 0 ? 'text-emerald-600 font-bold' : deltaNormal < 0 ? 'text-amber-600' : 'text-gray-400'}`}>
-                          {deltaNormal > 0 ? `+${deltaNormal} titik` : deltaNormal === 0 ? '0' : `${deltaNormal} titik`}
+                          {deltaNormal > 0 ? `+${deltaNormal} blok` : deltaNormal === 0 ? '0' : `${deltaNormal} blok`}
                         </div>
                       </td>
 
                       {/* Kering */}
                       <td className="py-3 px-3 text-center">
-                        <div className="font-semibold text-red-700">{scKering} titik</div>
+                        <div className="font-semibold text-red-700">{scKering} blok</div>
                         <div className={`text-[10px] font-mono ${deltaKering > 0 ? 'text-red-600 font-bold' : 'text-gray-400'}`}>
-                          {deltaKering > 0 ? `+${deltaKering} titik` : deltaKering === 0 ? '0' : `${deltaKering} titik`}
+                          {deltaKering > 0 ? `+${deltaKering} blok` : deltaKering === 0 ? '0' : `${deltaKering} blok`}
                         </div>
                       </td>
 
@@ -648,7 +648,7 @@ export default function MultiCompanyForecastClient() {
                 <div key={c.company} className="p-4 bg-gray-50 rounded-xl border border-gray-100 hover:shadow-sm transition-all">
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-bold text-gray-900 font-mono">{c.company}</span>
-                    <span className="text-[11px] text-gray-400">{c.totalPoints} titik pantau</span>
+                    <span className="text-[11px] text-gray-400">{c.totalBlocks || c.totalPoints} blok pantau</span>
                   </div>
                   <div className="space-y-1.5">
                     {c.weeklyHistory.map(h => (
@@ -684,7 +684,7 @@ export default function MultiCompanyForecastClient() {
                 </span>
                 <div>
                   <h3 className="font-bold text-gray-900 text-base">Detail Proyeksi & Model Memori Air Tanah</h3>
-                  <p className="text-xs text-gray-500">Baseline Week: {modalCompany.baselineWeek} ({modalCompany.totalPoints} titik)</p>
+                  <p className="text-xs text-gray-500">Baseline Week: {modalCompany.baselineWeek} ({modalCompany.totalBlocks || modalCompany.totalPoints} blok)</p>
                 </div>
               </div>
               <button
@@ -740,15 +740,15 @@ export default function MultiCompanyForecastClient() {
                       <div className="space-y-1 text-xs">
                         <div className="flex justify-between text-blue-700">
                           <span>Basah (&le;45 cm):</span>
-                          <span className="font-semibold">{sc.summary["Basah <=45 Count"]} titik ({formatNumber(sc.summary["Basah <=45 %"], 1)}%)</span>
+                          <span className="font-semibold">{sc.summary["Basah <=45 Count"]} blok ({formatNumber(sc.summary["Basah <=45 %"], 1)}%)</span>
                         </div>
                         <div className="flex justify-between text-emerald-700">
                           <span>Normal (46-60 cm):</span>
-                          <span className="font-semibold">{sc.counts["Normal (46-60)"]} titik ({formatNumber(sc.pct["Normal (46-60)"], 1)}%)</span>
+                          <span className="font-semibold">{sc.counts["Normal (46-60)"]} blok ({formatNumber(sc.pct["Normal (46-60)"], 1)}%)</span>
                         </div>
                         <div className="flex justify-between text-red-700">
                           <span>Kering (&gt;60 cm):</span>
-                          <span className="font-semibold">{sc.summary["Kering >60 Count"]} titik ({formatNumber(sc.summary["Kering >60 %"], 1)}%)</span>
+                          <span className="font-semibold">{sc.summary["Kering >60 Count"]} blok ({formatNumber(sc.summary["Kering >60 %"], 1)}%)</span>
                         </div>
                       </div>
                     </div>
@@ -768,7 +768,7 @@ export default function MultiCompanyForecastClient() {
                         <th className="py-2.5 px-3">Minggu</th>
                         <th className="py-2.5 px-3 text-right">Curah Hujan (mm)</th>
                         <th className="py-2.5 px-3 text-right">Rata-rata TMAT (cm)</th>
-                        <th className="py-2.5 px-3 text-center">Jumlah Titik</th>
+                        <th className="py-2.5 px-3 text-center">Jumlah Blok</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 font-medium">

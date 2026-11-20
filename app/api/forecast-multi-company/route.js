@@ -84,37 +84,58 @@ export async function GET(request) {
             histRainRes.rows
         );
 
-        // 5. Fetch raw piezometer data ONLY for the baseline week (deduplicated per point)
+        // 5. Fetch raw piezometer data ONLY for the baseline week (expanded per block from mapping)
         const baselinePzoRes = await pool.query(`
-            SELECT DISTINCT ON (p.pie_record_id)
-                   p.company_code,
-                   p.est_code, 
-                   COALESCE(m.block_id, p.block) as block, 
-                   p.pie_record_id, 
-                   p.ketinggian, 
-                   p.month_name,
-                   p.date_timestamp
-            FROM piezometer_data p
-            LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
-            WHERE p.month_name = $1
-              AND (m.is_active IS NULL OR m.is_active = true)
-            ORDER BY p.pie_record_id, p.date_timestamp DESC
+            WITH latest_reading AS (
+                SELECT DISTINCT ON (p.pie_record_id)
+                       p.company_code,
+                       p.est_code,
+                       p.block as raw_block,
+                       p.pie_record_id,
+                       p.ketinggian,
+                       p.month_name,
+                       p.date_timestamp
+                FROM piezometer_data p
+                WHERE p.month_name = $1
+                  AND p.ketinggian IS NOT NULL 
+                  AND p.ketinggian != 999
+                ORDER BY p.pie_record_id, p.date_timestamp DESC
+            )
+            SELECT 
+                lr.company_code,
+                lr.est_code,
+                COALESCE(m.block_id, lr.raw_block) as block,
+                lr.pie_record_id,
+                lr.ketinggian,
+                lr.month_name,
+                lr.date_timestamp
+            FROM latest_reading lr
+            LEFT JOIN pzo_master_mapping m ON lr.pie_record_id = m.pie_record_id
+            WHERE (m.is_active IS NULL OR m.is_active = true)
+            ORDER BY lr.company_code, lr.est_code, COALESCE(m.block_id, lr.raw_block)
         `, [baselineWeek]);
 
-        // 6. Fetch weekly history for recent lookback period (for charts/tables)
+        // 6. Fetch weekly history for recent lookback period (counted per block)
         const recentWeeks = [...weeksChronological].slice(-lookbackWeeks);
         const historyTmatRes = await pool.query(`
+            WITH latest_pzo AS (
+                SELECT DISTINCT ON (p.pie_record_id, p.month_name)
+                    p.pie_record_id, p.company_code, p.month_name, p.ketinggian, p.block
+                FROM piezometer_data p
+                WHERE p.month_name = ANY($1)
+                  AND p.ketinggian IS NOT NULL 
+                  AND p.ketinggian != 999
+                ORDER BY p.pie_record_id, p.month_name, p.date_timestamp DESC
+            )
             SELECT 
-                p.company_code,
-                p.month_name as week,
-                ROUND(AVG(p.ketinggian)::numeric, 1) as avg_tmat,
-                COUNT(DISTINCT p.pie_record_id) as total_records
-            FROM piezometer_data p
-            LEFT JOIN pzo_master_mapping m ON p.pie_record_id = m.pie_record_id
-            WHERE p.month_name = ANY($1)
-              AND (m.is_active IS NULL OR m.is_active = true)
-              AND p.ketinggian != 999
-            GROUP BY p.company_code, p.month_name
+                lp.company_code,
+                lp.month_name as week,
+                ROUND(AVG(lp.ketinggian)::numeric, 1) as avg_tmat,
+                COUNT(DISTINCT COALESCE(m.block_id, lp.block)) as total_records
+            FROM latest_pzo lp
+            LEFT JOIN pzo_master_mapping m ON lp.pie_record_id = m.pie_record_id
+            WHERE (m.is_active IS NULL OR m.is_active = true)
+            GROUP BY lp.company_code, lp.month_name
         `, [recentWeeks]);
 
         const historyRainRes = await pool.query(`
@@ -260,7 +281,8 @@ export async function GET(request) {
 
         const overall = {
             totalCompanies: companies.length,
-            totalPoints: overallTotalPoints,
+            totalBlocks: overallTotalPoints,
+            totalPoints: overallTotalPoints, // kept for backward compatibility
             baselineAvgTmat: overallTotalPoints > 0 ? sumWeightedTmat / overallTotalPoints : 0,
             baselineCounts: overallBaselineCounts,
             baselinePct: overallBaselinePct,
