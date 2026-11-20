@@ -6,7 +6,8 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
-        "lint": "next lint"
+        "lint": "next lint",
+        "sync:master": "node scripts/sync-pzo-master.js"
     },
     "dependencies": {
         "@tailwindcss/postcss": "^4.2.4",
