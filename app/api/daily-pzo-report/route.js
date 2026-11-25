@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { buildDailyMapUrl } from '../../../lib/dailyPzoMapUrl';
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
@@ -10,7 +11,6 @@ export async function GET(request) {
     }
 
     const API_URL = "https://app.gis-div.com/PZO/Service/MapService.asmx/getPetaPerbandinganPetaGo";
-    const PROXY_BASE = "https://app.gis-div.com/PZO/Content/GambarProxy.ashx?url=";
 
     try {
         const response = await fetch(API_URL, {
@@ -47,22 +47,17 @@ export async function GET(request) {
             throw new Error('Incomplete data received from external service.');
         }
 
-        const processMapUrl = (rawUrl) => {
-            if (!rawUrl) return '';
-            return PROXY_BASE + encodeURIComponent(rawUrl);
-        };
-
         const result = {
             w1: {
                 legend: data[0],
                 meta: data[2] ? data[2][0] : null,
-                imgUrl: data[3] ? processMapUrl(data[3][0]?.urlGeoAndika) : '',
+                imgUrl: data[3] ? buildDailyMapUrl(data[3][0]?.urlGeoAndika, ptName) : '',
                 stats: data[8]
             },
             w2: {
                 legend: data[4],
                 meta: data[6] ? data[6][0] : null,
-                imgUrl: data[7] ? processMapUrl(data[7][0]?.urlGeoAndika) : '',
+                imgUrl: data[7] ? buildDailyMapUrl(data[7][0]?.urlGeoAndika, ptName) : '',
                 stats: data[9]
             }
         };
