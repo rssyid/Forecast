@@ -25,22 +25,36 @@ const TABS: Array<{ id: DetailTab; label: string }> = [
 
 export default function StationDetailClient({
   piezoId,
+  week,
+  runId,
 }: {
   piezoId: string;
+  week?: string;
+  runId?: string;
 }) {
   const [detail, setDetail] = useState<StationDetailApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<DetailTab>('summary');
 
+  const backHref = week
+    ? `/accuracy?week=${encodeURIComponent(week)}`
+    : runId
+      ? `/accuracy?runId=${encodeURIComponent(runId)}`
+      : '/accuracy';
+
   const fetchDetail = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/accuracy/${encodeURIComponent(piezoId)}`,
-        { cache: 'no-store' }
-      );
+      const params = new URLSearchParams();
+      if (week) params.set('week', week);
+      else if (runId) params.set('runId', runId);
+      const qs = params.toString();
+      const url = qs
+        ? `/api/accuracy/${encodeURIComponent(piezoId)}?${qs}`
+        : `/api/accuracy/${encodeURIComponent(piezoId)}`;
+      const res = await fetch(url, { cache: 'no-store' });
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json?.error || `Data stasiun ${piezoId} gagal dimuat.`);
@@ -53,7 +67,7 @@ export default function StationDetailClient({
     } finally {
       setLoading(false);
     }
-  }, [piezoId]);
+  }, [piezoId, week, runId]);
 
   useEffect(() => {
     fetchDetail();
@@ -85,7 +99,7 @@ export default function StationDetailClient({
     return (
       <div className="space-y-4">
         <Link
-          href="/accuracy"
+          href={backHref}
           className="min-h-11 inline-flex items-center gap-2 px-3 rounded-xl border border-gray-400 bg-white text-sm font-semibold text-gray-900 hover:bg-gray-100"
         >
           <ArrowLeft size={16} aria-hidden="true" />
@@ -125,7 +139,7 @@ export default function StationDetailClient({
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:hidden">
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            href="/accuracy"
+            href={backHref}
             className="min-h-11 inline-flex items-center gap-2 px-3.5 rounded-xl border border-gray-500 bg-white text-sm font-semibold text-gray-900 hover:bg-gray-100"
           >
             <ArrowLeft size={16} aria-hidden="true" />
@@ -136,6 +150,7 @@ export default function StationDetailClient({
               Audit Stasiun {snapshot.piezo_id}
             </h1>
             <p className="text-xs text-gray-600">
+              {snapshot.week_label ? `${snapshot.week_label} | ` : ''}
               {snapshot.coverage} | Kebun {snapshot.kebun || '-'} | Blok{' '}
               {snapshot.block || '-'} | Periode {snapshot.period_from} s.d.{' '}
               {snapshot.period_to}
@@ -160,6 +175,7 @@ export default function StationDetailClient({
             AUDIT ANOMALI & AKURASI TMAT: {snapshot.piezo_id} ({snapshot.kebun} / {snapshot.block})
           </h1>
           <p className="text-xs text-gray-700">
+            {snapshot.week_label ? `Week: ${snapshot.week_label} | ` : ''}
             Coverage: {snapshot.coverage} | Periode: {snapshot.period_from} s.d. {snapshot.period_to}
           </p>
         </div>

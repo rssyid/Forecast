@@ -4,9 +4,21 @@ import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import pg from 'pg';
 import { analyzeCoverageDataset } from '../lib/analysis/analyze';
-import { getWibDateRange } from '../lib/analysis/date';
+import { formatWibDate, getWibDateRange } from '../lib/analysis/date';
+import {
+  buildFallbackWeekForDate,
+  computePeriodForWeek,
+  resolveWeekByDate,
+  resolveWeekByLabel,
+  type CalendarWeekInfo,
+} from '../lib/analysis/week';
 import { PortalClient } from '../lib/portal/client';
-import { DEFAULT_DAYS_BACK, type CoverageAnalysisResult } from '../lib/types';
+import {
+  COVERAGES,
+  DEFAULT_DAYS_BACK,
+  type CoverageAnalysisResult,
+  type TriggerSource,
+} from '../lib/types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envLocalPath = path.resolve(__dirname, '..', '.env.local');
@@ -15,12 +27,19 @@ if (!process.env.DATABASE_URL && fs.existsSync(envLocalPath)) {
 }
 
 interface CliArgs {
-  mode: 'ingest' | 'finalize';
+  mode: 'prepare' | 'ingest' | 'finalize';
   coverage: string;
   runId: string;
   dateFrom: string;
   dateTo: string;
-  retainRuns: number;
+  hasExplicitFrom: boolean;
+  hasExplicitTo: boolean;
+  weekLabel: string;
+  weekName: string;
+  weekStart: string;
+  weekEnd: string;
+  triggerSource: TriggerSource;
+  retainWeeks: number;
   dumpFixture?: string;
 }
 
@@ -35,16 +54,24 @@ function parseCliArgs(argv: string[]): CliArgs {
   }
 
   const modeRaw = map.get('mode') ?? 'ingest';
-  if (modeRaw !== 'ingest' && modeRaw !== 'finalize') {
+  if (modeRaw !== 'prepare' && modeRaw !== 'ingest' && modeRaw !== 'finalize') {
     throw new Error(`Mode worker tidak valid: ${modeRaw}`);
   }
 
   const defaultRange = getWibDateRange(DEFAULT_DAYS_BACK);
-  const dateFrom = map.get('from') || defaultRange.dateFrom;
-  const dateTo = map.get('to') || defaultRange.dateTo;
-  const runId = map.get('run-id') || `manual-${dateTo}`;
-  const coverage = map.get('coverage') || '';
-  const retainRuns = Number(map.get('retain-runs') || '12');
+  const rawFrom = map.get('from')?.trim() || '';
+  const rawTo = map.get('to')?.trim() || '';
+  const dateFrom = rawFrom || defaultRange.dateFrom;
+  const dateTo = rawTo || defaultRange.dateTo;
+  const runId = map.get('run-id')?.trim() || `manual-${dateTo}`;
+  const coverage = map.get('coverage')?.trim() || '';
+
+  const retainRaw = Number(
+    map.get('retain-weeks') || map.get('retain-runs') || '12'
+  );
+  const trigRaw = map.get('trigger-source')?.trim() || 'cli';
+  const triggerSource: TriggerSource =
+    trigRaw === 'schedule' || trigRaw === 'manual' ? trigRaw : 'cli';
 
   if (modeRaw === 'ingest' && !coverage) {
     throw new Error('Argumen --coverage="..." wajib diisi pada mode ingest.');
@@ -56,7 +83,14 @@ function parseCliArgs(argv: string[]): CliArgs {
     runId,
     dateFrom,
     dateTo,
-    retainRuns: Number.isFinite(retainRuns) && retainRuns > 0 ? retainRuns : 12,
+    hasExplicitFrom: Boolean(rawFrom),
+    hasExplicitTo: Boolean(rawTo),
+    weekLabel: map.get('week-label')?.trim() || '',
+    weekName: map.get('week-name')?.trim() || '',
+    weekStart: map.get('week-start')?.trim() || '',
+    weekEnd: map.get('week-end')?.trim() || '',
+    triggerSource,
+    retainWeeks: Number.isFinite(retainRaw) && retainRaw > 0 ? retainRaw : 12,
     dumpFixture: map.get('dump-fixture'),
   };
 }
@@ -308,6 +342,79 @@ export async function saveCoverageAnalysis(
   }
 }
 
+async function resolveCliWeek(
+  args: CliArgs,
+  pool: pg.Pool
+): Promise<CalendarWeekInfo> {
+  if (args.weekLabel && args.weekName && args.weekStart && args.weekEnd) {
+    return {
+      week_label: args.weekLabel,
+      week_name: args.weekName,
+      week_start: args.weekStart,
+      week_end: args.weekEnd,
+    };
+  }
+  if (args.weekLabel) {
+    const found = await resolveWeekByLabel(pool, args.weekLabel);
+    if (found) return found;
+  }
+  const targetDate = args.hasExplicitTo
+    ? args.dateTo
+    : formatWibDate(new Date());
+  try {
+    return await resolveWeekByDate(pool, targetDate);
+  } catch {
+    return buildFallbackWeekForDate(targetDate);
+  }
+}
+
+async function runPrepare(args: CliArgs, pool: pg.Pool): Promise<void> {
+  const todayWib = formatWibDate(new Date());
+  let week: CalendarWeekInfo;
+  if (args.weekLabel) {
+    const found = await resolveWeekByLabel(pool, args.weekLabel);
+    week = found ?? (await resolveWeekByDate(pool, todayWib));
+  } else if (args.hasExplicitTo) {
+    week = await resolveWeekByDate(pool, args.dateTo);
+  } else {
+    week = await resolveWeekByDate(pool, todayWib);
+  }
+
+  const computed = computePeriodForWeek(week, todayWib, DEFAULT_DAYS_BACK);
+  const dateTo = args.hasExplicitTo ? args.dateTo : computed.dateTo;
+  const dateFrom = args.hasExplicitFrom
+    ? args.dateFrom
+    : args.hasExplicitTo
+      ? getWibDateRange(DEFAULT_DAYS_BACK, new Date(`${dateTo}T12:00:00+07:00`))
+          .dateFrom
+      : computed.dateFrom;
+
+  const selCov = args.coverage;
+  const coverages =
+    !selCov || selCov === 'all' ? [...COVERAGES] : [selCov];
+
+  const outputLines = [
+    `run_id=${args.runId}`,
+    `date_from=${dateFrom}`,
+    `date_to=${dateTo}`,
+    `week_name=${week.week_name}`,
+    `week_label=${week.week_label}`,
+    `week_start=${week.week_start}`,
+    `week_end=${week.week_end}`,
+    `trigger_source=${args.triggerSource}`,
+    `coverages=${JSON.stringify(coverages)}`,
+  ];
+
+  const githubOutput = process.env.GITHUB_OUTPUT;
+  if (githubOutput) {
+    fs.appendFileSync(githubOutput, `${outputLines.join('\n')}\n`);
+  }
+
+  console.log(
+    `[Prepare] run="${args.runId}" week="${week.week_label}" (${week.week_start}..${week.week_end}) period=${dateFrom}..${dateTo} source=${args.triggerSource} coverages=${coverages.length}`
+  );
+}
+
 async function runIngest(args: CliArgs, pool: pg.Pool): Promise<void> {
   const username = process.env.PORTAL_USERNAME?.trim();
   const password = process.env.PORTAL_PASSWORD;
@@ -318,33 +425,63 @@ async function runIngest(args: CliArgs, pool: pg.Pool): Promise<void> {
     );
   }
 
+  const week = await resolveCliWeek(args, pool);
+
   await pool.query(
     `
-    INSERT INTO run_meta (run_id, period_from, period_to, status)
-    VALUES ($1, $2::date, $3::date, 'running')
-    ON CONFLICT (run_id) DO NOTHING
+    INSERT INTO run_meta (
+      run_id, period_from, period_to, status,
+      week_name, week_label, week_start, week_end, trigger_source
+    )
+    VALUES ($1, $2::date, $3::date, 'running', $4, $5, $6::date, $7::date, $8)
+    ON CONFLICT (run_id) DO UPDATE SET
+      week_name = COALESCE(run_meta.week_name, EXCLUDED.week_name),
+      week_label = COALESCE(run_meta.week_label, EXCLUDED.week_label),
+      week_start = COALESCE(run_meta.week_start, EXCLUDED.week_start),
+      week_end = COALESCE(run_meta.week_end, EXCLUDED.week_end),
+      trigger_source = COALESCE(NULLIF(run_meta.trigger_source, 'cli'), EXCLUDED.trigger_source)
     `,
-    [args.runId, args.dateFrom, args.dateTo]
+    [
+      args.runId,
+      args.dateFrom,
+      args.dateTo,
+      week.week_name,
+      week.week_label,
+      week.week_start,
+      week.week_end,
+      args.triggerSource,
+    ]
   );
 
   await pool.query(
     `
-    INSERT INTO coverage_run (run_id, coverage, period_from, period_to, status, started_at)
-    VALUES ($1, $2, $3::date, $4::date, 'running', NOW())
+    INSERT INTO coverage_run (
+      run_id, coverage, period_from, period_to, status, started_at, week_name, week_label
+    )
+    VALUES ($1, $2, $3::date, $4::date, 'running', NOW(), $5, $6)
     ON CONFLICT (run_id, coverage) DO UPDATE SET
       period_from = EXCLUDED.period_from,
       period_to = EXCLUDED.period_to,
       status = 'running',
       started_at = NOW(),
       finished_at = NULL,
-      error = NULL
+      error = NULL,
+      week_name = EXCLUDED.week_name,
+      week_label = EXCLUDED.week_label
     `,
-    [args.runId, args.coverage, args.dateFrom, args.dateTo]
+    [
+      args.runId,
+      args.coverage,
+      args.dateFrom,
+      args.dateTo,
+      week.week_name,
+      week.week_label,
+    ]
   );
 
   try {
     console.log(
-      `[Ingest] Memulai coverage="${args.coverage}" run="${args.runId}" (${args.dateFrom} s.d. ${args.dateTo})`
+      `[Ingest] Memulai coverage="${args.coverage}" week="${week.week_label}" run="${args.runId}" (${args.dateFrom} s.d. ${args.dateTo})`
     );
     const client = new PortalClient({ username, password });
     await client.login();
@@ -421,16 +558,36 @@ async function runFinalize(args: CliArgs, pool: pg.Pool): Promise<void> {
     [args.runId, finalStatus, errorSummary]
   );
 
-  // Prune raw time-series rows from runs older than latest N completed runs.
+  // Prune raw time-series rows while keeping latest successful coverage runs across the newest N distinct weeks.
   const keepRes = await pool.query(
     `
-    SELECT run_id
-    FROM run_meta
-    WHERE status IN ('success', 'partial')
-    ORDER BY started_at DESC
-    LIMIT $1
+    WITH recent_weeks AS (
+      SELECT DISTINCT week_label, MAX(week_start) AS ws
+      FROM run_meta
+      WHERE week_label IS NOT NULL AND status IN ('success', 'partial')
+      GROUP BY week_label
+      ORDER BY ws DESC NULLS LAST
+      LIMIT $1
+    ),
+    keep_cov_runs AS (
+      SELECT DISTINCT ON (cr.week_label, cr.coverage) cr.run_id
+      FROM coverage_run cr
+      INNER JOIN recent_weeks rw ON rw.week_label = cr.week_label
+      WHERE cr.status = 'success'
+      ORDER BY cr.week_label, cr.coverage, cr.finished_at DESC NULLS LAST, cr.started_at DESC
+    ),
+    keep_recent_runs AS (
+      SELECT run_id
+      FROM run_meta
+      WHERE status IN ('success', 'partial')
+      ORDER BY started_at DESC
+      LIMIT $1
+    )
+    SELECT run_id FROM keep_cov_runs
+    UNION
+    SELECT run_id FROM keep_recent_runs
     `,
-    [args.retainRuns]
+    [args.retainWeeks]
   );
   const keepIds = keepRes.rows.map((r) => String(r.run_id));
   if (keepIds.length > 0) {
@@ -445,7 +602,7 @@ async function runFinalize(args: CliArgs, pool: pg.Pool): Promise<void> {
   }
 
   console.log(
-    `[Finalize] run="${args.runId}" status=${finalStatus} (${succeeded}/${total} coverage berhasil)`
+    `[Finalize] run="${args.runId}" status=${finalStatus} (${succeeded}/${total} coverage berhasil, retain=${keepIds.length} run_id)`
   );
 }
 
@@ -461,7 +618,9 @@ async function main(): Promise<void> {
   });
 
   try {
-    if (args.mode === 'ingest') {
+    if (args.mode === 'prepare') {
+      await runPrepare(args, pool);
+    } else if (args.mode === 'ingest') {
       await runIngest(args, pool);
     } else {
       await runFinalize(args, pool);

@@ -1,13 +1,22 @@
-import type { AccuracyKpi } from '@/lib/types';
+import type { AccuracyKpi, WeekComparisonDelta } from '@/lib/types';
+
+function formatSignedDelta(value: number, suffix = ''): string {
+  if (value === 0) return `0${suffix}`;
+  return `${value > 0 ? '+' : ''}${value}${suffix}`;
+}
 
 export default function KpiCards({
   kpi,
   periodFrom,
   periodTo,
+  weekLabel,
+  weekComparison,
 }: {
   kpi: AccuracyKpi;
   periodFrom: string | null;
   periodTo: string | null;
+  weekLabel?: string | null;
+  weekComparison?: WeekComparisonDelta | null;
 }) {
   const pctClamped = Math.max(0, Math.min(100, kpi.accuracy_pct));
 
@@ -22,9 +31,24 @@ export default function KpiCards({
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">
               Tingkat Akurasi Kalibrasi
             </p>
-            <p className="mt-2 text-3xl sm:text-4xl font-bold text-gray-900 tabular-nums tracking-tight">
-              {kpi.evaluated_stations > 0 ? `${kpi.accuracy_pct.toFixed(1)}%` : '0.0%'}
-            </p>
+            <div className="mt-2 flex flex-wrap items-baseline gap-2.5">
+              <p className="text-3xl sm:text-4xl font-bold text-gray-900 tabular-nums tracking-tight">
+                {kpi.evaluated_stations > 0 ? `${kpi.accuracy_pct.toFixed(1)}%` : '0.0%'}
+              </p>
+              {weekComparison && (
+                <span
+                  className={`text-xs font-semibold tabular-nums ${
+                    weekComparison.accuracy_pct_delta > 0
+                      ? 'text-emerald-800'
+                      : weekComparison.accuracy_pct_delta < 0
+                        ? 'text-red-800'
+                        : 'text-gray-600'
+                  }`}
+                >
+                  {formatSignedDelta(weekComparison.accuracy_pct_delta, '%')} vs {weekComparison.previous_week_label}
+                </span>
+              )}
+            </div>
           </div>
           <span
             className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${
@@ -55,9 +79,11 @@ export default function KpiCards({
             <span className="font-medium tabular-nums">
               {kpi.passed_stations} dari {kpi.evaluated_stations} stasiun lolos
             </span>
-            {periodFrom && periodTo && (
+            {(weekLabel || (periodFrom && periodTo)) && (
               <span>
-                Periode {periodFrom} s.d. {periodTo}
+                {weekLabel ? `${weekLabel}` : ''}
+                {weekLabel && periodFrom && periodTo ? ' | ' : ''}
+                {periodFrom && periodTo ? `Periode ${periodFrom} s.d. ${periodTo}` : ''}
               </span>
             )}
           </div>
@@ -96,11 +122,24 @@ export default function KpiCards({
           >
             {kpi.recalibration_needed}
           </p>
-          <p className="mt-2 text-xs text-gray-600">
-            {kpi.recalibration_needed > 0
-              ? 'Selisih titik manual terakhir > 3 cm'
-              : 'Semua titik terakhir dalam toleransi'}
-          </p>
+          <div className="mt-2 space-y-0.5 text-xs text-gray-600">
+            <p>
+              {kpi.recalibration_needed > 0
+                ? 'Selisih titik manual terakhir > 3 cm'
+                : 'Semua titik terakhir dalam toleransi'}
+            </p>
+            {weekComparison && (
+              <p className="font-medium text-gray-800 tabular-nums">
+                {formatSignedDelta(weekComparison.recalibration_delta)} vs minggu lalu
+                {weekComparison.newly_failed_count > 0
+                  ? ` (${weekComparison.newly_failed_count} baru)`
+                  : ''}
+                {weekComparison.resolved_count > 0
+                  ? ` (${weekComparison.resolved_count} membaik)`
+                  : ''}
+              </p>
+            )}
+          </div>
         </div>
 
         <div
@@ -118,11 +157,18 @@ export default function KpiCards({
           >
             {kpi.rain_anomaly_count}
           </p>
-          <p className="mt-2 text-xs text-gray-600">
-            {kpi.no_rain_station_count > 0
-              ? `${kpi.no_rain_station_count} tanpa stasiun hujan kebun`
-              : 'Kenaikan < 1 cm setelah hujan'}
-          </p>
+          <div className="mt-2 space-y-0.5 text-xs text-gray-600">
+            <p>
+              {kpi.no_rain_station_count > 0
+                ? `${kpi.no_rain_station_count} tanpa stasiun hujan kebun`
+                : 'Kenaikan < 1 cm setelah hujan'}
+            </p>
+            {weekComparison && (
+              <p className="font-medium text-gray-800 tabular-nums">
+                {formatSignedDelta(weekComparison.rain_anomaly_delta)} vs minggu lalu
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </section>

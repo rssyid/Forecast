@@ -2,7 +2,8 @@ name: IoT TMAT Accuracy Ingest
 
 on:
   schedule:
-    - cron: '0 2 * * 1'
+    # Setiap Kamis pagi pukul 07:00 WIB (00:00 UTC)
+    - cron: '0 0 * * 4'
   workflow_dispatch:
     inputs:
       coverage:
@@ -19,16 +20,29 @@ on:
           - Region 1 THIP
           - Region 2 Non THIP
           - Region 2 THIP
+      week_label:
+        description: 'Target Week label dari calendar_weeks (misal Nov 2026, W4; kosong = week berjalan)'
+        required: false
+        default: ''
+        type: string
       date_from:
         description: 'Tanggal awal YYYY-MM-DD (opsional, default 30 hari WIB)'
         required: false
         default: ''
         type: string
       date_to:
-        description: 'Tanggal akhir YYYY-MM-DD (opsional, default hari ini WIB)'
+        description: 'Tanggal akhir YYYY-MM-DD (opsional, default akhir week / hari ini WIB)'
         required: false
         default: ''
         type: string
+      trigger_source:
+        description: 'Sumber pemicu workflow'
+        required: false
+        default: 'manual'
+        type: choice
+        options:
+          - manual
+          - schedule
 
 concurrency:
   group: iot-tmat-ingest
@@ -41,45 +55,52 @@ jobs:
       run_id: ${{ steps.meta.outputs.run_id }}
       date_from: ${{ steps.meta.outputs.date_from }}
       date_to: ${{ steps.meta.outputs.date_to }}
+      week_name: ${{ steps.meta.outputs.week_name }}
+      week_label: ${{ steps.meta.outputs.week_label }}
+      week_start: ${{ steps.meta.outputs.week_start }}
+      week_end: ${{ steps.meta.outputs.week_end }}
+      trigger_source: ${{ steps.meta.outputs.trigger_source }}
       coverages: ${{ steps.meta.outputs.coverages }}
     steps:
-      - name: Compute WIB date range and matrix
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Ensure accuracy schema
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run db:migrate:accuracy
+
+      - name: Resolve week metadata, WIB date range, and matrix
         id: meta
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           INPUT_COV: ${{ github.event.inputs.coverage }}
+          INPUT_WEEK: ${{ github.event.inputs.week_label }}
           INPUT_FROM: ${{ github.event.inputs.date_from }}
           INPUT_TO: ${{ github.event.inputs.date_to }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SOURCE: ${{ github.event.inputs.trigger_source }}
         run: |
-          node -e '
-            const fs = require("node:fs");
-            const WIB = 7 * 3600 * 1000;
-            const fmt = (d) => {
-              const w = new Date(d.getTime() + WIB);
-              const y = w.getUTCFullYear();
-              const m = String(w.getUTCMonth() + 1).padStart(2, "0");
-              const day = String(w.getUTCDate()).padStart(2, "0");
-              return `${y}-${m}-${day}`;
-            };
-            const now = new Date();
-            const dateTo = process.env.INPUT_TO?.trim() || fmt(now);
-            const dateFrom = process.env.INPUT_FROM?.trim() || fmt(new Date(now.getTime() - 30 * 86400000));
-            const all = [
-              "Kalbar A",
-              "Kalbar B",
-              "Papua",
-              "Region 1 Non THIP",
-              "Region 1 THIP",
-              "Region 2 Non THIP",
-              "Region 2 THIP"
-            ];
-            const sel = process.env.INPUT_COV?.trim();
-            const coverages = (!sel || sel === "all") ? all : [sel];
-            const out = process.env.GITHUB_OUTPUT;
-            fs.appendFileSync(out, `run_id=gha-${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}\n`);
-            fs.appendFileSync(out, `date_from=${dateFrom}\n`);
-            fs.appendFileSync(out, `date_to=${dateTo}\n`);
-            fs.appendFileSync(out, `coverages=${JSON.stringify(coverages)}\n`);
-          '
+          SOURCE="${INPUT_SOURCE:-manual}"
+          if [ "$EVENT_NAME" = "schedule" ]; then
+            SOURCE="schedule"
+          fi
+          npx tsx worker/ingest.ts \
+            --mode=prepare \
+            --run-id="gha-${{ github.run_id }}-${{ github.run_attempt }}" \
+            --coverage="${INPUT_COV:-all}" \
+            --week-label="${INPUT_WEEK}" \
+            --from="${INPUT_FROM}" \
+            --to="${INPUT_TO}" \
+            --trigger-source="${SOURCE}"
 
   ingest:
     needs: prepare
@@ -102,11 +123,6 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Ensure accuracy schema
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npm run db:migrate:accuracy
-
       - name: Fetch, analyze, and persist coverage
         env:
           PORTAL_USERNAME: ${{ secrets.PORTAL_USERNAME }}
@@ -119,6 +135,11 @@ jobs:
           --run-id="${{ needs.prepare.outputs.run_id }}"
           --from="${{ needs.prepare.outputs.date_from }}"
           --to="${{ needs.prepare.outputs.date_to }}"
+          --week-name="${{ needs.prepare.outputs.week_name }}"
+          --week-label="${{ needs.prepare.outputs.week_label }}"
+          --week-start="${{ needs.prepare.outputs.week_start }}"
+          --week-end="${{ needs.prepare.outputs.week_end }}"
+          --trigger-source="${{ needs.prepare.outputs.trigger_source }}"
 
   finalize:
     needs: [prepare, ingest]
@@ -144,4 +165,4 @@ jobs:
           npx tsx worker/ingest.ts
           --mode=finalize
           --run-id="${{ needs.prepare.outputs.run_id }}"
-          --retain-runs=12
+          --retain-weeks=12

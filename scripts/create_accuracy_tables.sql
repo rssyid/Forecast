@@ -105,3 +105,15 @@ CREATE INDEX IF NOT EXISTS idx_point_check_lookup ON point_check (run_id, piezo_
 CREATE INDEX IF NOT EXISTS idx_rain_check_lookup ON rain_check (run_id, piezo_id, rain_at);
 CREATE INDEX IF NOT EXISTS idx_series_iot_lookup ON series_iot (run_id, piezo_id, ts);
 CREATE INDEX IF NOT EXISTS idx_series_rain_lookup ON series_rain (run_id, piezo_id, ts);
+
+ALTER TABLE run_meta ADD COLUMN IF NOT EXISTS week_name TEXT;
+ALTER TABLE run_meta ADD COLUMN IF NOT EXISTS week_label TEXT;
+ALTER TABLE run_meta ADD COLUMN IF NOT EXISTS week_start DATE;
+ALTER TABLE run_meta ADD COLUMN IF NOT EXISTS week_end DATE;
+ALTER TABLE run_meta ADD COLUMN IF NOT EXISTS trigger_source TEXT NOT NULL DEFAULT 'cli';
+
+ALTER TABLE coverage_run ADD COLUMN IF NOT EXISTS week_name TEXT;
+ALTER TABLE coverage_run ADD COLUMN IF NOT EXISTS week_label TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_run_meta_week_label ON run_meta (week_label, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_coverage_run_week_latest ON coverage_run (week_label, coverage, status, finished_at DESC);

@@ -32,6 +32,9 @@ export type RainStatus =
 
 export type CoverageRunStatus = 'running' | 'success' | 'failed';
 export type RunStatus = 'running' | 'success' | 'partial' | 'failed';
+export type TriggerSource = 'schedule' | 'manual' | 'cli';
+export type DiffBucket = 'all' | 'gt3' | '1to3' | 'lte1' | 'na';
+export type RainFilterValue = 'all' | RainStatus | 'NO_RAIN_STATION';
 
 export interface PortalStationMeta {
   PieRecordID: string;
@@ -144,6 +147,7 @@ export interface AnalyzedStationSnapshot {
   sparkline_json: SparklinePoint[];
   period_from: string;
   period_to: string;
+  manual_in_active_week?: boolean;
 }
 
 export interface StationAnalysisResult {
@@ -192,6 +196,35 @@ export interface RunMetaSummary {
   started_at: string;
   finished_at: string | null;
   status: RunStatus;
+  week_name: string | null;
+  week_label: string | null;
+  week_start: string | null;
+  week_end: string | null;
+  trigger_source: TriggerSource;
+}
+
+export interface AccuracyWeekOption {
+  week_name: string;
+  week_label: string;
+  week_start: string;
+  week_end: string;
+  latest_run_id: string | null;
+  last_updated_at: string | null;
+  status: RunStatus | null;
+  coverage_ok: number;
+  coverage_total: number;
+}
+
+export interface WeekComparisonDelta {
+  previous_week_label: string;
+  previous_accuracy_pct: number;
+  accuracy_pct_delta: number;
+  previous_recalibration_needed: number;
+  recalibration_delta: number;
+  previous_rain_anomaly_count: number;
+  rain_anomaly_delta: number;
+  newly_failed_count: number;
+  resolved_count: number;
 }
 
 export interface AccuracyKpi {
@@ -205,25 +238,79 @@ export interface AccuracyKpi {
   no_rain_station_count: number;
 }
 
+export interface SummaryFilterOptions {
+  kebuns: string[];
+  jenis_list: string[];
+  total_unfiltered_in_scope: number;
+  status_counts: {
+    all: number;
+    recalibration: number;
+    rain_anomaly: number;
+    passed: number;
+    no_manual: number;
+  };
+}
+
 export interface SummaryApiResponse {
   meta: {
     has_data: boolean;
     active_run_id: string | null;
+    active_week_label: string | null;
+    active_week_name: string | null;
+    active_week_start: string | null;
+    active_week_end: string | null;
     last_updated_at: string | null;
     period_from: string | null;
     period_to: string | null;
     available_runs: RunMetaSummary[];
+    available_weeks: AccuracyWeekOption[];
     coverage_freshness: CoverageFreshness[];
   };
   kpi: AccuracyKpi;
+  week_comparison: WeekComparisonDelta | null;
+  filter_options: SummaryFilterOptions;
   coverage_stats: CoverageStat[];
   stations: AnalyzedStationSnapshot[];
+}
+
+export interface AccuracyStatusCoverageProgress {
+  coverage: string;
+  status: CoverageRunStatus;
+  station_count: number;
+  finished_at: string | null;
+  error: string | null;
+}
+
+export interface AccuracyStatusApiResponse {
+  active_run: (RunMetaSummary & { coverages: AccuracyStatusCoverageProgress[] }) | null;
+  latest_run: (RunMetaSummary & { coverages: AccuracyStatusCoverageProgress[] }) | null;
+  github_workflow: {
+    state: 'idle' | 'queued' | 'in_progress' | 'unknown';
+    html_url: string | null;
+    updated_at: string | null;
+  };
+  selectable_weeks: Array<{
+    week_name: string;
+    week_label: string;
+    week_start: string;
+    week_end: string;
+  }>;
+  default_week: {
+    week_name: string;
+    week_label: string;
+    week_start: string;
+    week_end: string;
+  };
 }
 
 export interface StationDetailApiResponse {
   snapshot: AnalyzedStationSnapshot & {
     run_id: string;
     created_at: string;
+    week_name?: string | null;
+    week_label?: string | null;
+    week_start?: string | null;
+    week_end?: string | null;
   };
   points: AnalyzedPointCheck[];
   rain_events: AnalyzedRainCheck[];
