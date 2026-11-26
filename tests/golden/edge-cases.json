@@ -1,0 +1,127 @@
+{
+  "periodFrom": "2026-10-21",
+  "periodTo": "2026-11-20",
+  "dataset": {
+    "Table": [
+      {
+        "PieRecordID": "NO-RAIN-01",
+        "estCode": "KTR_MISSING",
+        "Block": "A01",
+        "Typeunit": "KLH - Logger",
+        "deviceId": "1001",
+        "deviceName": "ST-NO-RAIN-01",
+        "calibrasi": 1.5
+      },
+      {
+        "PieRecordID": "FAR-MANUAL-02",
+        "estCode": "OTHER_EST",
+        "Block": "B02",
+        "Typeunit": "KLH - Logger",
+        "deviceId": "1002",
+        "deviceName": "ST-FAR-MANUAL-02",
+        "calibrasi": 1.2
+      },
+      {
+        "PieRecordID": "PAST-FAIL-LATEST-OK-03",
+        "estCode": "OTHER_EST",
+        "Block": "C03",
+        "Typeunit": "KLH - Logger",
+        "deviceId": "1003",
+        "deviceName": "ST-PAST-FAIL-03",
+        "calibrasi": 1.4
+      },
+      {
+        "PieRecordID": "ONE-RAIN-04",
+        "estCode": "ONE_EST",
+        "Block": "D04",
+        "Typeunit": "KLH - Logger",
+        "deviceId": "1004",
+        "deviceName": "ST-ONE-RAIN-04",
+        "calibrasi": 1.6
+      },
+      {
+        "PieRecordID": "CLUSTER-TWO-RAIN-05",
+        "estCode": "CLU_EST",
+        "Block": "E05",
+        "Typeunit": "KLH - Logger",
+        "deviceId": "1005",
+        "deviceName": "ST-CLUSTER-05",
+        "calibrasi": 1.8
+      },
+      {
+        "PieRecordID": "WIB-EPOCH-06",
+        "estCode": "WIB_EST",
+        "Block": "F06",
+        "Typeunit": "KLH - Logger",
+        "deviceId": "1006",
+        "deviceName": "ST-WIB-06",
+        "calibrasi": 1.9
+      }
+    ],
+    "Table2": [
+      { "PieRecordID": "NO-RAIN-01", "recordDate": "2026-11-16T08:00:00", "valueFinal": 10.0 },
+      { "PieRecordID": "FAR-MANUAL-02", "recordDate": "2026-11-15T00:00:00", "valueFinal": 20.0 },
+      { "PieRecordID": "PAST-FAIL-LATEST-OK-03", "recordDate": "2026-11-09T08:00:00", "valueFinal": 26.0 },
+      { "PieRecordID": "PAST-FAIL-LATEST-OK-03", "recordDate": "2026-11-16T08:00:00", "valueFinal": 22.5 },
+      { "PieRecordID": "ONE-RAIN-04", "recordDate": "2026-11-10T09:00:00", "valueFinal": 30.0 },
+      { "PieRecordID": "ONE-RAIN-04", "recordDate": "2026-11-10T12:00:00", "valueFinal": 30.0 },
+      { "PieRecordID": "ONE-RAIN-04", "recordDate": "2026-11-16T08:00:00", "valueFinal": 25.0 },
+      { "PieRecordID": "CLUSTER-TWO-RAIN-05", "recordDate": "2026-11-10T08:30:00", "valueFinal": 40.0 },
+      { "PieRecordID": "CLUSTER-TWO-RAIN-05", "recordDate": "2026-11-10T12:00:00", "valueFinal": 39.5 },
+      { "PieRecordID": "CLUSTER-TWO-RAIN-05", "recordDate": "2026-11-10T15:00:00", "valueFinal": 39.5 },
+      { "PieRecordID": "CLUSTER-TWO-RAIN-05", "recordDate": "2026-11-16T08:00:00", "valueFinal": 39.0 },
+      { "PieRecordID": "WIB-EPOCH-06", "recordDate": "2026-11-16 13:00:00", "valueFinal": 18.0 }
+    ],
+    "Table3": [
+      {
+        "Station_ID": "RF-OTHER-01",
+        "Date": "2026-11-10T10:00:00",
+        "ketinggian": 25.0,
+        "EstCode": "OTHER_EST",
+        "estateBaru": "OTHER_EST",
+        "EstNewCode": "OTHER_EST"
+      },
+      {
+        "Station_ID": "RF-ONE-01",
+        "Date": "2026-11-10T10:00:00",
+        "ketinggian": 12.0,
+        "EstCode": "ONE_EST",
+        "estateBaru": "ONE_EST",
+        "EstNewCode": "ONE_EST"
+      },
+      {
+        "Station_ID": "RF-CLU-01",
+        "Date": "2026-11-10T09:00:00",
+        "ketinggian": 5.0,
+        "EstCode": "CLU_EST",
+        "estateBaru": "CLU_EST",
+        "EstNewCode": "CLU_EST"
+      },
+      {
+        "Station_ID": "RF-CLU-01",
+        "Date": "2026-11-10T11:00:00",
+        "ketinggian": 8.0,
+        "EstCode": "CLU_EST",
+        "estateBaru": "CLU_EST",
+        "EstNewCode": "CLU_EST"
+      },
+      {
+        "Station_ID": "RF-CLU-01",
+        "Date": "2026-11-10T13:00:00",
+        "ketinggian": 10.0,
+        "EstCode": "CLU_EST",
+        "estateBaru": "CLU_EST",
+        "EstNewCode": "CLU_EST"
+      }
+    ],
+    "Table4": [
+      { "PieRecordID": "NO-RAIN-01", "Ketinggian": 15.0, "tglInput": "2026-11-16T08:00:00" },
+      { "PieRecordID": "FAR-MANUAL-02", "Ketinggian": 20.0, "tglInput": "2026-11-15T13:01:00" },
+      { "PieRecordID": "PAST-FAIL-LATEST-OK-03", "Ketinggian": 20.0, "tglInput": "2026-11-09T08:00:00" },
+      { "PieRecordID": "PAST-FAIL-LATEST-OK-03", "Ketinggian": 20.0, "tglInput": "2026-11-16T08:00:00" },
+      { "PieRecordID": "ONE-RAIN-04", "Ketinggian": 25.0, "tglInput": "2026-11-16T08:00:00" },
+      { "PieRecordID": "CLUSTER-TWO-RAIN-05", "Ketinggian": 38.0, "tglInput": "2026-11-16T08:00:00" },
+      { "PieRecordID": "WIB-EPOCH-06", "Ketinggian": 18.0, "Date": "/Date(1794808800000)/" }
+    ]
+  }
+}

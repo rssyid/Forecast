@@ -1,0 +1,147 @@
+name: IoT TMAT Accuracy Ingest
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+    inputs:
+      coverage:
+        description: 'Coverage target (all atau 1 coverage)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - Kalbar A
+          - Kalbar B
+          - Papua
+          - Region 1 Non THIP
+          - Region 1 THIP
+          - Region 2 Non THIP
+          - Region 2 THIP
+      date_from:
+        description: 'Tanggal awal YYYY-MM-DD (opsional, default 30 hari WIB)'
+        required: false
+        default: ''
+        type: string
+      date_to:
+        description: 'Tanggal akhir YYYY-MM-DD (opsional, default hari ini WIB)'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: iot-tmat-ingest
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.meta.outputs.run_id }}
+      date_from: ${{ steps.meta.outputs.date_from }}
+      date_to: ${{ steps.meta.outputs.date_to }}
+      coverages: ${{ steps.meta.outputs.coverages }}
+    steps:
+      - name: Compute WIB date range and matrix
+        id: meta
+        env:
+          INPUT_COV: ${{ github.event.inputs.coverage }}
+          INPUT_FROM: ${{ github.event.inputs.date_from }}
+          INPUT_TO: ${{ github.event.inputs.date_to }}
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const WIB = 7 * 3600 * 1000;
+            const fmt = (d) => {
+              const w = new Date(d.getTime() + WIB);
+              const y = w.getUTCFullYear();
+              const m = String(w.getUTCMonth() + 1).padStart(2, "0");
+              const day = String(w.getUTCDate()).padStart(2, "0");
+              return `${y}-${m}-${day}`;
+            };
+            const now = new Date();
+            const dateTo = process.env.INPUT_TO?.trim() || fmt(now);
+            const dateFrom = process.env.INPUT_FROM?.trim() || fmt(new Date(now.getTime() - 30 * 86400000));
+            const all = [
+              "Kalbar A",
+              "Kalbar B",
+              "Papua",
+              "Region 1 Non THIP",
+              "Region 1 THIP",
+              "Region 2 Non THIP",
+              "Region 2 THIP"
+            ];
+            const sel = process.env.INPUT_COV?.trim();
+            const coverages = (!sel || sel === "all") ? all : [sel];
+            const out = process.env.GITHUB_OUTPUT;
+            fs.appendFileSync(out, `run_id=gha-${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}\n`);
+            fs.appendFileSync(out, `date_from=${dateFrom}\n`);
+            fs.appendFileSync(out, `date_to=${dateTo}\n`);
+            fs.appendFileSync(out, `coverages=${JSON.stringify(coverages)}\n`);
+          '
+
+  ingest:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        coverage: ${{ fromJson(needs.prepare.outputs.coverages) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Ensure accuracy schema
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run db:migrate:accuracy
+
+      - name: Fetch, analyze, and persist coverage
+        env:
+          PORTAL_USERNAME: ${{ secrets.PORTAL_USERNAME }}
+          PORTAL_PASSWORD: ${{ secrets.PORTAL_PASSWORD }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: >
+          npx tsx worker/ingest.ts
+          --mode=ingest
+          --coverage="${{ matrix.coverage }}"
+          --run-id="${{ needs.prepare.outputs.run_id }}"
+          --from="${{ needs.prepare.outputs.date_from }}"
+          --to="${{ needs.prepare.outputs.date_to }}"
+
+  finalize:
+    needs: [prepare, ingest]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Summarize run status and prune old time-series
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: >
+          npx tsx worker/ingest.ts
+          --mode=finalize
+          --run-id="${{ needs.prepare.outputs.run_id }}"
+          --retain-runs=12
