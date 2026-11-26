@@ -104,15 +104,16 @@ export default function CompanyComparisonCard({ item, currentWeek, prevWeek }) {
 
     return (
         <div className="relative flex flex-col items-end gap-2 group">
-            <button 
+            <button
+                type="button"
                 onClick={copyAsImage}
                 disabled={copying}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm
-                    ${copied ? 'bg-[#178242] text-white' : 'bg-[#2b2b2b] text-white hover:bg-black'}
+                className={`min-h-11 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-colors
+                    ${copied ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-black text-white border-black hover:bg-gray-800'}
                     ${copying ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
             >
-                {copying ? '⏳ Copying...' : copied ? <><Check size={14} /> Copied!</> : <><ClipboardCopy size={14} /> Copy Image</>}
+                {copying ? 'Menyalin...' : copied ? <><Check size={14} aria-hidden="true" /> Copied!</> : <><ClipboardCopy size={14} aria-hidden="true" /> Copy Image</>}
             </button>
 
             <div 

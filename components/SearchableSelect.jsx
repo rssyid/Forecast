@@ -43,7 +43,7 @@ export default function SearchableSelect({ options = [], value, onChange, placeh
         return normalized.filter(o => String(o.label || '').toLowerCase().includes(lower));
     }, [normalized, search]);
 
-    // Close on outside click
+    // Close on outside click or Escape key
     useEffect(() => {
         function handleClick(e) {
             if (containerRef.current && !containerRef.current.contains(e.target)) {
@@ -51,8 +51,18 @@ export default function SearchableSelect({ options = [], value, onChange, placeh
                 setSearch('');
             }
         }
+        function handleKeyDown(e) {
+            if (e.key === 'Escape') {
+                setOpen(false);
+                setSearch('');
+            }
+        }
         document.addEventListener('mousedown', handleClick);
-        return () => document.removeEventListener('mousedown', handleClick);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', handleClick);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
     }, []);
 
     // Focus input when opening
@@ -72,38 +82,46 @@ export default function SearchableSelect({ options = [], value, onChange, placeh
             <button
                 type="button"
                 disabled={disabled}
+                aria-expanded={open}
                 onClick={() => !disabled && setOpen(prev => !prev)}
-                className={`flex items-center gap-2 w-full min-w-[160px] h-9 pl-3 pr-2 rounded-xl border bg-white/70 backdrop-blur-sm text-sm font-medium text-gray-700 transition-all
-                    ${open ? 'border-gray-400 ring-2 ring-black/10' : 'border-gray-200 hover:border-gray-300'}
+                className={`flex items-center gap-2 w-full min-w-[160px] min-h-11 pl-3 pr-2.5 rounded-xl border bg-white text-sm font-medium text-gray-900 transition-colors
+                    ${open ? 'border-gray-900 ring-1 ring-gray-900/10' : 'border-gray-300 hover:border-gray-400'}
                     ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                 `}
             >
-                {icon && <span className="text-gray-400 shrink-0">{icon}</span>}
+                {icon && <span className="text-gray-500 shrink-0" aria-hidden="true">{icon}</span>}
                 <span className="flex-1 text-left truncate">{currentLabel}</span>
                 <ChevronDown
                     size={14}
-                    className={`shrink-0 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                    aria-hidden="true"
+                    className={`shrink-0 text-gray-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
                 />
             </button>
 
             {/* Dropdown */}
             {open && (
-                <div className="absolute z-[9999] mt-2 right-0 min-w-full w-max max-w-[320px] bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute z-[9999] mt-2 right-0 min-w-full w-max max-w-[320px] bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
                     {/* Search Input */}
-                    <div className="px-3 py-2 border-b border-gray-100">
-                        <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-1.5">
-                            <Search size={13} className="text-gray-400 shrink-0" />
+                    <div className="px-3 py-2 border-b border-gray-200">
+                        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+                            <Search size={13} className="text-gray-500 shrink-0" aria-hidden="true" />
                             <input
                                 ref={inputRef}
                                 type="text"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder="Cari..."
-                                className="flex-1 text-xs bg-transparent outline-none text-gray-700 placeholder-gray-400"
+                                aria-label="Cari opsi"
+                                className="flex-1 text-xs bg-transparent text-gray-900 placeholder-gray-500"
                             />
                             {search && (
-                                <button onClick={() => setSearch('')} className="text-gray-400 hover:text-gray-600">
-                                    <X size={12} />
+                                <button
+                                    type="button"
+                                    onClick={() => setSearch('')}
+                                    aria-label="Hapus pencarian"
+                                    className="text-gray-500 hover:text-gray-800 p-0.5 rounded"
+                                >
+                                    <X size={12} aria-hidden="true" />
                                 </button>
                             )}
                         </div>
@@ -112,16 +130,16 @@ export default function SearchableSelect({ options = [], value, onChange, placeh
                     {/* Options List */}
                     <ul className="max-h-52 overflow-y-auto py-1">
                         {filtered.length === 0 ? (
-                            <li className="px-3 py-2 text-xs text-gray-400 text-center">Tidak ditemukan</li>
+                            <li className="px-3 py-2 text-xs text-gray-500 text-center">Tidak ditemukan</li>
                         ) : filtered.map(o => (
                             <li key={o.value}>
                                 <button
                                     type="button"
                                     onClick={() => handleSelect(o.value)}
-                                    className={`w-full text-left px-3 py-2 text-sm transition-colors whitespace-nowrap
+                                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors whitespace-nowrap
                                         ${o.value === value
-                                            ? 'bg-black text-white font-medium'
-                                            : 'text-gray-700 hover:bg-gray-50'
+                                            ? 'bg-black text-white font-semibold'
+                                            : 'text-gray-700 hover:bg-gray-100'
                                         }`}
                                 >
                                     {o.label}

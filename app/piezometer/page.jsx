@@ -88,13 +88,13 @@ export default function PzoOverviewPage() {
 
   const cur = data?.currentWeek;
   const prev = data?.prevWeek;
-  if (!cur) return <div className="glass-card p-12 text-center text-gray-400">Tidak ada data piezometer.</div>;
+  if (!cur) return <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center text-gray-600 shadow-xs">Tidak ada data piezometer.</div>;
 
   const total = cur.total_block || 1;
   const tmatDiff = prev ? (parseFloat(cur.avg_tmat) - parseFloat(prev.avg_tmat)).toFixed(1) : null;
   const isGood = tmatDiff !== null && parseFloat(tmatDiff) < 0;
   const isBad = tmatDiff !== null && parseFloat(tmatDiff) > 0;
-  const trendColor = isGood ? 'text-green-600' : isBad ? 'text-red-500' : 'text-gray-400';
+  const trendColor = isGood ? 'text-emerald-700' : isBad ? 'text-red-700' : 'text-gray-600';
 
   const basahCount = (cur.cnt_tergenang || 0) + (cur.cnt_a_tergenang || 0) + (cur.cnt_banjir || 0);
   const keringCount = (cur.cnt_a_kering || 0) + (cur.cnt_kering || 0);
@@ -102,12 +102,12 @@ export default function PzoOverviewPage() {
   const keringPct = ((keringCount / total) * 100).toFixed(1);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6">
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Overview Piezometer</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Kondisi TMAT terkini untuk {company} — {cur.week} {cur.week_start && cur.week_end ? `(${fmtDate(cur.week_start)} - ${fmtDate(cur.week_end)})` : ''}
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Overview Piezometer</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Kondisi TMAT terkini untuk {company} · {cur.week} {cur.week_start && cur.week_end ? `(${fmtDate(cur.week_start)} - ${fmtDate(cur.week_end)})` : ''}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -129,75 +129,75 @@ export default function PzoOverviewPage() {
                 className="min-w-[150px]"
             />
             <button
+                type="button"
                 onClick={() => fetchData(company, week)}
                 disabled={loading}
-                className="p-2 rounded-xl border border-gray-200 bg-white/70 hover:bg-white transition-colors"
+                aria-label="Muat ulang data piezometer"
+                title="Muat ulang data"
+                className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-                <RefreshCw size={16} className={loading ? 'animate-spin text-gray-400' : 'text-gray-600'} />
+                <RefreshCw size={16} className={loading ? 'animate-spin text-gray-500' : 'text-gray-800'} aria-hidden="true" />
             </button>
         </div>
       </header>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="glass-card p-5">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Populasi</span>
-          <p className="text-lg font-bold text-gray-900">{cur.total_pzo} / {cur.total_block}</p>
-          <span className="text-[10px] text-gray-400">Titik / Blok</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
+          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1">Populasi</span>
+          <p className="text-xl font-bold text-gray-900 tabular-nums">{cur.total_pzo} / {cur.total_block}</p>
+          <span className="text-xs text-gray-600">Titik / Blok</span>
         </div>
 
-        <div className="glass-card p-5">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Rata-rata</span>
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
+          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1">Rata-rata</span>
           <div className="flex items-center gap-2">
-            <p className="text-lg font-bold text-gray-900">{cur.avg_tmat} cm</p>
+            <p className="text-xl font-bold text-gray-900 tabular-nums">{cur.avg_tmat} cm</p>
             {tmatDiff !== null && parseFloat(tmatDiff) !== 0 && (
-              <span className={`flex items-center gap-0.5 text-[10px] font-bold ${trendColor}`}>
+              <span className={`flex items-center gap-0.5 text-xs font-bold tabular-nums ${trendColor}`}>
                 {isGood ? (
-                  <svg width="8" height="8" viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="currentColor"/></svg>
+                  <svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><polygon points="5,0 10,10 0,10" fill="currentColor"/></svg>
                 ) : (
-                  <svg width="8" height="8" viewBox="0 0 10 10"><polygon points="0,0 10,0 5,10" fill="currentColor"/></svg>
+                  <svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><polygon points="0,0 10,0 5,10" fill="currentColor"/></svg>
                 )}
                 {Math.abs(tmatDiff)}
               </span>
             )}
           </div>
-          <span className="text-[10px] text-gray-400">TMAT ({cur.week})</span>
+          <span className="text-xs text-gray-600">TMAT ({cur.week})</span>
         </div>
 
-        <div className="glass-card p-5 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest block mb-1">Basah (≤45)</span>
-          <p className="text-lg font-bold text-blue-700">{basahCount} <span className="text-xs font-normal text-blue-400">({basahPct}%)</span></p>
-          <span className="text-[10px] text-gray-400">Kondisi Tergenang</span>
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
+          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1">Basah (&le;45)</span>
+          <p className="text-xl font-bold text-blue-800 tabular-nums">{basahCount} <span className="text-xs font-medium text-gray-600">({basahPct}%)</span></p>
+          <span className="text-xs text-gray-600">Kondisi Tergenang</span>
         </div>
 
-        <div className="glass-card p-5 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-          <span className="text-[10px] font-bold text-red-600 uppercase tracking-widest block mb-1">Kering (&gt;60)</span>
-          <p className="text-lg font-bold text-red-700">{keringCount} <span className="text-xs font-normal text-red-400">({keringPct}%)</span></p>
-          <span className="text-[10px] text-gray-400">Resiko Kebakaran</span>
+        <div className="bg-white rounded-2xl border border-red-200 p-5 shadow-xs">
+          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1">Kering (&gt;60)</span>
+          <p className="text-xl font-bold text-red-800 tabular-nums">{keringCount} <span className="text-xs font-medium text-gray-600">({keringPct}%)</span></p>
+          <span className="text-xs text-gray-600">Resiko Kebakaran</span>
         </div>
 
-        <div className="glass-card p-5 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
-          <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest block mb-1">Normal</span>
-          <p className="text-lg font-bold text-green-700">{cur.cnt_normal || 0}</p>
-          <span className="text-[10px] text-gray-400">Kondisi Ideal</span>
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
+          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1">Normal</span>
+          <p className="text-xl font-bold text-emerald-800 tabular-nums">{cur.cnt_normal || 0}</p>
+          <span className="text-xs text-gray-600">Kondisi Ideal</span>
         </div>
       </div>
 
       {/* Distribution Bar */}
-      <div className={`glass-card p-5 ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
-        <h3 className="text-sm font-bold text-gray-800 mb-4">Distribusi Kondisi Blok</h3>
-        <div className="flex rounded-xl overflow-hidden h-10 bg-gray-100">
+      <div className={`bg-white rounded-2xl border border-gray-200 p-5 shadow-xs ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+        <h2 className="text-base font-bold text-gray-900 mb-4">Distribusi Kondisi Blok</h2>
+        <div className="flex rounded-xl overflow-hidden h-10 bg-gray-100 border border-gray-200">
           {CLASS_CONFIG.map(cls => {
             const count = cur[cls.key] || 0;
             const pct = (count / total) * 100;
             if (pct === 0) return null;
             return (
-              <div 
+              <div
                 key={cls.key}
-                className="flex items-center justify-center text-white text-[10px] font-bold transition-all duration-500"
+                className="flex items-center justify-center text-white text-xs font-bold tabular-nums"
                 style={{ width: `${pct}%`, backgroundColor: cls.color }}
                 title={`${cls.label}: ${count} blok (${pct.toFixed(1)}%)`}
               >
@@ -206,14 +206,14 @@ export default function PzoOverviewPage() {
             );
           })}
         </div>
-        <div className="flex flex-wrap gap-3 mt-3">
+        <div className="flex flex-wrap gap-4 mt-3">
           {CLASS_CONFIG.map(cls => {
             const count = cur[cls.key] || 0;
             return (
-              <div key={cls.key} className="flex items-center gap-1.5 text-xs">
+              <div key={cls.key} className="flex items-center gap-1.5 text-xs tabular-nums">
                 <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: cls.color }}></span>
-                <span className="font-medium text-gray-700">{cls.label}</span>
-                <span className="text-gray-400">({count} blok)</span>
+                <span className="font-medium text-gray-800">{cls.label}</span>
+                <span className="text-gray-600">({count} blok)</span>
               </div>
             );
           })}
@@ -222,44 +222,44 @@ export default function PzoOverviewPage() {
 
       {/* Top Estates Table */}
       {data.estateBreakdown?.length > 0 && (
-        <div className={`glass-card overflow-hidden ${loading ? 'opacity-50' : ''}`}>
-          <div className="bg-gray-50/50 p-4 border-b border-gray-100">
-            <h3 className="font-bold text-gray-800">Top Estate — Blok Kering Terbanyak</h3>
+        <div className={`bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden ${loading ? 'opacity-50' : ''}`}>
+          <div className="bg-gray-50 p-4 border-b border-gray-200">
+            <h2 className="font-bold text-gray-900 text-base">Top Estate: Blok Kering Terbanyak</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="text-gray-500 border-b border-gray-200 bg-gray-50/30">
+              <thead className="text-gray-700 text-xs font-semibold uppercase tracking-wider border-b border-gray-200 bg-gray-50">
                 <tr>
                   <th className="p-3">Estate</th>
                   <th className="p-3">Company</th>
                   <th className="p-3 text-center">Titik PZO</th>
                   <th className="p-3 text-center">Blok</th>
-                  <th className="p-3 text-center text-red-600">Kering</th>
-                  <th className="p-3 text-center text-blue-600">Basah</th>
+                  <th className="p-3 text-center text-red-800">Kering</th>
+                  <th className="p-3 text-center text-blue-800">Basah</th>
                   <th className="p-3 text-center">Avg TMAT</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 tabular-nums">
                 {data.estateBreakdown.map((est, i) => (
-                  <tr key={i} className="hover:bg-gray-50/50">
+                  <tr key={i} className="hover:bg-gray-50">
                     <td className="p-3 font-bold text-gray-900">{est.estate}</td>
-                    <td className="p-3 text-gray-600">{est.company}</td>
-                    <td className="p-3 text-center">{est.total_pzo}</td>
-                    <td className="p-3 text-center font-bold text-gray-700">{est.total_block}</td>
-                    <td className="p-3 text-center font-bold text-red-600">{est.cnt_kering}</td>
-                    <td className="p-3 text-center font-bold text-blue-600">{est.cnt_basah}</td>
-                    <td className="p-3 text-center font-medium">{est.avg_tmat} cm</td>
+                    <td className="p-3 text-gray-700">{est.company}</td>
+                    <td className="p-3 text-center text-gray-800">{est.total_pzo}</td>
+                    <td className="p-3 text-center font-bold text-gray-900">{est.total_block}</td>
+                    <td className="p-3 text-center font-bold text-red-800">{est.cnt_kering}</td>
+                    <td className="p-3 text-center font-bold text-blue-800">{est.cnt_basah}</td>
+                    <td className="p-3 text-center font-medium text-gray-900">{est.avg_tmat} cm</td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-gray-50/50 font-bold border-t-2 border-gray-200">
+              <tfoot className="bg-gray-50 font-bold border-t border-gray-200 tabular-nums">
                 <tr>
-                  <td className="p-3" colSpan={2}>TOTAL</td>
-                  <td className="p-3 text-center">{data.estateBreakdown.reduce((s, e) => s + (e.total_pzo || 0), 0)}</td>
-                  <td className="p-3 text-center">{data.estateBreakdown.reduce((s, e) => s + (e.total_block || 0), 0)}</td>
-                  <td className="p-3 text-center text-red-600">{data.estateBreakdown.reduce((s, e) => s + (e.cnt_kering || 0), 0)}</td>
-                  <td className="p-3 text-center text-blue-600">{data.estateBreakdown.reduce((s, e) => s + (e.cnt_basah || 0), 0)}</td>
-                  <td className="p-3 text-center">
+                  <td className="p-3 text-gray-900" colSpan={2}>TOTAL</td>
+                  <td className="p-3 text-center text-gray-900">{data.estateBreakdown.reduce((s, e) => s + (e.total_pzo || 0), 0)}</td>
+                  <td className="p-3 text-center text-gray-900">{data.estateBreakdown.reduce((s, e) => s + (e.total_block || 0), 0)}</td>
+                  <td className="p-3 text-center text-red-800">{data.estateBreakdown.reduce((s, e) => s + (e.cnt_kering || 0), 0)}</td>
+                  <td className="p-3 text-center text-blue-800">{data.estateBreakdown.reduce((s, e) => s + (e.cnt_basah || 0), 0)}</td>
+                  <td className="p-3 text-center text-gray-900">
                     {(data.estateBreakdown.reduce((s, e) => s + parseFloat(e.avg_tmat || 0), 0) / data.estateBreakdown.length).toFixed(1)} cm
                   </td>
                 </tr>

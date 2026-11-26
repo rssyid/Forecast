@@ -6,9 +6,5 @@ export const metadata = {
 };
 
 export default function MapPage() {
-  return (
-    <main className="p-6">
-      <MapClient />
-    </main>
-  );
+  return <MapClient />;
 }

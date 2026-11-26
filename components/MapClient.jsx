@@ -95,142 +95,148 @@ export default function MapClient() {
     }, [geoData]);
 
     return (
-        <div className="max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-700">
-            <header className="relative z-[1001] flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-100 text-blue-600">
-                        <MapIcon size={24} />
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Visualisasi Spasial (GIS)</h1>
-                        <p className="text-sm text-gray-500 font-medium">Pemantauan status TMAT berbasis blok secara real-time.</p>
-                    </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 bg-white/50 p-2 rounded-2xl backdrop-blur-sm border border-white/50">
-                    {/* Search Input */}
-                    <div className="relative w-full md:w-56">
-                        <input 
-                            type="text"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            placeholder="Cari ID PZO / Blok..."
-                            className="w-full h-11 pl-10 pr-4 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all font-medium"
-                        />
-                        <Filter className="absolute left-3.5 top-3.5 text-gray-400" size={14} />
-                    </div>
-
-                    <div className="w-40">
-                        <SearchableSelect 
-                            options={COMPANIES}
-                            value={company}
-                            onChange={setCompany}
-                            placeholder="Company"
-                            icon={<Globe size={14} />}
-                            autoSort={false}
-                        />
-                    </div>
-                    <div className="w-48">
-                        <SearchableSelect 
-                            options={weekList}
-                            value={week}
-                            onChange={setWeek}
-                            placeholder="Pilih Minggu"
-                            icon={<CalendarDays size={14} />}
-                            autoSort={false}
-                        />
-                    </div>
-
-                    {/* Layer Toggle */}
-                    <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
-                        <button 
-                            onClick={() => setBaseLayer('dark')}
-                            className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black transition-all ${baseLayer === 'dark' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            DARK
-                        </button>
-                        <button 
-                            onClick={() => setBaseLayer('light')}
-                            className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black transition-all ${baseLayer === 'light' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            LIGHT
-                        </button>
-                        <button 
-                            onClick={() => setBaseLayer('satellite')}
-                            className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black transition-all ${baseLayer === 'satellite' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            SATELIT
-                        </button>
-                    </div>
-
-                    <button 
-                        onClick={fetchData}
-                        disabled={loading}
-                        className="p-2.5 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-gray-600 disabled:opacity-50"
-                    >
-                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                    </button>
+        <div className="space-y-6">
+            <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Visualisasi Spasial (GIS)</h1>
+                    <p className="text-sm text-gray-600 mt-1">Pemantauan status TMAT berbasis blok secara real-time.</p>
                 </div>
             </header>
 
-            <div className="relative z-0 grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-220px)] min-h-[600px]">
+            <section aria-label="Filter peta interaktif" className="relative z-[1001] flex flex-wrap items-center gap-2.5 bg-white p-3 sm:p-4 rounded-2xl border border-gray-200 shadow-xs">
+                {/* Search Input */}
+                <div className="relative w-full sm:w-56">
+                    <label htmlFor="map-search-pzo" className="sr-only">Cari ID PZO atau Blok</label>
+                    <input
+                        id="map-search-pzo"
+                        type="text"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        placeholder="Cari ID PZO / Blok..."
+                        className="w-full h-11 pl-10 pr-4 bg-white border border-gray-300 rounded-xl text-sm font-medium text-gray-900 placeholder-gray-500"
+                    />
+                    <Filter className="absolute left-3.5 top-3.5 text-gray-500 pointer-events-none" size={15} aria-hidden="true" />
+                </div>
+
+                <div className="w-40">
+                    <SearchableSelect
+                        options={COMPANIES}
+                        value={company}
+                        onChange={setCompany}
+                        placeholder="Company"
+                        icon={<Globe size={14} />}
+                        autoSort={false}
+                    />
+                </div>
+                <div className="w-48">
+                    <SearchableSelect
+                        options={weekList}
+                        value={week}
+                        onChange={setWeek}
+                        placeholder="Pilih Minggu"
+                        icon={<CalendarDays size={14} />}
+                        autoSort={false}
+                    />
+                </div>
+
+                {/* Layer Toggle */}
+                <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200" role="group" aria-label="Pilih basemap">
+                    <button
+                        type="button"
+                        onClick={() => setBaseLayer('dark')}
+                        aria-pressed={baseLayer === 'dark'}
+                        className={`min-h-9 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${baseLayer === 'dark' ? 'bg-black text-white' : 'text-gray-700 hover:text-gray-900'}`}
+                    >
+                        Dark
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setBaseLayer('light')}
+                        aria-pressed={baseLayer === 'light'}
+                        className={`min-h-9 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${baseLayer === 'light' ? 'bg-black text-white' : 'text-gray-700 hover:text-gray-900'}`}
+                    >
+                        Light
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setBaseLayer('satellite')}
+                        aria-pressed={baseLayer === 'satellite'}
+                        className={`min-h-9 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${baseLayer === 'satellite' ? 'bg-black text-white' : 'text-gray-700 hover:text-gray-900'}`}
+                    >
+                        Satelit
+                    </button>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={fetchData}
+                    disabled={loading}
+                    aria-label="Muat ulang data peta"
+                    title="Muat ulang data peta"
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-gray-900 disabled:opacity-50"
+                >
+                    <RefreshCw size={16} className={loading ? 'animate-spin' : ''} aria-hidden="true" />
+                </button>
+            </section>
+
+            <div className="relative z-0 grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
                 {/* Stats Sidebar */}
-                <div className="lg:col-span-1 space-y-6 overflow-y-auto pr-1">
+                <div className="lg:col-span-1 space-y-6">
                     {stats && (
-                        <div className="glass-card p-6 space-y-6">
-                            <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2 border-b pb-4">
-                                <Layers size={16} className="text-blue-600" />
-                                Ringkasan Data Spasial
-                            </h3>
-                            
+                        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs space-y-5">
+                            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2 border-b border-gray-200 pb-3">
+                                <Layers size={16} className="text-gray-700" aria-hidden="true" />
+                                <span>Ringkasan Data Spasial</span>
+                            </h2>
+
                             <div className="space-y-4">
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Blok Terdaftar</p>
-                                    <p className="text-3xl font-black text-gray-900 mt-1">{stats.total}</p>
+                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Blok Terdaftar</p>
+                                    <p className="text-3xl font-bold text-gray-900 mt-1 tabular-nums">{stats.total}</p>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-2">
-                                    <div className="flex items-center justify-between p-2.5 bg-red-50 border border-red-100 rounded-xl">
+                                <div className="grid grid-cols-1 gap-2 tabular-nums">
+                                    <div className="flex items-center justify-between p-2.5 bg-red-50 border border-red-200 rounded-xl">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-[#ef4444]"></div>
-                                            <span className="text-[10px] font-bold text-red-800">Kering (&gt;65cm)</span>
+                                            <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></div>
+                                            <span className="text-xs font-semibold text-red-900">Kering (&gt;65cm)</span>
                                         </div>
-                                        <span className="text-xs font-black text-red-900">{stats.kering}</span>
+                                        <span className="text-sm font-bold text-red-900">{stats.kering}</span>
                                     </div>
-                                    <div className="flex items-center justify-between p-2.5 bg-amber-50 border border-amber-100 rounded-xl">
+                                    <div className="flex items-center justify-between p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-[#f59e0b]"></div>
-                                            <span className="text-[10px] font-bold text-amber-800">A. Kering (61-65cm)</span>
+                                            <div className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]"></div>
+                                            <span className="text-xs font-semibold text-amber-900">A. Kering (61-65cm)</span>
                                         </div>
-                                        <span className="text-xs font-black text-amber-900">{stats.a_kering}</span>
+                                        <span className="text-sm font-bold text-amber-900">{stats.a_kering}</span>
                                     </div>
-                                    <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl">
+                                    <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-[#22c55e]"></div>
-                                            <span className="text-[10px] font-bold text-emerald-800">Normal (46-60cm)</span>
+                                            <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e]"></div>
+                                            <span className="text-xs font-semibold text-emerald-900">Normal (46-60cm)</span>
                                         </div>
-                                        <span className="text-xs font-black text-emerald-900">{stats.normal}</span>
+                                        <span className="text-sm font-bold text-emerald-900">{stats.normal}</span>
                                     </div>
-                                    <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-100 rounded-xl">
+                                    <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-xl">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-[#60a5fa]"></div>
-                                            <span className="text-[10px] font-bold text-blue-800">A. Tergenang (41-45cm)</span>
+                                            <div className="w-2.5 h-2.5 rounded-full bg-[#60a5fa]"></div>
+                                            <span className="text-xs font-semibold text-blue-900">A. Tergenang (41-45cm)</span>
                                         </div>
-                                        <span className="text-xs font-black text-blue-900">{stats.a_tergenang}</span>
+                                        <span className="text-sm font-bold text-blue-900">{stats.a_tergenang}</span>
                                     </div>
-                                    <div className="flex items-center justify-between p-2.5 bg-blue-100/50 border border-blue-200 rounded-xl">
+                                    <div className="flex items-center justify-between p-2.5 bg-blue-100/70 border border-blue-300 rounded-xl">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-[#2563eb]"></div>
-                                            <span className="text-[10px] font-bold text-blue-900">Tergenang (0-40cm)</span>
+                                            <div className="w-2.5 h-2.5 rounded-full bg-[#2563eb]"></div>
+                                            <span className="text-xs font-semibold text-blue-950">Tergenang (0-40cm)</span>
                                         </div>
-                                        <span className="text-xs font-black text-blue-900">{stats.tergenang}</span>
+                                        <span className="text-sm font-bold text-blue-950">{stats.tergenang}</span>
                                     </div>
-                                    <div className="flex items-center justify-between p-2.5 bg-gray-100 border border-gray-200 rounded-xl">
+                                    <div className="flex items-center justify-between p-2.5 bg-gray-100 border border-gray-300 rounded-xl">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-[#6b7280]"></div>
-                                            <span className="text-[10px] font-bold text-gray-700">Banjir (&lt;0cm)</span>
+                                            <div className="w-2.5 h-2.5 rounded-full bg-[#6b7280]"></div>
+                                            <span className="text-xs font-semibold text-gray-900">Banjir (&lt;0cm)</span>
                                         </div>
-                                        <span className="text-xs font-black text-gray-900">{stats.banjir}</span>
+                                        <span className="text-sm font-bold text-gray-900">{stats.banjir}</span>
                                     </div>
                                 </div>
                             </div>
@@ -239,48 +245,48 @@ export default function MapClient() {
                 </div>
 
                 {/* Map Container */}
-                <div className="lg:col-span-3 relative glass-card p-2">
+                <div className="lg:col-span-3 relative bg-white rounded-2xl border border-gray-200 p-2 shadow-xs h-[540px] lg:h-[620px]">
                     {error ? (
-                        <div className="w-full h-full bg-red-50 rounded-2xl flex flex-col items-center justify-center text-red-600 p-10 text-center gap-3 border border-red-100">
-                            <RefreshCw size={48} className="opacity-20" />
+                        <div role="alert" className="w-full h-full bg-red-50 rounded-xl flex flex-col items-center justify-center text-red-900 p-10 text-center gap-3 border border-red-300">
+                            <RefreshCw size={40} className="text-red-700" aria-hidden="true" />
                             <p className="font-bold">Gagal memuat data spasial</p>
-                            <p className="text-xs opacity-80">{error}</p>
-                            <button onClick={fetchData} className="mt-4 px-6 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition-all">Coba Lagi</button>
+                            <p className="text-xs text-red-800">{error}</p>
+                            <button type="button" onClick={fetchData} className="mt-2 min-h-11 px-6 py-2 bg-black text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">Coba Lagi</button>
                         </div>
                     ) : (
-                        <div className="w-full h-full relative overflow-hidden rounded-2xl border border-gray-200 shadow-inner">
-                            <LeafletMap 
-                                data={filteredGeoData} 
+                        <div className="w-full h-full relative overflow-hidden rounded-xl border border-gray-200">
+                            <LeafletMap
+                                data={filteredGeoData}
                                 baseLayer={baseLayer}
                             />
-                            
+
                             {/* Legend Overlay */}
-                            <div className="absolute bottom-6 left-6 z-[1000] bg-gray-900/90 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-2xl">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Legenda TMAT</p>
+                            <div className="absolute bottom-4 left-4 z-[1000] bg-gray-900/95 p-4 rounded-xl border border-gray-700 shadow-lg">
+                                <p className="text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-2.5">Legenda TMAT</p>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-[#ef4444]"></div>
-                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">KERING (&gt;65cm)</span>
+                                        <span className="text-[11px] font-semibold text-white whitespace-nowrap">Kering (&gt;65cm)</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-[#f59e0b]"></div>
-                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">A. KERING (61-65cm)</span>
+                                        <span className="text-[11px] font-semibold text-white whitespace-nowrap">A. Kering (61-65cm)</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-[#22c55e]"></div>
-                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">NORMAL (46-60cm)</span>
+                                        <span className="text-[11px] font-semibold text-white whitespace-nowrap">Normal (46-60cm)</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-[#60a5fa]"></div>
-                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">A. TERGENANG (41-45cm)</span>
+                                        <span className="text-[11px] font-semibold text-white whitespace-nowrap">A. Tergenang (41-45cm)</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-[#2563eb]"></div>
-                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">TERGENANG (0-40cm)</span>
+                                        <span className="text-[11px] font-semibold text-white whitespace-nowrap">Tergenang (0-40cm)</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-[#6b7280]"></div>
-                                        <span className="text-[9px] font-bold text-white whitespace-nowrap">BANJIR (&lt;0cm)</span>
+                                        <span className="text-[11px] font-semibold text-white whitespace-nowrap">Banjir (&lt;0cm)</span>
                                     </div>
                                 </div>
                             </div>

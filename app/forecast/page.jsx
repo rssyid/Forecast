@@ -415,71 +415,80 @@ ${translateText}
   const charts = getChartData();
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6">
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">TMAT Forecast & AI Report</h1>
-          <p className="text-sm text-gray-500 mt-1">Sistem Piezometer Advanced dengan integrasi Database dan Machine Learning.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">TMAT Forecast &amp; AI Report</h1>
+          <p className="text-sm text-gray-600 mt-1">Sistem Piezometer terintegrasi dengan database dan model regresi estate.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button 
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
             onClick={handleUpdateRecent}
-            className="inline-flex items-center gap-2 bg-black text-white hover:bg-gray-800 h-10 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+            className="min-h-11 inline-flex items-center justify-center gap-2 bg-black text-white hover:bg-gray-800 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
           >
-            <RefreshCw size={16} /> Update (Minggu Ini)
+            <RefreshCw size={16} aria-hidden="true" />
+            <span>Update (Minggu Ini)</span>
           </button>
-          <button 
+          <button
+            type="button"
             onClick={handleFullSync}
-            className="inline-flex items-center gap-2 bg-red-500 text-white hover:bg-red-600 h-10 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+            className="min-h-11 inline-flex items-center justify-center gap-2 bg-red-700 text-white hover:bg-red-800 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
           >
-            <Database size={16} /> Full Sync (2025)
+            <Database size={16} aria-hidden="true" />
+            <span>Full Sync (2025)</span>
           </button>
-          <button 
+          <button
+            type="button"
             disabled={!processed}
             onClick={handleExportExcel}
-            className="inline-flex items-center gap-2 bg-brand-orange text-white hover:bg-orange-600 h-10 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+            className="min-h-11 inline-flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            <Download size={16} /> Export Excel
+            <Download size={16} aria-hidden="true" />
+            <span>Export Excel</span>
           </button>
         </div>
       </header>
 
       {/* Input Section */}
-      <section className="glass-card p-6">
+      <section aria-label="Konfigurasi model forecast" className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-xs">
         {/* Row 1: Sumber Data, Company, Rentang Historis */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Sumber Data</label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+                <label htmlFor="forecast-source-type" className="block text-xs font-semibold text-gray-700">Sumber Data</label>
                 <div className="relative">
-                    <select 
-                        value={sourceType} 
+                    <select
+                        id="forecast-source-type"
+                        value={sourceType}
                         onChange={(e) => setSourceType(e.target.value)}
-                        className="w-full h-10 pl-10 pr-4 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50 appearance-none"
+                        className="w-full h-11 py-2 pl-10 pr-4 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-900 appearance-none"
                     >
                         <option value="db">Database Server</option>
                         <option value="csv">File CSV Lokal</option>
                     </select>
-                    <Database className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                    <Database className="absolute left-3 top-3.5 text-gray-500 pointer-events-none" size={16} aria-hidden="true" />
                 </div>
             </div>
 
             {sourceType === 'db' ? (
                 <>
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700">Company</label>
-                        <select 
+                    <div className="space-y-1.5">
+                        <label htmlFor="forecast-company" className="block text-xs font-semibold text-gray-700">Company</label>
+                        <select
+                            id="forecast-company"
                             value={dbCompany} onChange={(e) => setDbCompany(e.target.value)}
-                            className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50"
+                            className="w-full h-11 py-2 px-3 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-900"
                         >
                             <option value="Semua">Gabungan (Semua Company)</option>
                             {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700">Rentang Historis</label>
-                        <select 
+                    <div className="space-y-1.5">
+                        <label htmlFor="forecast-range" className="block text-xs font-semibold text-gray-700">Rentang Historis</label>
+                        <select
+                            id="forecast-range"
                             value={dbRange} onChange={(e) => setDbRange(e.target.value)}
-                            className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50"
+                            className="w-full h-11 py-2 px-3 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-900"
                         >
                             <option value="8">8 Minggu Terakhir</option>
                             <option value="12">12 Minggu Terakhir</option>
@@ -490,11 +499,12 @@ ${translateText}
                     </div>
                 </>
             ) : (
-                <div className="space-y-2 col-span-2">
-                    <label className="text-sm font-semibold text-gray-700">CSV Piezometer</label>
-                    <input 
+                <div className="space-y-1.5 md:col-span-2">
+                    <label htmlFor="forecast-csv-upload" className="block text-xs font-semibold text-gray-700">CSV Piezometer</label>
+                    <input
+                        id="forecast-csv-upload"
                         type="file" accept=".csv" onChange={handleFileUpload}
-                        className="w-full h-10 px-3 py-1.5 rounded-xl border border-gray-200 bg-white/50 text-sm file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-green/20 file:text-green-800 hover:file:bg-brand-green/30"
+                        className="w-full min-h-11 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm text-gray-900 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border file:border-gray-300 file:text-xs file:font-semibold file:bg-gray-50 file:text-gray-800 hover:file:bg-gray-100"
                     />
                 </div>
             )}
@@ -503,84 +513,91 @@ ${translateText}
         {/* Row 2: Ambil Data Button + Baseline Week + Data Freshness */}
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             {sourceType === 'db' && (
-                <button 
+                <button
+                    type="button"
                     onClick={handleFetchDB} disabled={isFetching}
-                    className="w-full inline-flex items-center justify-center gap-2 bg-black text-white h-10 px-6 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                    className="w-full min-h-11 inline-flex items-center justify-center gap-2 bg-black text-white px-5 rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 whitespace-nowrap"
                 >
-                    {isFetching ? <><RefreshCw size={16} className="animate-spin" /> Memuat...</> : <><Database size={16} /> Ambil Data dari Server</>}
+                    {isFetching ? <><RefreshCw size={16} className="animate-spin" aria-hidden="true" /> Memuat...</> : <><Database size={16} aria-hidden="true" /> Ambil Data dari Server</>}
                 </button>
             )}
-            <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Baseline Week (Minggu Acuan)</label>
-                <select 
+            <div className="space-y-1.5">
+                <label htmlFor="forecast-baseline-week" className="block text-xs font-semibold text-gray-700">Baseline Week (Minggu Acuan)</label>
+                <select
+                    id="forecast-baseline-week"
                     disabled={!weeks.length}
                     value={baselineWeek} onChange={(e) => setBaselineWeek(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm disabled:opacity-50"
+                    className="w-full h-11 py-2 px-3 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-900 disabled:opacity-50"
                 >
                     {weeks.map(w => <option key={w} value={w}>{w}</option>)}
                 </select>
             </div>
             {dataStale && weeks.length > 0 && (
-                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
-                    <AlertTriangle size={16} className="shrink-0" />
-                    <span>Data belum ter-update minggu ini. Klik <b>"Update (Minggu Ini)"</b> di atas terlebih dahulu.</span>
+                <div role="status" className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-medium">
+                    <AlertTriangle size={16} className="shrink-0 text-amber-800" aria-hidden="true" />
+                    <span>Data belum ter-update minggu ini. Klik <strong>Update (Minggu Ini)</strong> terlebih dahulu.</span>
                 </div>
             )}
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-6">
-            <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Scenario Rainfall (mm) untuk Diprediksi (Bisa diisi banyak skenario, pisahkan dengan koma)</label>
-                <input 
+        <div className="mt-4">
+            <div className="space-y-1.5">
+                <label htmlFor="forecast-scenario-input" className="block text-xs font-semibold text-gray-700">Scenario Rainfall (mm) untuk Diprediksi (pisahkan dengan koma)</label>
+                <input
+                    id="forecast-scenario-input"
                     type="text" value={scenarioInput} onChange={(e) => setScenarioInput(e.target.value)}
                     placeholder="0, 50, 100"
-                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white/50 text-sm focus:ring-2 focus:ring-brand-orange/50"
+                    className="w-full min-h-11 px-3 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-900"
                 />
             </div>
         </div>
 
-        {/* Rainfall Inputs Collapse Section Removed */}
+        {/* Rainfall Info Section */}
         {weeks.length > 0 && forecastModel === 'estate' && (
-            <div className="mt-6 pt-6 border-t border-gray-100">
-                <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-3">
-                        <h3 className="text-md font-semibold text-gray-800">Skenario Hujan Masa Depan</h3>
-                        <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-green-200">Auto Database Mode</span>
-                    </div>
+            <div className="mt-5 pt-5 border-t border-gray-200">
+                <div className="flex flex-wrap items-center gap-2.5 mb-2">
+                    <h2 className="text-sm font-bold text-gray-900">Skenario Hujan Masa Depan</h2>
+                    <span className="text-xs bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-md font-semibold border border-emerald-200">
+                        Auto Database Mode
+                    </span>
                 </div>
-                <p className="text-sm text-gray-500 italic p-4 bg-white/40 rounded-xl border border-gray-100">
-                    Sistem secara otomatis telah memuat seluruh data riwayat Curah Hujan untuk setiap Estate/Kebun secara spesifik dari database untuk melatih model matematis.<br/><br/>
-                    Masukkan "Scenario Rainfall (mm)" di atas, lalu klik <b>Proses Data AI</b> untuk melihat probabilitas kondisi di minggu berikutnya.
+                <p className="text-sm text-gray-600 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    Sistem telah memuat riwayat curah hujan untuk setiap estate dari database untuk melatih model matematis. Masukkan nilai pada kolom Scenario Rainfall (mm) di atas, lalu klik <strong>Proses Data AI</strong>.
                 </p>
             </div>
         )}
 
-        <div className="mt-8 flex flex-col md:flex-row items-center gap-4">
+        <div className="mt-6 flex flex-col md:flex-row items-stretch md:items-center gap-3">
             {renderStatus()}
-            <button 
+            <button
+                type="button"
                 onClick={handleProcess}
                 disabled={!weeks.length}
-                className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-black text-white h-12 px-8 rounded-xl font-medium hover:bg-gray-800 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 shadow-lg shadow-gray-200"
+                className="w-full md:w-auto min-h-11 inline-flex items-center justify-center gap-2 bg-black text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
-                <Play size={18} /> Proses Data AI
+                <Play size={16} aria-hidden="true" />
+                <span>Proses Data AI</span>
             </button>
         </div>
       </section>
 
       {/* Results Section */}
       {processed && (
-          <section className="mt-8">
-              <div className="flex space-x-2 border-b border-gray-200 mb-6 overflow-x-auto">
+          <section className="space-y-6">
+              <div className="flex space-x-2 border-b border-gray-200 overflow-x-auto" role="tablist" aria-label="Hasil analisis forecast">
                   {[
-                      { id: 'dashboard', label: 'Dashboard AI', icon: <BarChart2 size={16}/> },
-                      { id: 'laporan', label: 'Laporan Teks', icon: <FileText size={16}/> },
-                      { id: 'forecast', label: 'Tabel Forecast', icon: <Table2 size={16}/> },
-                      { id: 'data', label: 'Data Raw', icon: <DatabaseZap size={16}/> }
+                      { id: 'dashboard', label: 'Dashboard AI', icon: <BarChart2 size={16} aria-hidden="true" /> },
+                      { id: 'laporan', label: 'Laporan Teks', icon: <FileText size={16} aria-hidden="true" /> },
+                      { id: 'forecast', label: 'Tabel Forecast', icon: <Table2 size={16} aria-hidden="true" /> },
+                      { id: 'data', label: 'Data Raw', icon: <DatabaseZap size={16} aria-hidden="true" /> }
                   ].map(tab => (
-                      <button 
+                      <button
                           key={tab.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={activeTab === tab.id}
                           onClick={() => setActiveTab(tab.id)}
-                          className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                          className={`min-h-11 flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'border-black text-gray-900' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
                       >
                           {tab.icon} {tab.label}
                       </button>
@@ -588,9 +605,9 @@ ${translateText}
               </div>
 
               {activeTab === 'dashboard' && (
-                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="space-y-6">
                       {/* Model Summary Cards */}
-                      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                           {[
                               { label: "Metode AI", val: 'Granular Estate-Based' },
                               { label: "Baseline Week", val: processed.baselineWeek },
@@ -599,23 +616,23 @@ ${translateText}
                               { label: "Error (MAE)", val: processed.fit.method === 'fallback' ? '-' : `± ${formatNumber(processed.fit.mae, 1)} cm` },
                               { label: "Max Error (RMSE)", val: processed.fit.method === 'fallback' ? '-' : `± ${formatNumber(processed.fit.rmse, 1)} cm` }
                           ].map(card => (
-                              <div key={card.label} className="glass-card p-4 flex flex-col justify-center">
-                                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{card.label}</span>
-                                  <span className="text-xl font-bold text-gray-900">{card.val}</span>
+                              <div key={card.label} className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs flex flex-col justify-between">
+                                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">{card.label}</span>
+                                  <span className="text-lg font-bold text-gray-900 tabular-nums">{card.val}</span>
                               </div>
                           ))}
                       </div>
 
                       {/* Charts */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          <div className="glass-card p-5 h-[400px] flex flex-col">
-                              <h3 className="text-sm font-bold text-gray-800 mb-4">Trend Historis (TMAT vs Rainfall)</h3>
+                          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs h-[400px] flex flex-col">
+                              <h2 className="text-sm font-bold text-gray-900 mb-4">Trend Historis (TMAT vs Rainfall)</h2>
                               <div className="flex-1 relative">
                                   {charts.trend && <Chart type="bar" data={charts.trend.data || charts.trend} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { position: "left", title: { display: true, text: "Avg TMAT (cm)" } }, y1: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Rainfall (mm)" } } } }} />}
                               </div>
                           </div>
-                          <div className="glass-card p-5 h-[400px] flex flex-col">
-                              <h3 className="text-sm font-bold text-gray-800 mb-4">Distribusi TMAT Forecast</h3>
+                          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs h-[400px] flex flex-col">
+                              <h2 className="text-sm font-bold text-gray-900 mb-4">Distribusi TMAT Forecast</h2>
                               <div className="flex-1 relative">
                                   {charts.dist && <Chart type="bar" data={charts.dist.data || charts.dist} options={{ responsive: true, maintainAspectRatio: false }} />}
                               </div>
@@ -625,65 +642,69 @@ ${translateText}
               )}
 
               {activeTab === 'laporan' && (
-                  <div className="glass-card p-6 animate-in fade-in duration-300">
-                      <div className="mb-6 pb-4 border-b border-gray-100">
-                          <h3 className="text-lg font-bold text-gray-900">AI Report Generator</h3>
-                          <p className="text-sm text-gray-500">Fitur ini akan segera diintegrasikan dengan API AI.</p>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-xs space-y-6">
+                      <div className="pb-4 border-b border-gray-200">
+                          <h2 className="text-lg font-bold text-gray-900">AI Report Generator</h2>
+                          <p className="text-sm text-gray-600 mt-0.5">Buat ringkasan eksekutif hidrologi dari hasil proyeksi di atas.</p>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                          <div className="space-y-2">
-                              <label className="text-sm font-medium text-gray-700">Konteks Cuaca (Opsional)</label>
-                              <textarea 
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                              <label htmlFor="forecast-weather-ctx" className="block text-xs font-semibold text-gray-700">Konteks Cuaca</label>
+                              <textarea
+                                  id="forecast-weather-ctx"
                                   value={userContext} onChange={e => setUserContext(e.target.value)}
-                                  className="w-full h-24 p-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-orange/50"
+                                  className="w-full h-24 p-3 rounded-xl border border-gray-300 bg-white text-sm text-gray-900"
                                   placeholder="Contoh: Realisasi hujan aktual lebih rendah..."
                               />
                           </div>
-                          <div className="space-y-2">
-                              <label className="text-sm font-medium text-gray-700">Aksi Water Management</label>
-                              <textarea 
+                          <div className="space-y-1.5">
+                              <label htmlFor="forecast-wm-actions" className="block text-xs font-semibold text-gray-700">Aksi Water Management</label>
+                              <textarea
+                                  id="forecast-wm-actions"
                                   value={wmActions} onChange={e => setWmActions(e.target.value)}
-                                  className="w-full h-24 p-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-orange/50"
+                                  className="w-full h-24 p-3 rounded-xl border border-gray-300 bg-white text-sm text-gray-900"
                                   placeholder="Contoh: Menutup pintu air A12..."
                               />
                           </div>
                       </div>
-                      <button 
+                      <button
+                        type="button"
                         onClick={handleGenerateAI}
                         disabled={isGenerating || !processed}
-                        className={`bg-brand-green text-green-900 font-bold px-8 py-3 rounded-xl text-sm shadow-lg shadow-green-100 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 ${isGenerating ? 'opacity-70 cursor-wait' : 'hover:bg-green-500'}`}
+                        className="min-h-11 bg-black text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:bg-gray-800 transition-colors inline-flex items-center gap-2 disabled:opacity-50"
                       >
-                        {isGenerating ? <><RefreshCw size={16} className="animate-spin" /> Generating...</> : <><Play size={16} /> Generate Laporan AI</>}
+                        {isGenerating ? <><RefreshCw size={16} className="animate-spin" aria-hidden="true" /> Generating...</> : <><Play size={16} aria-hidden="true" /> Generate Laporan AI</>}
                       </button>
 
                       {aiReport && (
-                        <div className="mt-8 p-8 bg-white rounded-[32px] border border-gray-100 shadow-xl animate-in fade-in slide-in-from-top-4 duration-500 relative">
-                            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
-                                <h4 className="text-xl font-black text-gray-900 flex items-center gap-3">
-                                    <FileText className="text-brand-green" size={24} />
-                                    Hasil Analisis AI
-                                </h4>
+                        <div className="p-6 bg-gray-50 rounded-2xl border border-gray-200 space-y-4">
+                            <div className="flex flex-wrap justify-between items-center gap-3 pb-4 border-b border-gray-200">
+                                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                    <FileText className="text-gray-700" size={20} aria-hidden="true" />
+                                    <span>Hasil Analisis AI</span>
+                                </h3>
                                 <button
+                                    type="button"
                                     onClick={() => {
                                         navigator.clipboard.writeText(aiReport).then(() => {
                                             setReportCopied(true);
                                             setTimeout(() => setReportCopied(false), 2000);
                                         });
                                     }}
-                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                                        reportCopied 
-                                            ? 'bg-green-100 text-green-700' 
-                                            : 'bg-gray-100 text-gray-600 hover:bg-black hover:text-white'
+                                    className={`min-h-11 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${
+                                        reportCopied
+                                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                            : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'
                                     }`}
                                 >
-                                    {reportCopied ? <><Check size={16} /> Copied!</> : <><ClipboardCopy size={16} /> Salin Laporan</>}
+                                    {reportCopied ? <><Check size={16} aria-hidden="true" /> Copied!</> : <><ClipboardCopy size={16} aria-hidden="true" /> Salin Laporan</>}
                                 </button>
                             </div>
                             <div className="prose prose-slate max-w-none text-gray-800 leading-relaxed">
                                 {aiReport.split('\n').map((line, i) => {
                                     const cleaned = line.replace(/\*\*/g, '');
-                                    if (cleaned.startsWith('# ')) return <h1 key={i} className="text-2xl font-black mb-4 mt-8">{cleaned.substring(2)}</h1>;
-                                    if (cleaned.startsWith('## ')) return <h2 key={i} className="text-xl font-bold mb-3 mt-6">{cleaned.substring(3)}</h2>;
+                                    if (cleaned.startsWith('# ')) return <h1 key={i} className="text-2xl font-bold mb-4 mt-6">{cleaned.substring(2)}</h1>;
+                                    if (cleaned.startsWith('## ')) return <h2 key={i} className="text-xl font-bold mb-3 mt-5">{cleaned.substring(3)}</h2>;
                                     if (cleaned.startsWith('### ')) return <h3 key={i} className="text-lg font-bold mb-2 mt-4">{cleaned.substring(4)}</h3>;
                                     if (cleaned.startsWith('- ')) return <li key={i} className="ml-4 mb-1">{cleaned.substring(2)}</li>;
                                     return <p key={i} className="mb-3">{cleaned}</p>;
@@ -693,53 +714,58 @@ ${translateText}
                       )}
 
                       {/* Translation Module */}
-                      <div className="mt-12 pt-8 border-t border-gray-100">
-                          <div className="mb-6">
-                              <h3 className="text-lg font-bold text-gray-900">AI Translation & Rewrite (English)</h3>
-                              <p className="text-sm text-gray-500">Gunakan fitur ini untuk menerjemahkan laporan ke Bahasa Inggris formal level eksekutif.</p>
+                      <div className="pt-6 border-t border-gray-200 space-y-4">
+                          <div>
+                              <h3 className="text-base font-bold text-gray-900">AI Translation &amp; Rewrite (English)</h3>
+                              <p className="text-sm text-gray-600 mt-0.5">Terjemahkan laporan ke Bahasa Inggris formal level eksekutif.</p>
                           </div>
-                          
-                          <div className="space-y-4">
-                              <textarea 
-                                  value={translateText} 
+
+                          <div className="space-y-3">
+                              <label htmlFor="forecast-translate-input" className="sr-only">Teks laporan untuk diterjemahkan</label>
+                              <textarea
+                                  id="forecast-translate-input"
+                                  value={translateText}
                                   onChange={e => setTranslateText(e.target.value)}
-                                  className="w-full h-48 p-4 rounded-2xl border border-gray-200 text-sm focus:ring-2 focus:ring-brand-orange/50 bg-gray-50/30"
+                                  className="w-full h-48 p-4 rounded-xl border border-gray-300 bg-white text-sm text-gray-900"
                                   placeholder="Tempel teks laporan di sini..."
                               />
-                              
-                              <button 
+
+                              <button
+                                  type="button"
                                   onClick={handleTranslateReport}
                                   disabled={isTranslating || !translateText}
-                                  className={`bg-black text-white font-bold px-8 py-3 rounded-xl text-sm transition-all flex items-center gap-2 ${isTranslating ? 'opacity-70 cursor-wait' : 'hover:bg-gray-800'}`}
+                                  className="min-h-11 bg-black text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:bg-gray-800 transition-colors inline-flex items-center gap-2 disabled:opacity-50"
                               >
-                                  {isTranslating ? <><RefreshCw size={16} className="animate-spin" /> Translating...</> : <><RefreshCw size={16} /> Rewrite & Translate</>}
+                                  <RefreshCw size={16} className={isTranslating ? 'animate-spin' : ''} aria-hidden="true" />
+                                  <span>{isTranslating ? 'Translating...' : 'Rewrite & Translate'}</span>
                               </button>
                           </div>
 
                           {translatedReport && (
-                              <div className="mt-8 p-8 bg-blue-50/30 rounded-[32px] border border-blue-100 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500 relative">
-                                  <div className="flex justify-between items-center mb-6 pb-4 border-b border-blue-100">
-                                      <h4 className="text-xl font-black text-blue-900 flex items-center gap-3">
-                                          <FileText className="text-blue-600" size={24} />
-                                          English Executive Report
+                              <div className="p-6 bg-gray-50 rounded-2xl border border-gray-200 space-y-4">
+                                  <div className="flex flex-wrap justify-between items-center gap-3 pb-4 border-b border-gray-200">
+                                      <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                          <FileText className="text-gray-700" size={20} aria-hidden="true" />
+                                          <span>English Executive Report</span>
                                       </h4>
                                       <button
+                                          type="button"
                                           onClick={() => {
                                               navigator.clipboard.writeText(translatedReport).then(() => {
                                                   setTranslateCopied(true);
                                                   setTimeout(() => setTranslateCopied(false), 2000);
                                               });
                                           }}
-                                          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                                              translateCopied 
-                                                  ? 'bg-blue-200 text-blue-800' 
-                                                  : 'bg-white text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200'
+                                          className={`min-h-11 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${
+                                              translateCopied
+                                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                                  : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'
                                           }`}
                                       >
-                                          {translateCopied ? <><Check size={16} /> Copied!</> : <><ClipboardCopy size={16} /> Salin Laporan</>}
+                                          {translateCopied ? <><Check size={16} aria-hidden="true" /> Copied!</> : <><ClipboardCopy size={16} aria-hidden="true" /> Salin Laporan</>}
                                       </button>
                                   </div>
-                                  <div className="prose prose-blue max-w-none text-blue-900 leading-relaxed">
+                                  <div className="prose prose-slate max-w-none text-gray-800 leading-relaxed">
                                       {translatedReport.split('\n').map((line, i) => {
                                           const cleaned = line.replace(/\*\*/g, '');
                                           return <p key={i} className="mb-3">{cleaned}</p>;
@@ -752,63 +778,62 @@ ${translateText}
               )}
 
               {activeTab === 'forecast' && (
-                  <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="glass-card overflow-hidden">
-                          <div className="bg-gray-50/50 p-4 border-b border-gray-100 flex items-center justify-between">
-                              <h3 className="font-bold text-gray-800">Tabel Forecast Distribusi</h3>
-                              <button
-                                  onClick={() => {
-                                      if (!processed) return;
-                                      const headers = Object.keys(processed.forecastRows[0]);
-                                      const rows = processed.forecastRows.map(r => 
-                                          headers.map(h => {
-                                              const v = r[h];
-                                              return typeof v === 'number' && h.includes('%') ? v.toFixed(1) : v;
-                                          }).join('\t')
-                                      );
-                                      const tsv = [headers.join('\t'), ...rows].join('\n');
-                                      navigator.clipboard.writeText(tsv).then(() => {
-                                          setTableCopied(true);
-                                          setTimeout(() => setTableCopied(false), 2000);
-                                      });
-                                  }}
-                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                      tableCopied 
-                                          ? 'bg-green-100 text-green-700 border border-green-200' 
-                                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900'
-                                  }`}
-                              >
-                                  {tableCopied ? <><Check size={14} /> Tersalin!</> : <><ClipboardCopy size={14} /> Copy Tabel</>}
-                              </button>
-                          </div>
-                          <div className="overflow-x-auto p-4">
-                              <table className="w-full text-sm text-left">
-                                  <thead className="text-gray-500 border-b border-gray-200">
-                                      <tr>
-                                          {Object.keys(processed.forecastRows[0]).map(k => <th key={k} className="p-3">{k}</th>)}
+                  <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+                      <div className="bg-gray-50 p-4 border-b border-gray-200 flex items-center justify-between gap-3">
+                          <h2 className="font-bold text-gray-900 text-base">Tabel Forecast Distribusi</h2>
+                          <button
+                              type="button"
+                              onClick={() => {
+                                  if (!processed) return;
+                                  const headers = Object.keys(processed.forecastRows[0]);
+                                  const rows = processed.forecastRows.map(r =>
+                                      headers.map(h => {
+                                          const v = r[h];
+                                          return typeof v === 'number' && h.includes('%') ? v.toFixed(1) : v;
+                                      }).join('\t')
+                                  );
+                                  const tsv = [headers.join('\t'), ...rows].join('\n');
+                                  navigator.clipboard.writeText(tsv).then(() => {
+                                      setTableCopied(true);
+                                      setTimeout(() => setTableCopied(false), 2000);
+                                  });
+                              }}
+                              className={`min-h-11 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                                  tableCopied
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                      : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'
+                              }`}
+                          >
+                              {tableCopied ? <><Check size={14} aria-hidden="true" /> Tersalin!</> : <><ClipboardCopy size={14} aria-hidden="true" /> Copy Tabel</>}
+                          </button>
+                      </div>
+                      <div className="overflow-x-auto p-4">
+                          <table className="w-full text-sm text-left">
+                              <thead className="text-gray-600 text-xs font-semibold uppercase tracking-wider border-b border-gray-200 bg-gray-50">
+                                  <tr>
+                                      {Object.keys(processed.forecastRows[0]).map(k => <th key={k} className="p-3">{k}</th>)}
+                                  </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                  {processed.forecastRows.map((r, i) => (
+                                      <tr key={i} className="hover:bg-gray-50">
+                                          {Object.entries(r).map(([k, v], j) => (
+                                              <td key={k} className="p-3 tabular-nums text-gray-900">
+                                                  {j === 0 ? <span className="px-2 py-1 rounded-md text-xs font-bold" style={{ backgroundColor: `${CLASS_COLORS[v]}20`, color: CLASS_COLORS[v] }}>{v}</span> : (typeof v === 'number' && k.includes('%') ? v.toFixed(1) + '%' : v)}
+                                              </td>
+                                          ))}
                                       </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-gray-100">
-                                      {processed.forecastRows.map((r, i) => (
-                                          <tr key={i} className="hover:bg-gray-50/50">
-                                              {Object.entries(r).map(([k, v], j) => (
-                                                  <td key={k} className="p-3">
-                                                      {j === 0 ? <span className="px-2 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: `${CLASS_COLORS[v]}20`, color: CLASS_COLORS[v] }}>{v}</span> : (typeof v === 'number' && k.includes('%') ? v.toFixed(1) + '%' : v)}
-                                                  </td>
-                                              ))}
-                                          </tr>
-                                      ))}
-                                  </tbody>
-                              </table>
-                          </div>
+                                  ))}
+                              </tbody>
+                          </table>
                       </div>
                   </div>
               )}
 
               {activeTab === 'data' && (
-                  <div className="glass-card p-6 animate-in fade-in duration-300">
-                      <h3 className="text-lg font-bold text-gray-900 mb-4">Raw Data Overview</h3>
-                      <p className="text-sm text-gray-500">Mode ini digunakan untuk inspeksi data tabel historis, saat ini tersembunyi agar performa UI lebih ringan. Silakan Export Excel untuk melihat seluruh row data mentah.</p>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs">
+                      <h2 className="text-lg font-bold text-gray-900 mb-2">Raw Data Overview</h2>
+                      <p className="text-sm text-gray-600">Mode ini digunakan untuk inspeksi data tabel historis. Gunakan tombol Export Excel di bagian atas untuk mengunduh seluruh baris data mentah.</p>
                   </div>
               )}
 

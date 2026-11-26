@@ -72,6 +72,15 @@ export default function MultiCompanyForecastClient() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (!modalCompany) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setModalCompany(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalCompany]);
+
   const handleApplyFilters = () => {
     fetchData(selectedBaselineWeek);
   };
@@ -190,37 +199,45 @@ export default function MultiCompanyForecastClient() {
 
   return (
     <div className="space-y-6">
-      {/* Page Title & Controls */}
-      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      {/* Page Title */}
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-blue-50 text-blue-600 font-semibold">
-              <Building2 size={20} />
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+              Komparasi Forecast Multi-PT
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-md bg-white text-gray-800 text-xs font-semibold border border-gray-300">
+              3-Week Memory OLS
             </span>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                Komparasi Forecast Multi-PT
-                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold border border-emerald-200 flex items-center gap-1">
-                  <Zap size={11} />
-                  3-Week Memory OLS
-                </span>
-              </h1>
-            </div>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
-            Matriks komparasi TMAT blok vs curah hujan dengan model kelembaban tanah 3 minggu (Antecedent Moisture) dari 48 minggu historis.
+          <p className="text-sm text-gray-600 mt-1">
+            Matriks komparasi TMAT blok vs curah hujan dengan model kelembaban tanah 3 minggu dari 48 minggu historis.
           </p>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Baseline Week Selector */}
-          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200">
-            <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">Baseline:</span>
+        <button
+          type="button"
+          onClick={handleExportExcel}
+          disabled={loading || !data?.companies?.length}
+          className="min-h-11 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-900 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 shrink-0"
+        >
+          <Download size={16} aria-hidden="true" />
+          <span>Export Excel</span>
+        </button>
+      </header>
+
+      {/* Filter Panel */}
+      <section aria-label="Filter proyeksi multi perusahaan" className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+          <div className="lg:col-span-3">
+            <label htmlFor="mc-baseline-week" className="block text-xs font-semibold text-gray-700 mb-1">
+              Baseline Week
+            </label>
             <select
+              id="mc-baseline-week"
               value={selectedBaselineWeek}
               onChange={(e) => setSelectedBaselineWeek(e.target.value)}
-              className="bg-transparent text-xs font-semibold text-gray-800 focus:outline-none cursor-pointer"
+              className="w-full h-11 py-2 px-3 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-900"
             >
               {data?.targetWeeks?.map(w => (
                 <option key={w} value={w}>{w}</option>
@@ -228,13 +245,15 @@ export default function MultiCompanyForecastClient() {
             </select>
           </div>
 
-          {/* Lookback Selector */}
-          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200">
-            <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">Lookback:</span>
+          <div className="lg:col-span-3">
+            <label htmlFor="mc-lookback" className="block text-xs font-semibold text-gray-700 mb-1">
+              Lookback Historis
+            </label>
             <select
+              id="mc-lookback"
               value={lookbackWeeks}
               onChange={(e) => setLookbackWeeks(e.target.value)}
-              className="bg-transparent text-xs font-semibold text-gray-800 focus:outline-none cursor-pointer"
+              className="w-full h-11 py-2 px-3 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-900"
             >
               <option value="4">4 Minggu</option>
               <option value="8">8 Minggu</option>
@@ -242,99 +261,89 @@ export default function MultiCompanyForecastClient() {
             </select>
           </div>
 
-          {/* Scenarios Input */}
-          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200">
-            <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">Skenario (mm):</span>
+          <div className="lg:col-span-3">
+            <label htmlFor="mc-scenarios" className="block text-xs font-semibold text-gray-700 mb-1">
+              Skenario Hujan (mm)
+            </label>
             <input
+              id="mc-scenarios"
               type="text"
               value={scenarioInput}
               onChange={(e) => setScenarioInput(e.target.value)}
               placeholder="0,50"
-              className="w-20 bg-transparent text-xs font-semibold text-gray-800 focus:outline-none"
+              className="w-full min-h-11 px-3 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-900"
             />
           </div>
 
-          {/* Calculate / Refresh Button */}
-          <button
-            onClick={handleApplyFilters}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
-          >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            <span>{loading ? "Memproses..." : "Hitung Proyeksi"}</span>
-          </button>
-
-          {/* Export Excel Button */}
-          <button
-            onClick={handleExportExcel}
-            disabled={loading || !data?.companies?.length}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
-          >
-            <Download size={14} />
-            <span>Export Excel</span>
-          </button>
+          <div className="lg:col-span-3">
+            <button
+              type="button"
+              onClick={handleApplyFilters}
+              disabled={loading}
+              className="w-full min-h-11 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-black hover:bg-gray-800 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
+            >
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} aria-hidden="true" />
+              <span>{loading ? "Memproses..." : "Hitung Proyeksi"}</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3 text-sm">
-          <AlertTriangle size={18} className="shrink-0" />
+        <div role="alert" className="p-4 bg-red-50 border border-red-300 text-red-900 rounded-2xl flex items-center gap-3 text-sm font-medium">
+          <AlertTriangle size={18} className="shrink-0 text-red-700" aria-hidden="true" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Top Executive Stats */}
       {data?.overall && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Perusahaan</div>
-            <div className="text-2xl font-bold text-gray-900 mt-2 flex items-baseline gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+            <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Perusahaan</div>
+            <div className="text-2xl font-bold text-gray-900 mt-2 flex items-baseline gap-2 tabular-nums">
               {data.overall.totalCompanies}
-              <span className="text-xs font-medium text-gray-400">PT Aktif</span>
+              <span className="text-xs font-medium text-gray-600">PT Aktif</span>
             </div>
-            <div className="text-xs text-gray-400 mt-1">Diproses serentak</div>
+            <div className="text-xs text-gray-600 mt-1">Diproses serentak</div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Blok Pantau</div>
-            <div className="text-2xl font-bold text-blue-600 mt-2 flex items-baseline gap-2">
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+            <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Blok Pantau</div>
+            <div className="text-2xl font-bold text-gray-900 mt-2 flex items-baseline gap-2 tabular-nums">
               {(data.overall.totalBlocks || data.overall.totalPoints).toLocaleString('id-ID')}
-              <span className="text-xs font-medium text-gray-400">Blok</span>
+              <span className="text-xs font-medium text-gray-600">Blok</span>
             </div>
-            <div className="text-xs text-gray-400 mt-1">Pada minggu {data.baselineWeek}</div>
+            <div className="text-xs text-gray-600 mt-1">Pada minggu {data.baselineWeek}</div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Rata-rata TMAT Group</div>
-            <div className="text-2xl font-bold text-gray-900 mt-2 flex items-baseline gap-2">
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+            <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Rata-rata TMAT Group</div>
+            <div className="text-2xl font-bold text-gray-900 mt-2 flex items-baseline gap-2 tabular-nums">
               {formatNumber(data.overall.baselineAvgTmat, 1)}
-              <span className="text-xs font-medium text-gray-400">cm</span>
+              <span className="text-xs font-medium text-gray-600">cm</span>
             </div>
-            <div className="text-xs text-gray-400 mt-1">Rata-rata tertimbang nasional</div>
+            <div className="text-xs text-gray-600 mt-1">Rata-rata tertimbang nasional</div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status Normal Baseline</div>
-            <div className="text-2xl font-bold text-emerald-600 mt-2 flex items-baseline gap-2">
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+            <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Status Normal Baseline</div>
+            <div className="text-2xl font-bold text-emerald-800 mt-2 flex items-baseline gap-2 tabular-nums">
               {formatNumber(data.overall.baselinePct["Normal (46-60)"], 1)}%
-              <span className="text-xs font-medium text-gray-400">
+              <span className="text-xs font-medium text-gray-600">
                 ({(data.overall.baselineCounts["Normal (46-60)"] || 0).toLocaleString('id-ID')} blok)
               </span>
             </div>
-            <div className="text-xs text-gray-400 mt-1">Target zona ideal (46-60 cm)</div>
+            <div className="text-xs text-gray-600 mt-1">Target zona ideal (46-60 cm)</div>
           </div>
 
-          {/* New 5th Card: Model Accuracy & Training Data */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="text-xs font-medium text-purple-600 uppercase tracking-wider flex items-center gap-1">
-              <Activity size={12} />
-              <span>Akurasi Model OLS</span>
-            </div>
-            <div className="text-2xl font-bold text-purple-700 mt-2 flex items-baseline gap-2">
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+            <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Akurasi Model OLS</div>
+            <div className="text-2xl font-bold text-gray-900 mt-2 flex items-baseline gap-2 tabular-nums">
               {formatNumber((data.overall.modelInfo?.avgR2 || 0) * 100, 1)}%
-              <span className="text-xs font-medium text-gray-400">R² Score</span>
+              <span className="text-xs font-medium text-gray-600">R² Score</span>
             </div>
-            <div className="text-xs text-gray-400 mt-1">
+            <div className="text-xs text-gray-600 mt-1">
               Basis {data.overall.modelInfo?.trainingWeeks || 48} minggu historis
             </div>
           </div>
@@ -342,54 +351,64 @@ export default function MultiCompanyForecastClient() {
       )}
 
       {/* Tabs & Search Filter */}
-      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl p-4 border border-gray-200 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-xl">
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100 rounded-xl" role="tablist" aria-label="Tampilan komparasi">
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'matrix'}
             onClick={() => setActiveTab('matrix')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              activeTab === 'matrix' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+            className={`min-h-10 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'matrix' ? 'bg-black text-white' : 'text-gray-700 hover:text-gray-900 hover:bg-white'
             }`}
           >
-            <Layers size={14} />
+            <Layers size={14} aria-hidden="true" />
             <span>Matriks 6 Kategori</span>
           </button>
 
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'shift'}
             onClick={() => setActiveTab('shift')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              activeTab === 'shift' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+            className={`min-h-10 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'shift' ? 'bg-black text-white' : 'text-gray-700 hover:text-gray-900 hover:bg-white'
             }`}
           >
-            <TrendingUp size={14} />
-            <span>Pergeseran & Parameter OLS</span>
+            <TrendingUp size={14} aria-hidden="true" />
+            <span>Pergeseran &amp; Parameter OLS</span>
           </button>
 
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'history'}
             onClick={() => setActiveTab('history')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              activeTab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+            className={`min-h-10 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'history' ? 'bg-black text-white' : 'text-gray-700 hover:text-gray-900 hover:bg-white'
             }`}
           >
-            <BarChart2 size={14} />
+            <BarChart2 size={14} aria-hidden="true" />
             <span>Tren TMAT vs Hujan</span>
           </button>
         </div>
 
         {/* Search & Scenario Filter */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Active Scenario Selector (for shift or comparison view) */}
+          {/* Active Scenario Selector */}
           {data?.scenarios && data.scenarios.length > 0 && (
-            <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl border border-gray-200">
-              <span className="text-[11px] font-semibold text-gray-500 px-2">Skenario Aktif:</span>
+            <div className="flex flex-wrap items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200">
+              <span className="text-xs font-semibold text-gray-700 px-2">Skenario:</span>
               {data.scenarios.map(scMm => (
                 <button
                   key={scMm}
+                  type="button"
                   onClick={() => setSelectedScenarioMm(scMm)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  className={`min-h-9 px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
                     selectedScenarioMm === scMm
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-gray-600 hover:bg-gray-200'
+                      ? 'bg-black text-white'
+                      : 'text-gray-700 hover:bg-white'
                   }`}
                 >
                   {scMm} mm
@@ -400,27 +419,29 @@ export default function MultiCompanyForecastClient() {
 
           {/* Search Box */}
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" aria-hidden="true" />
+            <label htmlFor="mc-search-pt" className="sr-only">Cari perusahaan</label>
             <input
+              id="mc-search-pt"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari PT..."
-              className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 w-40"
+              className="min-h-11 pl-9 pr-3 bg-white border border-gray-300 rounded-xl text-sm font-medium text-gray-900 placeholder-gray-500 w-44"
             />
           </div>
         </div>
       </div>
 
       {/* Main Table Content */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
         {loading ? (
-          <div className="p-16 flex flex-col items-center justify-center text-gray-400 gap-3">
-            <RefreshCw size={28} className="animate-spin text-blue-500" />
+          <div aria-live="polite" className="p-16 flex flex-col items-center justify-center text-gray-600 gap-3">
+            <RefreshCw size={28} className="animate-spin text-gray-700" aria-hidden="true" />
             <span className="text-sm font-medium">Melatih model regresi multivariat 48 minggu dan memproses skenario seluruh PT...</span>
           </div>
         ) : filteredCompanies.length === 0 ? (
-          <div className="p-16 text-center text-gray-400 text-sm">
+          <div className="p-16 text-center text-gray-600 text-sm">
             Tidak ada data perusahaan yang cocok dengan pencarian.
           </div>
         ) : activeTab === 'matrix' ? (
@@ -428,17 +449,17 @@ export default function MultiCompanyForecastClient() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-gray-50/80 border-b border-gray-100 text-gray-600 font-semibold">
-                  <th className="py-3.5 px-4 sticky left-0 bg-gray-50/90 backdrop-blur z-10 w-28">Perusahaan</th>
+                <tr className="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold">
+                  <th className="py-3.5 px-4 sticky left-0 bg-gray-50 z-10 w-28">Perusahaan</th>
                   <th className="py-3.5 px-3 text-center w-20">Blok</th>
                   <th className="py-3.5 px-3 text-right w-24">TMAT (cm)</th>
                   <th className="py-3.5 px-3 text-center">Distribusi Status</th>
-                  <th className="py-3.5 px-3 text-center text-zinc-600 bg-zinc-50/50">Banjir (&lt;0)</th>
-                  <th className="py-3.5 px-3 text-center text-blue-700 bg-blue-50/50">Tergenang (0-40)</th>
-                  <th className="py-3.5 px-3 text-center text-blue-500 bg-blue-50/30">A Tergenang (41-45)</th>
-                  <th className="py-3.5 px-3 text-center text-emerald-700 bg-emerald-50/50 font-bold">Normal (46-60)</th>
-                  <th className="py-3.5 px-3 text-center text-amber-600 bg-amber-50/50">A Kering (61-65)</th>
-                  <th className="py-3.5 px-3 text-center text-red-600 bg-red-50/50">Kering (&gt;65)</th>
+                  <th className="py-3.5 px-3 text-center text-zinc-700 bg-zinc-50">Banjir (&lt;0)</th>
+                  <th className="py-3.5 px-3 text-center text-blue-800 bg-blue-50">Tergenang (0-40)</th>
+                  <th className="py-3.5 px-3 text-center text-blue-700 bg-blue-50/60">A Tergenang (41-45)</th>
+                  <th className="py-3.5 px-3 text-center text-emerald-800 bg-emerald-50 font-bold">Normal (46-60)</th>
+                  <th className="py-3.5 px-3 text-center text-amber-800 bg-amber-50">A Kering (61-65)</th>
+                  <th className="py-3.5 px-3 text-center text-red-800 bg-red-50">Kering (&gt;65)</th>
                   <th className="py-3.5 px-4 text-center">Detail</th>
                 </tr>
               </thead>
@@ -446,24 +467,24 @@ export default function MultiCompanyForecastClient() {
                 {filteredCompanies.map(c => {
                   const scObj = c.scenarios.find(s => s.scenarioMm === selectedScenarioMm) || c.scenarios[0];
                   return (
-                    <tr key={c.company} className="hover:bg-blue-50/30 transition-colors group">
+                    <tr key={c.company} className="hover:bg-gray-50 transition-colors group">
                       {/* Company Name */}
-                      <td className="py-3 px-4 font-bold text-gray-900 sticky left-0 bg-white group-hover:bg-blue-50/30 z-10 whitespace-nowrap">
-                        <span className="px-2.5 py-1 bg-gray-100 rounded-lg text-gray-800 font-mono text-[11px]">
+                      <td className="py-3 px-4 font-bold text-gray-900 sticky left-0 bg-white group-hover:bg-gray-50 z-10 whitespace-nowrap">
+                        <span className="px-2.5 py-1 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 font-mono text-xs">
                           {c.company}
                         </span>
                       </td>
 
                       {/* Total Blocks */}
-                      <td className="py-3 px-3 text-center text-gray-600">
+                      <td className="py-3 px-3 text-center text-gray-700 tabular-nums">
                         {c.totalBlocks || c.totalPoints}
                       </td>
 
                       {/* Avg TMAT Baseline vs Scenario */}
-                      <td className="py-3 px-3 text-right font-mono">
+                      <td className="py-3 px-3 text-right font-mono tabular-nums">
                         <div className="font-bold text-gray-900">{formatNumber(c.baselineAvgTmat, 1)}</div>
                         {scObj && (
-                          <div className="text-[10px] text-gray-500 flex items-center justify-end gap-1">
+                          <div className="text-[11px] text-gray-600 flex items-center justify-end gap-1">
                             <span>➔ {formatNumber(scObj.avgNext, 1)}</span>
                           </div>
                         )}
@@ -471,7 +492,7 @@ export default function MultiCompanyForecastClient() {
 
                       {/* Stacked Mini Bar */}
                       <td className="py-3 px-3 w-48">
-                        <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden flex shadow-inner">
+                        <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden flex border border-gray-200">
                           {CLASS_ORDER.map(cls => {
                             const pct = scObj ? scObj.pct[cls] : c.baselinePct[cls];
                             if (!pct || pct <= 0) return null;
@@ -487,14 +508,14 @@ export default function MultiCompanyForecastClient() {
                             );
                           })}
                         </div>
-                        <div className="text-[10px] text-gray-400 mt-1 flex justify-between">
+                        <div className="text-[11px] text-gray-600 mt-1 flex justify-between tabular-nums">
                           <span>Basah: {formatNumber(scObj?.summary["Basah <=45 %"] || (c.baselinePct["Tergenang (0-40)"] + c.baselinePct["A Tergenang (41-45)"]), 0)}%</span>
-                          <span className="font-semibold text-emerald-600">Norm: {formatNumber(scObj?.pct["Normal (46-60)"] || c.baselinePct["Normal (46-60)"], 0)}%</span>
+                          <span className="font-semibold text-emerald-800">Norm: {formatNumber(scObj?.pct["Normal (46-60)"] || c.baselinePct["Normal (46-60)"], 0)}%</span>
                           <span>Krg: {formatNumber(scObj?.summary["Kering >60 %"] || (c.baselinePct["A Kering (61-65)"] + c.baselinePct["Kering (>65)"]), 0)}%</span>
                         </div>
                       </td>
 
-                      {/* 6 Category Columns (Showing Baseline & Proyeksi Skenario) */}
+                      {/* 6 Category Columns */}
                       {CLASS_ORDER.filter(cls => cls !== "No Data").map(cls => {
                         const baseCount = c.baselineCounts[cls] || 0;
                         const basePct = c.baselinePct[cls] || 0;
@@ -503,12 +524,12 @@ export default function MultiCompanyForecastClient() {
                         const delta = scCount - baseCount;
 
                         return (
-                          <td key={cls} className="py-3 px-3 text-center">
+                          <td key={cls} className="py-3 px-3 text-center tabular-nums">
                             <div className="font-semibold text-gray-900">
-                              {scCount} <span className="text-[10px] text-gray-500 font-normal">({formatNumber(scPct, 0)}%)</span>
+                              {scCount} <span className="text-[11px] text-gray-600 font-normal">({formatNumber(scPct, 0)}%)</span>
                             </div>
                             {delta !== 0 && (
-                              <div className={`text-[10px] font-mono ${delta > 0 ? 'text-red-500' : 'text-blue-500'}`}>
+                              <div className={`text-[11px] font-mono ${delta > 0 ? 'text-red-700' : 'text-blue-700'}`}>
                                 {delta > 0 ? `+${delta}` : delta}
                               </div>
                             )}
@@ -519,11 +540,13 @@ export default function MultiCompanyForecastClient() {
                       {/* Detail Modal Trigger */}
                       <td className="py-3 px-4 text-center">
                         <button
+                          type="button"
                           onClick={() => setModalCompany(c)}
-                          className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-blue-600 transition-colors"
+                          aria-label={`Lihat detail proyeksi ${c.company}`}
                           title="Lihat riwayat mingguan & kurva regresi"
+                          className="min-h-10 min-w-10 inline-flex items-center justify-center hover:bg-gray-100 rounded-xl text-gray-700 hover:text-gray-900 transition-colors"
                         >
-                          <ChevronRight size={16} />
+                          <ChevronRight size={16} aria-hidden="true" />
                         </button>
                       </td>
                     </tr>
@@ -537,16 +560,16 @@ export default function MultiCompanyForecastClient() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-gray-50/80 border-b border-gray-100 text-gray-600 font-semibold">
-                  <th className="py-3.5 px-4 sticky left-0 bg-gray-50/90 backdrop-blur z-10 w-28">Perusahaan</th>
+                <tr className="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold">
+                  <th className="py-3.5 px-4 sticky left-0 bg-gray-50 z-10 w-28">Perusahaan</th>
                   <th className="py-3.5 px-3 text-center w-20">Blok</th>
                   <th className="py-3.5 px-3 text-center">Skenario Hujan</th>
                   <th className="py-3.5 px-3 text-center">TMAT Baseline ➔ Proyeksi</th>
-                  <th className="py-3.5 px-3 text-center text-blue-700 bg-blue-50/30">Basah (&le;45 cm)</th>
-                  <th className="py-3.5 px-3 text-center text-emerald-700 bg-emerald-50/30">Normal (46-60 cm)</th>
-                  <th className="py-3.5 px-3 text-center text-red-700 bg-red-50/30">Kering (&gt;60 cm)</th>
-                  <th className="py-3.5 px-3 text-center bg-purple-50/50 text-purple-700">Akurasi R²</th>
-                  <th className="py-3.5 px-3 text-center bg-purple-50/30 text-purple-700 font-mono">b0 (Now) / b1 (Lag1)</th>
+                  <th className="py-3.5 px-3 text-center text-blue-800 bg-blue-50">Basah (&le;45 cm)</th>
+                  <th className="py-3.5 px-3 text-center text-emerald-800 bg-emerald-50">Normal (46-60 cm)</th>
+                  <th className="py-3.5 px-3 text-center text-red-800 bg-red-50">Kering (&gt;60 cm)</th>
+                  <th className="py-3.5 px-3 text-center bg-gray-100 text-gray-800">Akurasi R²</th>
+                  <th className="py-3.5 px-3 text-center bg-gray-100 text-gray-800 font-mono">b0 (Now) / b1 (Lag1)</th>
                   <th className="py-3.5 px-4 text-center">Detail</th>
                 </tr>
               </thead>
@@ -566,69 +589,71 @@ export default function MultiCompanyForecastClient() {
                   const deltaKering = scKering - baseKering;
 
                   return (
-                    <tr key={c.company} className="hover:bg-blue-50/30 transition-colors group">
-                      <td className="py-3 px-4 font-bold text-gray-900 sticky left-0 bg-white group-hover:bg-blue-50/30 z-10 whitespace-nowrap">
-                        <span className="px-2.5 py-1 bg-gray-100 rounded-lg text-gray-800 font-mono text-[11px]">
+                    <tr key={c.company} className="hover:bg-gray-50 transition-colors group">
+                      <td className="py-3 px-4 font-bold text-gray-900 sticky left-0 bg-white group-hover:bg-gray-50 z-10 whitespace-nowrap">
+                        <span className="px-2.5 py-1 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 font-mono text-xs">
                           {c.company}
                         </span>
                       </td>
 
-                      <td className="py-3 px-3 text-center text-gray-600">{c.totalBlocks || c.totalPoints}</td>
+                      <td className="py-3 px-3 text-center text-gray-700 tabular-nums">{c.totalBlocks || c.totalPoints}</td>
 
-                      <td className="py-3 px-3 text-center">
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold text-[11px]">
+                      <td className="py-3 px-3 text-center tabular-nums">
+                        <span className="px-2 py-0.5 rounded-md bg-gray-100 border border-gray-200 text-gray-900 font-semibold text-xs">
                           CH {scObj?.scenarioMm} mm
                         </span>
                       </td>
 
-                      <td className="py-3 px-3 text-center font-mono">
-                        <span className="text-gray-500">{formatNumber(c.baselineAvgTmat, 1)}</span>
-                        <span className="mx-1 text-gray-400">➔</span>
+                      <td className="py-3 px-3 text-center font-mono tabular-nums">
+                        <span className="text-gray-600">{formatNumber(c.baselineAvgTmat, 1)}</span>
+                        <span className="mx-1 text-gray-500">➔</span>
                         <span className="font-bold text-gray-900">{formatNumber(scObj?.avgNext, 1)} cm</span>
                       </td>
 
                       {/* Basah */}
-                      <td className="py-3 px-3 text-center">
-                        <div className="font-semibold text-blue-700">{scBasah} blok</div>
-                        <div className={`text-[10px] font-mono ${deltaBasah > 0 ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>
+                      <td className="py-3 px-3 text-center tabular-nums">
+                        <div className="font-semibold text-blue-800">{scBasah} blok</div>
+                        <div className={`text-[11px] font-mono ${deltaBasah > 0 ? 'text-blue-700 font-bold' : 'text-gray-600'}`}>
                           {deltaBasah > 0 ? `+${deltaBasah} blok` : deltaBasah === 0 ? '0' : `${deltaBasah} blok`}
                         </div>
                       </td>
 
                       {/* Normal */}
-                      <td className="py-3 px-3 text-center">
-                        <div className="font-semibold text-emerald-700">{scNormal} blok</div>
-                        <div className={`text-[10px] font-mono ${deltaNormal > 0 ? 'text-emerald-600 font-bold' : deltaNormal < 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                      <td className="py-3 px-3 text-center tabular-nums">
+                        <div className="font-semibold text-emerald-800">{scNormal} blok</div>
+                        <div className={`text-[11px] font-mono ${deltaNormal > 0 ? 'text-emerald-700 font-bold' : deltaNormal < 0 ? 'text-amber-700' : 'text-gray-600'}`}>
                           {deltaNormal > 0 ? `+${deltaNormal} blok` : deltaNormal === 0 ? '0' : `${deltaNormal} blok`}
                         </div>
                       </td>
 
                       {/* Kering */}
-                      <td className="py-3 px-3 text-center">
-                        <div className="font-semibold text-red-700">{scKering} blok</div>
-                        <div className={`text-[10px] font-mono ${deltaKering > 0 ? 'text-red-600 font-bold' : 'text-gray-400'}`}>
+                      <td className="py-3 px-3 text-center tabular-nums">
+                        <div className="font-semibold text-red-800">{scKering} blok</div>
+                        <div className={`text-[11px] font-mono ${deltaKering > 0 ? 'text-red-700 font-bold' : 'text-gray-600'}`}>
                           {deltaKering > 0 ? `+${deltaKering} blok` : deltaKering === 0 ? '0' : `${deltaKering} blok`}
                         </div>
                       </td>
 
                       {/* R2 score */}
-                      <td className="py-3 px-3 text-center font-bold text-purple-700 bg-purple-50/20">
+                      <td className="py-3 px-3 text-center font-bold text-gray-900 tabular-nums">
                         {formatNumber((c.fit.r2 || 0) * 100, 1)}%
                       </td>
 
                       {/* b0 and b1 weights */}
-                      <td className="py-3 px-3 text-center text-gray-600 font-mono text-[11px] bg-purple-50/10">
+                      <td className="py-3 px-3 text-center text-gray-700 font-mono text-xs tabular-nums">
                         <span>{formatNumber(c.fit.b0, 3)}</span>
-                        <span className="text-gray-400 mx-1">/</span>
-                        <span className="text-purple-600 font-bold">{formatNumber(c.fit.b1, 3)}</span>
+                        <span className="text-gray-500 mx-1">/</span>
+                        <span className="text-gray-900 font-bold">{formatNumber(c.fit.b1, 3)}</span>
                       </td>
 
                       <td className="py-3 px-4 text-center">
                         <button
+                          type="button"
                           onClick={() => setModalCompany(c)}
-                          className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-blue-600 transition-colors"
+                          aria-label={`Lihat detail proyeksi ${c.company}`}
+                          className="min-h-10 min-w-10 inline-flex items-center justify-center hover:bg-gray-100 rounded-xl text-gray-700 hover:text-gray-900 transition-colors"
                         >
-                          <ChevronRight size={16} />
+                          <ChevronRight size={16} aria-hidden="true" />
                         </button>
                       </td>
                     </tr>
@@ -639,26 +664,26 @@ export default function MultiCompanyForecastClient() {
           </div>
         ) : (
           /* TAB 3: Riwayat Mingguan */
-          <div className="p-4 space-y-4">
-            <div className="text-xs text-gray-500 mb-2">
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="text-xs text-gray-600">
               Menampilkan riwayat rata-rata TMAT (cm) dan akumulasi curah hujan mingguan (mm) selama periode lookback:
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredCompanies.map(c => (
-                <div key={c.company} className="p-4 bg-gray-50 rounded-xl border border-gray-100 hover:shadow-sm transition-all">
+                <div key={c.company} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-bold text-gray-900 font-mono">{c.company}</span>
-                    <span className="text-[11px] text-gray-400">{c.totalBlocks || c.totalPoints} blok pantau</span>
+                    <span className="text-xs text-gray-600 tabular-nums">{c.totalBlocks || c.totalPoints} blok pantau</span>
                   </div>
                   <div className="space-y-1.5">
                     {c.weeklyHistory.map(h => (
-                      <div key={h.week} className="flex items-center justify-between text-xs py-1 border-b border-gray-200/50 last:border-0">
-                        <span className="font-medium text-gray-600">{h.week}</span>
+                      <div key={h.week} className="flex items-center justify-between text-xs py-1 border-b border-gray-200 last:border-0 tabular-nums">
+                        <span className="font-medium text-gray-700">{h.week}</span>
                         <div className="flex items-center gap-3">
-                          <span className="text-blue-600 font-mono text-[11px]">
+                          <span className="text-blue-800 font-mono">
                             {formatNumber(h.rainMm, 1)} mm
                           </span>
-                          <span className="font-bold text-gray-800 font-mono text-[11px]">
+                          <span className="font-bold text-gray-900 font-mono">
                             {formatNumber(h.avgTmat, 1)} cm
                           </span>
                         </div>
@@ -674,50 +699,57 @@ export default function MultiCompanyForecastClient() {
 
       {/* Modal Detail Perusahaan */}
       {modalCompany && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full border border-gray-100 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mc-modal-title"
+            className="bg-white rounded-2xl max-w-2xl w-full border border-gray-200 shadow-xl overflow-hidden"
+          >
             {/* Modal Header */}
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-gray-50">
               <div className="flex items-center gap-3">
-                <span className="p-2.5 rounded-xl bg-blue-100 text-blue-700 font-bold font-mono">
+                <span className="px-3 py-1.5 rounded-xl bg-black text-white font-bold font-mono text-sm">
                   {modalCompany.company}
                 </span>
                 <div>
-                  <h3 className="font-bold text-gray-900 text-base">Detail Proyeksi & Model Memori Air Tanah</h3>
-                  <p className="text-xs text-gray-500">Baseline Week: {modalCompany.baselineWeek} ({modalCompany.totalBlocks || modalCompany.totalPoints} blok)</p>
+                  <h2 id="mc-modal-title" className="font-bold text-gray-900 text-base">Detail Proyeksi &amp; Model Memori Air Tanah</h2>
+                  <p className="text-xs text-gray-600">Baseline Week: {modalCompany.baselineWeek} ({modalCompany.totalBlocks || modalCompany.totalPoints} blok)</p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setModalCompany(null)}
-                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Tutup modal detail"
+                className="min-h-11 min-w-11 inline-flex items-center justify-center text-gray-700 hover:text-gray-900 hover:bg-gray-200 rounded-xl transition-colors"
               >
-                <X size={18} />
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+            <div className="p-5 sm:p-6 space-y-6 max-h-[75vh] overflow-y-auto">
               {/* Regression Info & Formula */}
-              <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-100 text-xs space-y-2">
-                <div className="font-semibold text-purple-900 flex items-center gap-1.5">
-                  <Zap size={15} />
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-2">
+                <div className="font-semibold text-gray-900 flex items-center gap-1.5">
+                  <Zap size={15} aria-hidden="true" />
                   <span>Formula Regresi Multivariat 3-Week Memory (Antecedent Moisture):</span>
                 </div>
-                <div className="font-mono text-purple-950 pl-4 py-1.5 bg-white/70 rounded-lg border border-purple-200 text-[11px] leading-relaxed">
+                <div className="font-mono text-gray-900 px-3 py-2 bg-white rounded-lg border border-gray-200 text-xs leading-relaxed">
                   &Delta;TMAT = {formatNumber(modalCompany.fit.a, 2)} + ({formatNumber(modalCompany.fit.b0, 4)} &times; CH_next) + ({formatNumber(modalCompany.fit.b1, 4)} &times; CH_curr) + ({formatNumber(modalCompany.fit.b2, 4)} &times; CH_prev)
                 </div>
-                
+
                 {/* Antecedent Real Rain Values */}
-                <div className="grid grid-cols-2 gap-2 text-[11px] pl-4 pt-1">
-                  <div className="text-purple-800">
-                    • Hujan Riil Minggu Ini (CH_curr): <span className="font-bold font-mono">{formatNumber(modalCompany.fit.antecedentRainCurrent, 1)} mm</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1 tabular-nums">
+                  <div className="text-gray-700">
+                    • Hujan Riil Minggu Ini (CH_curr): <span className="font-bold font-mono text-gray-900">{formatNumber(modalCompany.fit.antecedentRainCurrent, 1)} mm</span>
                   </div>
-                  <div className="text-purple-800">
-                    • Hujan Riil Minggu Lalu (CH_prev): <span className="font-bold font-mono">{formatNumber(modalCompany.fit.antecedentRainLag1, 1)} mm</span>
+                  <div className="text-gray-700">
+                    • Hujan Riil Minggu Lalu (CH_prev): <span className="font-bold font-mono text-gray-900">{formatNumber(modalCompany.fit.antecedentRainLag1, 1)} mm</span>
                   </div>
                 </div>
 
-                <div className="text-purple-700 text-[11px] pl-4 pt-1 flex items-center justify-between border-t border-purple-200/50">
+                <div className="text-gray-700 text-xs pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 tabular-nums">
                   <span>Akurasi Model: <strong>R² = {formatNumber((modalCompany.fit.r2 || 0) * 100, 1)}%</strong> | MAE: <strong>{formatNumber(modalCompany.fit.mae, 2)} cm</strong></span>
                   <span>Kebun Valid: <strong>{modalCompany.fit.validEstates}</strong> dari {modalCompany.fit.totalEstates} estate</span>
                 </div>
@@ -725,28 +757,28 @@ export default function MultiCompanyForecastClient() {
 
               {/* Scenarios Comparison Cards */}
               <div>
-                <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3">
+                <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3">
                   Proyeksi Distribusi per Skenario Hujan
-                </h4>
+                </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {modalCompany.scenarios.map(sc => (
-                    <div key={sc.scenarioMm} className="p-4 rounded-xl border border-gray-200 bg-gray-50/60 space-y-3">
+                    <div key={sc.scenarioMm} className="p-4 rounded-xl border border-gray-200 bg-gray-50 space-y-3 tabular-nums">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-blue-700 text-sm">Skenario CH {sc.scenarioMm} mm</span>
+                        <span className="font-bold text-gray-900 text-sm">Skenario CH {sc.scenarioMm} mm</span>
                         <span className="text-xs font-mono font-bold text-gray-900">
                           Avg: {formatNumber(sc.avgNext, 1)} cm
                         </span>
                       </div>
                       <div className="space-y-1 text-xs">
-                        <div className="flex justify-between text-blue-700">
+                        <div className="flex justify-between text-blue-800">
                           <span>Basah (&le;45 cm):</span>
                           <span className="font-semibold">{sc.summary["Basah <=45 Count"]} blok ({formatNumber(sc.summary["Basah <=45 %"], 1)}%)</span>
                         </div>
-                        <div className="flex justify-between text-emerald-700">
+                        <div className="flex justify-between text-emerald-800">
                           <span>Normal (46-60 cm):</span>
                           <span className="font-semibold">{sc.counts["Normal (46-60)"]} blok ({formatNumber(sc.pct["Normal (46-60)"], 1)}%)</span>
                         </div>
-                        <div className="flex justify-between text-red-700">
+                        <div className="flex justify-between text-red-800">
                           <span>Kering (&gt;60 cm):</span>
                           <span className="font-semibold">{sc.summary["Kering >60 Count"]} blok ({formatNumber(sc.summary["Kering >60 %"], 1)}%)</span>
                         </div>
@@ -758,12 +790,12 @@ export default function MultiCompanyForecastClient() {
 
               {/* History Table */}
               <div>
-                <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3">
+                <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3">
                   Riwayat Mingguan ({modalCompany.weeklyHistory.length} Minggu Terakhir)
-                </h4>
+                </h3>
                 <div className="rounded-xl border border-gray-200 overflow-hidden">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold">
+                    <thead className="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold">
                       <tr>
                         <th className="py-2.5 px-3">Minggu</th>
                         <th className="py-2.5 px-3 text-right">Curah Hujan (mm)</th>
@@ -771,13 +803,13 @@ export default function MultiCompanyForecastClient() {
                         <th className="py-2.5 px-3 text-center">Jumlah Blok</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 font-medium">
+                    <tbody className="divide-y divide-gray-100 font-medium tabular-nums">
                       {modalCompany.weeklyHistory.map(h => (
                         <tr key={h.week} className="hover:bg-gray-50">
-                          <td className="py-2 px-3 text-gray-800">{h.week}</td>
-                          <td className="py-2 px-3 text-right text-blue-600 font-mono">{formatNumber(h.rainMm, 1)}</td>
+                          <td className="py-2 px-3 text-gray-900">{h.week}</td>
+                          <td className="py-2 px-3 text-right text-blue-800 font-mono">{formatNumber(h.rainMm, 1)}</td>
                           <td className="py-2 px-3 text-right text-gray-900 font-mono font-bold">{formatNumber(h.avgTmat, 1)}</td>
-                          <td className="py-2 px-3 text-center text-gray-500">{h.totalRecords}</td>
+                          <td className="py-2 px-3 text-center text-gray-600">{h.totalRecords}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -787,10 +819,11 @@ export default function MultiCompanyForecastClient() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+            <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end">
               <button
+                type="button"
                 onClick={() => setModalCompany(null)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-xl text-xs transition-colors"
+                className="min-h-11 px-5 py-2 bg-black hover:bg-gray-800 text-white font-semibold rounded-xl text-sm transition-colors"
               >
                 Tutup
               </button>

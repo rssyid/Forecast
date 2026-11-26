@@ -281,32 +281,34 @@ export default function SettingsClient() {
 
     if (!isAuthenticated) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/20 backdrop-blur-md px-4">
-                <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-300">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+                <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-xl max-w-sm w-full">
                     <div className="flex flex-col items-center text-center space-y-4">
-                        <div className="p-4 bg-amber-50 border border-amber-100 rounded-full">
-                            <Lock size={32} className="text-amber-500" />
+                        <div className="p-3.5 bg-gray-100 border border-gray-200 rounded-xl">
+                            <Lock size={28} className="text-gray-900" aria-hidden="true" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">Otentikasi Diperlukan</h2>
-                            <p className="text-xs text-gray-500 mt-2 leading-relaxed">Halaman pengaturan berisi kontrol sinkronisasi dan manajemen unit. Masukkan Admin Key untuk melanjutkan.</p>
+                            <h1 className="text-xl font-bold text-gray-900">Otentikasi Diperlukan</h1>
+                            <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">Halaman pengaturan berisi kontrol sinkronisasi dan manajemen unit. Masukkan Admin Key untuk melanjutkan.</p>
                         </div>
-                        <form onSubmit={handleAuthenticate} className="w-full space-y-4 pt-4">
-                            <input 
-                                type="password" 
-                                value={adminKey}
-                                onChange={e => setAdminKey(e.target.value)}
-                                placeholder="Masukkan Admin Key"
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-amber-500/20 transition-all text-sm text-center tracking-widest"
-                                autoFocus
-                            />
-                            {authError && <p className="text-[11px] font-bold text-red-500 bg-red-50 py-2 rounded-lg border border-red-100">{authError}</p>}
-                            <button 
-                                type="submit" 
+                        <form onSubmit={handleAuthenticate} className="w-full space-y-4 pt-2">
+                            <div>
+                                <label htmlFor="settings-admin-key" className="sr-only">Admin Key</label>
+                                <input
+                                    id="settings-admin-key"
+                                    type="password"
+                                    value={adminKey}
+                                    onChange={e => setAdminKey(e.target.value)}
+                                    placeholder="Masukkan Admin Key"
+                                    className="w-full min-h-11 px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-sm text-gray-900 text-center tracking-widest"
+                                    autoFocus
+                                />
+                            </div>
+                            {authError && <p role="alert" className="text-xs font-semibold text-red-800 bg-red-50 py-2 px-3 rounded-xl border border-red-200">{authError}</p>}
+                            <button
+                                type="submit"
                                 disabled={authLoading || !adminKey}
-                                className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wide transition-all
-                                    ${(authLoading || !adminKey) ? 'bg-gray-100 text-gray-400' : 'bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-200'}
-                                `}
+                                className="w-full min-h-11 py-2.5 rounded-xl font-semibold text-sm bg-black text-white hover:bg-gray-800 disabled:opacity-50 transition-colors"
                             >
                                 {authLoading ? 'Memverifikasi...' : 'Buka Pengaturan'}
                             </button>
@@ -318,54 +320,51 @@ export default function SettingsClient() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in duration-500">
+        <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
-                    <Settings className="text-gray-400" size={32} />
+            <header>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
                     Pengaturan Sistem
                 </h1>
-                <p className="text-sm text-gray-500 mt-1">Kelola sinkronisasi data dan konfigurasi admin.</p>
-            </div>
+                <p className="text-sm text-gray-600 mt-1">Kelola sinkronisasi data, master piezometer, dan konfigurasi unit aktif.</p>
+            </header>
 
             {/* Company Management Section */}
-            <div className="glass-card overflow-hidden border-t-4 border-amber-400">
-                <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                    <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                        <Building2 size={16} className="text-blue-500" />
-                        Manajemen Unit (Company) Aktif
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1">
-                        Pilih unit mana saja yang ingin diaktifkan dan ditampilkan di dashboard serta laporan.
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+                <div className="p-5 sm:p-6 border-b border-gray-200 bg-gray-50">
+                    <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <Building2 size={16} className="text-gray-700" aria-hidden="true" />
+                        <span>Manajemen Unit (Company) Aktif</span>
+                    </h2>
+                    <p className="text-xs text-gray-600 mt-1">
+                        Pilih unit yang diaktifkan dan ditampilkan di dashboard serta laporan.
                     </p>
                 </div>
-                <div className="p-6">
+                <div className="p-5 sm:p-6">
                     {compLoading ? (
                         <div className="flex items-center justify-center p-8">
-                            <RefreshCw className="animate-spin text-gray-300" size={24} />
+                            <RefreshCw className="animate-spin text-gray-400" size={24} aria-hidden="true" />
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             {companies.map(comp => (
-                                <label 
-                                    key={comp.code} 
-                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all
-                                        ${comp.is_active 
-                                            ? 'bg-blue-50/50 border-blue-200 shadow-sm' 
-                                            : 'bg-gray-50 border-gray-200 opacity-60 hover:opacity-100'}
+                                <label
+                                    key={comp.code}
+                                    className={`flex items-center gap-3 min-h-11 px-3.5 py-2.5 rounded-xl border cursor-pointer transition-colors
+                                        ${comp.is_active
+                                            ? 'bg-gray-50 border-gray-900 text-gray-900'
+                                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}
                                     `}
                                 >
-                                    <input 
-                                        type="checkbox" 
-                                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                                    <input
+                                        type="checkbox"
+                                        className="w-4 h-4 rounded accent-black"
                                         checked={comp.is_active || false}
                                         onChange={() => handleToggleCompany(comp.code, comp.is_active)}
                                     />
-                                    <div className="flex flex-col">
-                                        <span className={`text-xs font-bold ${comp.is_active ? 'text-blue-900' : 'text-gray-600'}`}>
-                                            {comp.code}
-                                        </span>
-                                    </div>
+                                    <span className="text-xs font-bold">
+                                        {comp.code}
+                                    </span>
                                 </label>
                             ))}
                         </div>
@@ -374,44 +373,45 @@ export default function SettingsClient() {
             </div>
 
             {/* Master Sync Section */}
-            <div className="glass-card overflow-hidden border-t-4 border-green-500">
-                <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                    <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                        <FileSpreadsheet size={16} className="text-green-600" />
-                        Sinkronisasi Master Piezometer (Excel)
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+                <div className="p-5 sm:p-6 border-b border-gray-200 bg-gray-50">
+                    <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <FileSpreadsheet size={16} className="text-gray-700" aria-hidden="true" />
+                        <span>Sinkronisasi Master Piezometer (Excel)</span>
+                    </h2>
+                    <p className="text-xs text-gray-600 mt-1">
                         Upload file Excel mapping blok untuk normalisasi perhitungan titik PZO.
                     </p>
                 </div>
-                <div className="p-6 space-y-6">
+                <div className="p-5 sm:p-6 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                            <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px]">
-                                <AlertTriangle size={18} className="shrink-0" />
+                            <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs">
+                                <AlertTriangle size={18} className="shrink-0 text-amber-800" aria-hidden="true" />
                                 <div>
-                                    <p className="font-bold text-xs">Penting: Format Excel</p>
-                                    <p className="opacity-90 italic">Header wajib: pie_record_id, Mapping, EstCode, EstNewCode, IsActive</p>
+                                    <p className="font-bold">Penting: Format Excel</p>
+                                    <p className="mt-0.5">Header wajib: pie_record_id, Mapping, EstCode, EstNewCode, IsActive</p>
                                 </div>
                             </div>
-                            
+
                             <div className="relative group">
-                                <input 
-                                    type="file" 
+                                <input
+                                    type="file"
                                     accept=".xlsx, .xls"
                                     onChange={handleMasterUpload}
                                     disabled={masterLoading}
+                                    aria-label="Upload file Excel master piezometer"
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
                                 />
-                                <div className={`flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-2xl transition-all ${
-                                    masterLoading ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-300 group-hover:border-green-500 group-hover:bg-green-50/30'
+                                <div className={`flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-2xl transition-colors ${
+                                    masterLoading ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-300 group-hover:border-gray-900 group-hover:bg-gray-50'
                                 }`}>
                                     {masterLoading ? (
-                                        <Loader2 className="animate-spin text-green-600 mb-2" size={32} />
+                                        <Loader2 className="animate-spin text-gray-800 mb-2" size={28} aria-hidden="true" />
                                     ) : (
-                                        <Upload className="text-gray-400 group-hover:text-green-600 mb-2 transition-colors" size={32} />
+                                        <Upload className="text-gray-500 group-hover:text-gray-900 mb-2 transition-colors" size={28} aria-hidden="true" />
                                     )}
-                                    <p className="text-sm font-bold text-gray-700">
+                                    <p className="text-sm font-semibold text-gray-900">
                                         {masterLoading ? 'Sedang Memproses...' : 'Klik atau Seret File Excel Master'}
                                     </p>
                                 </div>
@@ -421,13 +421,13 @@ export default function SettingsClient() {
                         <div className="space-y-4">
                             {masterLoading && (
                                 <div className="space-y-2">
-                                    <div className="flex justify-between text-[10px] font-bold text-gray-500 uppercase">
+                                    <div className="flex justify-between text-xs font-semibold text-gray-700">
                                         <span>{masterStatus}</span>
-                                        <span>{masterProgress}%</span>
+                                        <span className="tabular-nums">{masterProgress}%</span>
                                     </div>
-                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                        <div 
-                                            className="h-full bg-green-500 transition-all duration-300"
+                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden border border-gray-200">
+                                        <div
+                                            className="h-full bg-black transition-all duration-300"
                                             style={{ width: `${masterProgress}%` }}
                                         ></div>
                                     </div>
@@ -435,28 +435,28 @@ export default function SettingsClient() {
                             )}
 
                             {masterError && (
-                                <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-700 animate-in slide-in-from-top-2">
-                                    <AlertTriangle size={18} className="shrink-0 mt-0.5" />
-                                    <p className="text-[11px] font-medium">{masterError}</p>
+                                <div role="alert" className="p-4 bg-red-50 border border-red-300 rounded-xl flex items-start gap-3 text-red-900">
+                                    <AlertTriangle size={18} className="shrink-0 mt-0.5 text-red-700" aria-hidden="true" />
+                                    <p className="text-xs font-medium">{masterError}</p>
                                 </div>
                             )}
 
                             {masterResult && (
-                                <div className="p-5 bg-green-50 border border-green-100 rounded-xl flex items-start gap-3 text-green-800 animate-in zoom-in-95">
-                                    <CheckCircle2 size={20} className="shrink-0 text-green-500" />
+                                <div role="status" className="p-4 bg-emerald-50 border border-emerald-300 rounded-xl flex items-start gap-3 text-emerald-900">
+                                    <CheckCircle2 size={20} className="shrink-0 text-emerald-700" aria-hidden="true" />
                                     <div>
                                         <p className="font-bold text-sm">Update Master Berhasil!</p>
-                                        <p className="text-[11px] opacity-90 mt-1">
-                                            Berhasil memproses <b>{masterResult.count}</b> data master piezometer.
+                                        <p className="text-xs mt-1">
+                                            Berhasil memproses <strong>{masterResult.count}</strong> data master piezometer.
                                         </p>
                                     </div>
                                 </div>
                             )}
 
                             {!masterLoading && !masterError && !masterResult && (
-                                <div className="h-full flex flex-col items-center justify-center text-center opacity-30 py-10 border-2 border-dotted border-gray-200 rounded-2xl">
-                                    <FileSpreadsheet size={48} className="text-gray-300 mb-2" />
-                                    <p className="text-[10px] font-medium text-gray-500">Belum ada file yang diunggah.</p>
+                                <div className="h-full flex flex-col items-center justify-center text-center py-10 border border-dashed border-gray-300 rounded-2xl bg-gray-50">
+                                    <FileSpreadsheet size={36} className="text-gray-400 mb-2" aria-hidden="true" />
+                                    <p className="text-xs font-medium text-gray-600">Belum ada file yang diunggah.</p>
                                 </div>
                             )}
                         </div>
@@ -465,58 +465,59 @@ export default function SettingsClient() {
             </div>
 
             {/* GIS / Map Data Section */}
-            <div className="glass-card overflow-hidden border-t-4 border-blue-500">
-                <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+                <div className="p-5 sm:p-6 border-b border-gray-200 bg-gray-50 flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                            <Globe size={16} className="text-blue-600" />
-                            Manajemen Data Spasial (GIS)
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Upload file GeoJSON blok untuk visualisasi peta. Support: PT.JJP & PT.THIP.
+                        <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                            <Globe size={16} className="text-gray-700" aria-hidden="true" />
+                            <span>Manajemen Data Spasial (GIS)</span>
+                        </h2>
+                        <p className="text-xs text-gray-600 mt-1">
+                            Upload file GeoJSON blok untuk visualisasi peta. Support: PT.JJP &amp; PT.THIP.
                         </p>
                     </div>
-                    <label className="flex items-center gap-2 cursor-pointer group">
+                    <label className="flex items-center gap-2.5 min-h-11 px-3 py-1.5 bg-white border border-gray-300 rounded-xl cursor-pointer">
                         <div className="text-right">
-                            <p className="text-[10px] font-black text-gray-900 leading-none">Hapus Data Lama</p>
-                            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Replace Mode</p>
+                            <p className="text-xs font-bold text-gray-900 leading-none">Hapus Data Lama</p>
+                            <p className="text-[10px] text-gray-600 font-semibold uppercase tracking-wide mt-0.5">Replace Mode</p>
                         </div>
-                        <input 
-                            type="checkbox" 
+                        <input
+                            type="checkbox"
                             checked={replaceMode}
                             onChange={e => setReplaceMode(e.target.checked)}
-                            className="w-5 h-5 rounded-lg border-2 border-gray-200 text-blue-600 focus:ring-blue-500/20 transition-all cursor-pointer"
+                            className="w-4 h-4 rounded accent-black cursor-pointer"
                         />
                     </label>
                 </div>
-                <div className="p-6 space-y-6">
+                <div className="p-5 sm:p-6 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                            <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-[11px]">
-                                <Info size={18} className="shrink-0" />
+                            <div className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 text-xs">
+                                <Info size={18} className="shrink-0 text-gray-700" aria-hidden="true" />
                                 <div>
-                                    <p className="font-bold text-xs">Penyiapan GeoJSON</p>
-                                    <p className="opacity-90 italic">Pastikan setiap feature memiliki properti <b>PieRecordID</b>.</p>
+                                    <p className="font-bold">Penyiapan GeoJSON</p>
+                                    <p className="mt-0.5 text-gray-600">Pastikan setiap feature memiliki properti <strong>PieRecordID</strong>.</p>
                                 </div>
                             </div>
-                            
+
                             <div className="relative group">
-                                <input 
-                                    type="file" 
+                                <input
+                                    type="file"
                                     accept=".geojson, .json"
                                     onChange={handleGeoUpload}
                                     disabled={geoLoading}
+                                    aria-label="Upload file GeoJSON peta"
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
                                 />
-                                <div className={`flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-2xl transition-all ${
-                                    geoLoading ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-300 group-hover:border-blue-500 group-hover:bg-blue-50/30'
+                                <div className={`flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-2xl transition-colors ${
+                                    geoLoading ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-300 group-hover:border-gray-900 group-hover:bg-gray-50'
                                 }`}>
                                     {geoLoading ? (
-                                        <Loader2 className="animate-spin text-blue-600 mb-2" size={32} />
+                                        <Loader2 className="animate-spin text-gray-800 mb-2" size={28} aria-hidden="true" />
                                     ) : (
-                                        <Upload className="text-gray-400 group-hover:text-blue-600 mb-2 transition-colors" size={32} />
+                                        <Upload className="text-gray-500 group-hover:text-gray-900 mb-2 transition-colors" size={28} aria-hidden="true" />
                                     )}
-                                    <p className="text-sm font-bold text-gray-700">
+                                    <p className="text-sm font-semibold text-gray-900">
                                         {geoLoading ? 'Sedang Mengunggah...' : 'Upload GeoJSON Peta'}
                                     </p>
                                 </div>
@@ -526,38 +527,38 @@ export default function SettingsClient() {
                         <div className="space-y-4">
                             {geoLoading && (
                                 <div className="space-y-2">
-                                    <div className="flex justify-between text-[10px] font-bold text-gray-500 uppercase">
+                                    <div className="flex justify-between text-xs font-semibold text-gray-700">
                                         <span>{geoStatus}</span>
                                     </div>
-                                    <div className="h-2 w-full bg-blue-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-blue-500 animate-pulse w-full"></div>
+                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden border border-gray-200">
+                                        <div className="h-full bg-black animate-pulse w-full"></div>
                                     </div>
                                 </div>
                             )}
 
                             {geoError && (
-                                <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-700 animate-in slide-in-from-top-2">
-                                    <AlertTriangle size={18} className="shrink-0 mt-0.5" />
-                                    <p className="text-[11px] font-medium">{geoError}</p>
+                                <div role="alert" className="p-4 bg-red-50 border border-red-300 rounded-xl flex items-start gap-3 text-red-900">
+                                    <AlertTriangle size={18} className="shrink-0 mt-0.5 text-red-700" aria-hidden="true" />
+                                    <p className="text-xs font-medium">{geoError}</p>
                                 </div>
                             )}
 
                             {geoResult && (
-                                <div className="p-5 bg-green-50 border border-green-100 rounded-xl flex items-start gap-3 text-green-800 animate-in zoom-in-95">
-                                    <CheckCircle2 size={20} className="shrink-0 text-green-500" />
+                                <div role="status" className="p-4 bg-emerald-50 border border-emerald-300 rounded-xl flex items-start gap-3 text-emerald-900">
+                                    <CheckCircle2 size={20} className="shrink-0 text-emerald-700" aria-hidden="true" />
                                     <div>
                                         <p className="font-bold text-sm">Upload Spasial Berhasil!</p>
-                                        <p className="text-[11px] opacity-90 mt-1">
-                                            Berhasil menyimpan <b>{geoResult.count}</b> poligon blok ke database.
+                                        <p className="text-xs mt-1">
+                                            Berhasil menyimpan <strong>{geoResult.count}</strong> poligon blok ke database.
                                         </p>
                                     </div>
                                 </div>
                             )}
 
                             {!geoLoading && !geoError && !geoResult && (
-                                <div className="h-full flex flex-col items-center justify-center text-center opacity-30 py-10 border-2 border-dotted border-gray-200 rounded-2xl">
-                                    <Globe size={48} className="text-gray-300 mb-2" />
-                                    <p className="text-[10px] font-medium text-gray-500">Gunakan file GeoJSON untuk mapping blok.</p>
+                                <div className="h-full flex flex-col items-center justify-center text-center py-10 border border-dashed border-gray-300 rounded-2xl bg-gray-50">
+                                    <Globe size={36} className="text-gray-400 mb-2" aria-hidden="true" />
+                                    <p className="text-xs font-medium text-gray-600">Gunakan file GeoJSON untuk mapping blok.</p>
                                 </div>
                             )}
                         </div>
@@ -567,46 +568,36 @@ export default function SettingsClient() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Sync Card */}
-                <div className="glass-card overflow-hidden flex flex-col">
-                    <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                        <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                            <RefreshCw size={16} className="text-blue-500" />
-                            Update Data Piezometer & Rainfall
-                        </h3>
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+                    <div className="p-5 sm:p-6 border-b border-gray-200 bg-gray-50">
+                        <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                            <RefreshCw size={16} className="text-gray-700" aria-hidden="true" />
+                            <span>Update Data Piezometer &amp; Rainfall</span>
+                        </h2>
                     </div>
-                    <div className="p-6 space-y-4 flex-1">
-                        <p className="text-xs text-gray-500 leading-relaxed">
+                    <div className="p-5 sm:p-6 space-y-4 flex-1 flex flex-col">
+                        <p className="text-xs text-gray-600 leading-relaxed">
                             Tarik data terbaru dari server GIS untuk Piezometer (2 minggu terakhir) dan Rainfall (4 minggu terakhir) untuk seluruh unit aktif.
                         </p>
-                        
-                        <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl">
-                            <h4 className="text-[10px] font-bold text-blue-700 uppercase mb-2">Informasi Update</h4>
-                            <ul className="space-y-1.5">
-                                <li className="text-[11px] text-blue-800 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                                    Piezometer: Update data TMAT real-time.
-                                </li>
-                                <li className="text-[11px] text-blue-800 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                                    Rainfall: Update data curah hujan harian.
-                                </li>
-                                <li className="text-[11px] text-blue-800 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                                    Cakupan: Seluruh estate di bawah unit aktif.
-                                </li>
+
+                        <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl">
+                            <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wide mb-2">Informasi Update</h3>
+                            <ul className="space-y-1.5 text-xs text-gray-700">
+                                <li>· Piezometer: Update data TMAT real-time.</li>
+                                <li>· Rainfall: Update data curah hujan harian.</li>
+                                <li>· Cakupan: Seluruh estate di bawah unit aktif.</li>
                             </ul>
                         </div>
 
-                        <div className="pt-4 mt-auto">
-                            <button 
+                        <div className="pt-2 mt-auto">
+                            <button
+                                type="button"
                                 onClick={handleSync}
                                 disabled={loading}
-                                className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-xs transition-all uppercase tracking-wider
-                                    ${loading ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}
-                                `}
+                                className="w-full min-h-11 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-colors bg-black text-white hover:bg-gray-800 disabled:opacity-50"
                             >
-                                {loading ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                                {loading ? 'Memproses Update...' : 'Mulai Update Data'}
+                                <RefreshCw size={15} className={loading ? 'animate-spin' : ''} aria-hidden="true" />
+                                <span>{loading ? 'Memproses Update...' : 'Mulai Update Data'}</span>
                             </button>
                         </div>
                     </div>
@@ -614,28 +605,28 @@ export default function SettingsClient() {
 
                 {/* Progress / Status Section */}
                 <div className="flex flex-col gap-4 h-full">
-                    <div className="glass-card flex-1 overflow-hidden flex flex-col">
-                        <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                <Activity size={12} className="text-blue-500" />
-                                Log Aktivitas Update
-                            </h3>
-                            {loading && <span className="text-[10px] text-blue-600 animate-pulse font-bold">LIVE</span>}
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-xs flex-1 overflow-hidden flex flex-col">
+                        <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+                            <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                                <Activity size={14} className="text-gray-700" aria-hidden="true" />
+                                <span>Log Aktivitas Update</span>
+                            </h2>
+                            {loading && <span className="text-xs text-emerald-800 font-bold">LIVE</span>}
                         </div>
-                        <div className="p-4 flex-1 overflow-y-auto max-h-[300px] bg-gray-900 font-mono text-[11px] space-y-1">
+                        <div className="p-4 flex-1 overflow-y-auto max-h-[300px] bg-gray-900 font-mono text-xs space-y-1">
                             {progress.length === 0 && !loading && (
-                                <div className="h-full flex flex-col items-center justify-center text-gray-600 italic">
+                                <div className="h-full flex flex-col items-center justify-center text-gray-400">
                                     Siap untuk melakukan update data...
                                 </div>
                             )}
                             {progress.map((line, i) => (
-                                <div key={i} className="text-gray-300 border-l-2 border-blue-500/30 pl-2 py-0.5">
-                                    <span className="text-gray-600 mr-2">[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
+                                <div key={i} className="text-gray-200 border-l-2 border-gray-600 pl-2 py-0.5">
+                                    <span className="text-gray-400 mr-2">[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
                                     {line}
                                 </div>
                             ))}
                             {loading && (
-                                <div className="text-blue-400 animate-pulse pl-2 mt-2">
+                                <div className="text-emerald-400 animate-pulse pl-2 mt-2">
                                     _ Menunggu data selanjutnya...
                                 </div>
                             )}
@@ -644,21 +635,21 @@ export default function SettingsClient() {
                     </div>
 
                     {result && !loading && (
-                        <div className="bg-green-600 text-white p-4 rounded-2xl flex items-center gap-3 shadow-lg shadow-green-100 animate-in zoom-in duration-300">
-                            <CheckCircle2 size={24} />
+                        <div role="status" className="bg-emerald-50 border border-emerald-300 text-emerald-900 p-4 rounded-2xl flex items-center gap-3">
+                            <CheckCircle2 size={20} className="shrink-0 text-emerald-700" aria-hidden="true" />
                             <div>
-                                <h4 className="text-sm font-bold">Sinkronisasi Selesai</h4>
-                                <p className="text-[11px] opacity-90">Data berhasil diperbarui ke database lokal.</p>
+                                <h3 className="text-sm font-bold">Sinkronisasi Selesai</h3>
+                                <p className="text-xs mt-0.5">Data berhasil diperbarui ke database lokal.</p>
                             </div>
                         </div>
                     )}
 
                     {error && (
-                        <div className="bg-red-600 text-white p-4 rounded-2xl flex items-center gap-3 shadow-lg shadow-red-100 animate-in zoom-in duration-300">
-                            <AlertTriangle size={24} />
+                        <div role="alert" className="bg-red-50 border border-red-300 text-red-900 p-4 rounded-2xl flex items-center gap-3">
+                            <AlertTriangle size={20} className="shrink-0 text-red-700" aria-hidden="true" />
                             <div>
-                                <h4 className="text-sm font-bold">Gagal Update</h4>
-                                <p className="text-[11px] opacity-90">{error}</p>
+                                <h3 className="text-sm font-bold">Gagal Update</h3>
+                                <p className="text-xs mt-0.5">{error}</p>
                             </div>
                         </div>
                     )}

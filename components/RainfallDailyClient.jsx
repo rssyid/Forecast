@@ -143,15 +143,15 @@ export default function RainfallDailyClient() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
                         Laporan Curah Hujan Harian
                     </h1>
-                    <p className="text-sm text-gray-500 mt-1">Rekapitulasi curah hujan per hari untuk seluruh estate.</p>
+                    <p className="text-sm text-gray-600 mt-1">Rekapitulasi curah hujan per hari untuk seluruh estate.</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2.5">
                     <SearchableSelect
                         icon={<Building2 size={14} />}
                         options={companyList}
@@ -170,33 +170,35 @@ export default function RainfallDailyClient() {
                         autoSort={false}
                     />
                     <button
+                        type="button"
                         onClick={fetchData}
                         disabled={!company || !month || loading}
-                        className="px-6 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:bg-gray-800 disabled:bg-gray-200 transition-all shadow-lg shadow-black/10 flex items-center gap-2"
+                        className="min-h-11 px-5 py-2.5 bg-black text-white rounded-xl text-sm font-semibold hover:bg-gray-800 disabled:opacity-50 transition-colors inline-flex items-center gap-2"
                     >
-                        {loading ? <RefreshCw size={14} className="animate-spin" /> : <FileText size={14} />}
-                        Tampilkan Laporan
+                        {loading ? <RefreshCw size={15} className="animate-spin" aria-hidden="true" /> : <FileText size={15} aria-hidden="true" />}
+                        <span>Tampilkan Laporan</span>
                     </button>
                 </div>
-            </div>
+            </header>
 
             {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
-                    <AlertTriangle size={16} /> {error}
+                <div role="alert" className="bg-red-50 border border-red-300 text-red-900 text-sm px-4 py-3 rounded-2xl flex items-center gap-2 font-medium">
+                    <AlertTriangle size={16} className="shrink-0 text-red-700" aria-hidden="true" />
+                    <span>{error}</span>
                 </div>
             )}
 
             {data ? (
-                <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="space-y-6">
                     {/* Trend Chart */}
-                    <div className="glass-card p-6">
+                    <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-xs">
                         <div className="flex items-center justify-between mb-6">
                             <div>
-                                <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                                    <TrendingUp size={16} className="text-blue-500" />
-                                    Tren Curah Hujan Harian per Estate - {monthLabel} 2026
-                                </h3>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Komparasi intensitas hujan antar estate di {company}</p>
+                                <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                                    <TrendingUp size={18} className="text-gray-700" aria-hidden="true" />
+                                    <span>Tren Curah Hujan Harian per Estate - {monthLabel} 2026</span>
+                                </h2>
+                                <p className="text-xs text-gray-600 mt-0.5">Komparasi intensitas hujan antar estate di {company}</p>
                             </div>
                         </div>
                         <div className="h-[500px]">
@@ -242,20 +244,22 @@ export default function RainfallDailyClient() {
                     </div>
 
                     {/* Table Card */}
-                    <div className="glass-card overflow-hidden">
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
                         {/* Card Header with Title and Tools */}
-                        <div className="p-6 border-b border-gray-100 bg-gray-50/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="p-5 sm:p-6 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
-                                <h3 className="text-sm font-bold text-gray-800">Curah Hujan Harian {company} {monthLabel} 2026</h3>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Rekapitulasi intensitas hujan per hari</p>
+                                <h2 className="text-base font-bold text-gray-900">Curah Hujan Harian {company} {monthLabel} 2026</h2>
+                                <p className="text-xs text-gray-600 mt-0.5">Rekapitulasi intensitas hujan per hari</p>
                             </div>
-                            
-                            <div className="flex items-center gap-2">
-                                <button onClick={handleCopy} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-[10px] font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm">
-                                    <Copy size={12} /> Salin Tabel
+
+                            <div className="flex flex-wrap items-center gap-2">
+                                <button type="button" onClick={handleCopy} className="min-h-11 inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
+                                    <Copy size={14} aria-hidden="true" />
+                                    <span>Salin Tabel</span>
                                 </button>
-                                <button onClick={handleExportCSV} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-[10px] font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm">
-                                    <FileSpreadsheet size={12} className="text-green-600" /> Export CSV / Excel
+                                <button type="button" onClick={handleExportCSV} className="min-h-11 inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
+                                    <FileSpreadsheet size={14} className="text-emerald-700" aria-hidden="true" />
+                                    <span>Export CSV / Excel</span>
                                 </button>
                             </div>
                         </div>
@@ -370,10 +374,10 @@ export default function RainfallDailyClient() {
                     </div>
                 </div>
             ) : !loading && (
-                <div className="glass-card py-20 flex flex-col items-center justify-center text-center opacity-40">
-                    <FileText size={64} className="text-gray-300 mb-4" />
-                    <h3 className="text-sm font-bold text-gray-500">Silakan pilih Company dan Bulan</h3>
-                    <p className="text-xs text-gray-400 mt-1">Laporan harian hanya tersedia untuk tahun 2026.</p>
+                <div className="bg-white rounded-2xl border border-gray-200 py-16 px-6 flex flex-col items-center justify-center text-center shadow-xs">
+                    <FileText size={40} className="text-gray-400 mb-3" aria-hidden="true" />
+                    <h2 className="text-base font-bold text-gray-900">Silakan pilih Company dan Bulan</h2>
+                    <p className="text-xs text-gray-600 mt-1">Laporan harian tersedia untuk tahun 2026.</p>
                 </div>
             )}
         </div>

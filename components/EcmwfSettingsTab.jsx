@@ -160,46 +160,47 @@ export default function EcmwfSettingsTab({
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/80 shadow-sm flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Sliders size={20} className="text-blue-600" />
-            Pengaturan Bulletin & Layer GIS
+            <Sliders size={18} className="text-gray-700" aria-hidden="true" />
+            <span>Pengaturan Bulletin &amp; Layer GIS</span>
           </h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Unggah data spasial GeoJSON (batas PT & garis pantai) serta sesuaikan parameter kartografi bulletin.
+          <p className="text-xs text-gray-600 mt-1">
+            Unggah data spasial GeoJSON (batas PT &amp; garis pantai) serta sesuaikan parameter kartografi bulletin.
           </p>
         </div>
 
         <button
+          type="button"
           onClick={handleSaveSettings}
           disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+          className="min-h-11 inline-flex items-center gap-2 px-5 py-2.5 bg-black hover:bg-gray-800 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
         >
-          {saving ? <Loader2 size={16} className="animate-spin" /> : saveSuccess ? <Check size={16} /> : <Save size={16} />}
-          {saveSuccess ? 'Tersimpan!' : 'Simpan Pengaturan'}
+          {saving ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : saveSuccess ? <Check size={16} aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}
+          <span>{saveSuccess ? 'Tersimpan!' : 'Simpan Pengaturan'}</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card 1: Upload GIS Layers */}
-        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/80 shadow-sm space-y-5">
-          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
-            <MapPin size={16} className="text-blue-600" />
-            1. Upload Layer GIS
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200 shadow-xs space-y-5">
+          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wide">
+            <MapPin size={16} className="text-gray-700" aria-hidden="true" />
+            <span>1. Upload Layer GIS</span>
           </h3>
 
           {/* PT Boundaries Upload */}
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-gray-700">
+            <label className="block text-xs font-bold text-gray-800">
               GeoJSON Batas Konsesi PT (Multi-PT)
             </label>
-            <p className="text-[11px] text-gray-500">
-              Menerima file <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-700">.geojson</code> gabungan. Properti yang dikenali otomatis: <code className="text-blue-600">company_code</code>, <code className="text-blue-600">company</code>, atau <code className="text-blue-600">pt_name</code>.
+            <p className="text-xs text-gray-600">
+              Menerima file <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-800">.geojson</code> gabungan. Properti yang dikenali otomatis: <code className="text-gray-900 font-semibold">company_code</code>, <code className="text-gray-900 font-semibold">company</code>, atau <code className="text-gray-900 font-semibold">pt_name</code>.
             </p>
             <div className="flex items-center gap-3">
-              <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-dashed border-gray-300 rounded-xl text-xs font-semibold text-gray-600 cursor-pointer transition-colors">
-                {uploadingPt ? <Loader2 size={16} className="animate-spin text-blue-600" /> : <Upload size={16} className="text-blue-600" />}
+              <label className="flex-1 min-h-11 flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-dashed border-gray-300 rounded-xl text-xs font-semibold text-gray-800 cursor-pointer transition-colors">
+                {uploadingPt ? <Loader2 size={16} className="animate-spin text-gray-700" aria-hidden="true" /> : <Upload size={16} className="text-gray-700" aria-hidden="true" />}
                 <span>{uploadingPt ? 'Mengunggah & Memproses...' : 'Pilih File GeoJSON PT'}</span>
                 <input
                   type="file"
@@ -211,26 +212,26 @@ export default function EcmwfSettingsTab({
               </label>
             </div>
             {ptUploadStatus && (
-              <div className={`p-3 rounded-xl text-xs flex items-start gap-2 ${ptUploadStatus.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                {ptUploadStatus.success ? <Check size={15} className="shrink-0 mt-0.5" /> : <AlertCircle size={15} className="shrink-0 mt-0.5" />}
+              <div className={`p-3 rounded-xl text-xs flex items-start gap-2 ${ptUploadStatus.success ? 'bg-emerald-50 text-emerald-900 border border-emerald-300' : 'bg-red-50 text-red-900 border border-red-300'}`}>
+                {ptUploadStatus.success ? <Check size={15} className="shrink-0 mt-0.5" aria-hidden="true" /> : <AlertCircle size={15} className="shrink-0 mt-0.5" aria-hidden="true" />}
                 <span>{ptUploadStatus.message}</span>
               </div>
             )}
           </div>
 
-          <hr className="border-gray-100" />
+          <hr className="border-gray-200" />
 
           {/* Coastline Upload */}
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-gray-700">
+            <label className="block text-xs font-bold text-gray-800">
               GeoJSON Garis Pantai (Coastline)
             </label>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-xs text-gray-600">
               Unggah garis pantai resolusi tinggi kepulauan Indonesia untuk overlay hitam tajam di atas peta.
             </p>
             <div className="flex items-center gap-3">
-              <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-dashed border-gray-300 rounded-xl text-xs font-semibold text-gray-600 cursor-pointer transition-colors">
-                {uploadingCoastline ? <Loader2 size={16} className="animate-spin text-blue-600" /> : <Upload size={16} className="text-blue-600" />}
+              <label className="flex-1 min-h-11 flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-dashed border-gray-300 rounded-xl text-xs font-semibold text-gray-800 cursor-pointer transition-colors">
+                {uploadingCoastline ? <Loader2 size={16} className="animate-spin text-gray-700" aria-hidden="true" /> : <Upload size={16} className="text-gray-700" aria-hidden="true" />}
                 <span>{uploadingCoastline ? 'Mengunggah...' : 'Pilih File GeoJSON Coastline'}</span>
                 <input
                   type="file"
@@ -242,8 +243,8 @@ export default function EcmwfSettingsTab({
               </label>
             </div>
             {coastlineUploadStatus && (
-              <div className={`p-3 rounded-xl text-xs flex items-start gap-2 ${coastlineUploadStatus.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                {coastlineUploadStatus.success ? <Check size={15} className="shrink-0 mt-0.5" /> : <AlertCircle size={15} className="shrink-0 mt-0.5" />}
+              <div className={`p-3 rounded-xl text-xs flex items-start gap-2 ${coastlineUploadStatus.success ? 'bg-emerald-50 text-emerald-900 border border-emerald-300' : 'bg-red-50 text-red-900 border border-red-300'}`}>
+                {coastlineUploadStatus.success ? <Check size={15} className="shrink-0 mt-0.5" aria-hidden="true" /> : <AlertCircle size={15} className="shrink-0 mt-0.5" aria-hidden="true" />}
                 <span>{coastlineUploadStatus.message}</span>
               </div>
             )}
@@ -251,66 +252,68 @@ export default function EcmwfSettingsTab({
         </div>
 
         {/* Card 2: Extent Zoom & Buffer Settings */}
-        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/80 shadow-sm space-y-5">
-          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
-            <Sliders size={16} className="text-blue-600" />
-            2. Aturan Zoom 2 Jendela Kanan
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200 shadow-xs space-y-5">
+          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wide">
+            <Sliders size={16} className="text-gray-700" aria-hidden="true" />
+            <span>2. Aturan Zoom 2 Jendela Kanan</span>
           </h3>
 
           {/* Regional Buffer Slider */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-gray-700">
+              <label htmlFor="ecmwf-regional-buffer" className="text-xs font-bold text-gray-800">
                 Peta Kanan Atas: Buffer Regional
               </label>
-              <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+              <span className="text-xs font-mono font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200 tabular-nums">
                 {regionalBufferKm} km
               </span>
             </div>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-xs text-gray-600">
               Jarak batas luar sekitar PT untuk menampilkan konteks pulau/provinsi dan pola curah hujan regional.
             </p>
             <input
+              id="ecmwf-regional-buffer"
               type="range"
               min="50"
               max="400"
               step="10"
               value={regionalBufferKm}
               onChange={(e) => setRegionalBufferKm(e.target.value)}
-              className="w-full accent-blue-600 cursor-pointer"
+              className="w-full accent-black cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-gray-400">
+            <div className="flex justify-between text-[11px] text-gray-600">
               <span>50 km (Lebih Dekat)</span>
               <span>200 km (Sedang)</span>
               <span>400 km (Lebar)</span>
             </div>
           </div>
 
-          <hr className="border-gray-100" />
+          <hr className="border-gray-200" />
 
           {/* Local Concession Padding Slider */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-gray-700">
+              <label htmlFor="ecmwf-local-padding" className="text-xs font-bold text-gray-800">
                 Peta Kanan Bawah: FitBounds Padding
               </label>
-              <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+              <span className="text-xs font-mono font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200 tabular-nums">
                 {localPaddingPct}%
               </span>
             </div>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-xs text-gray-600">
               Margin ruang kosong di sekeliling outline batas biru konsesi PT.
             </p>
             <input
+              id="ecmwf-local-padding"
               type="range"
               min="5"
               max="60"
               step="5"
               value={localPaddingPct}
               onChange={(e) => setLocalPaddingPct(e.target.value)}
-              className="w-full accent-blue-600 cursor-pointer"
+              className="w-full accent-black cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-gray-400">
+            <div className="flex justify-between text-[11px] text-gray-600">
               <span>5% (Ketat)</span>
               <span>20% (Standar)</span>
               <span>60% (Leluasa)</span>
@@ -319,97 +322,102 @@ export default function EcmwfSettingsTab({
         </div>
 
         {/* Card 3: Custom Colors */}
-        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/80 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
-            <Eye size={16} className="text-blue-600" />
-            3. Palet Warna Kartografi
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wide">
+            <Eye size={16} className="text-gray-700" aria-hidden="true" />
+            <span>3. Palet Warna Kartografi</span>
           </h3>
 
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="block text-gray-600 font-semibold mb-1">Warna Air / Laut</label>
+              <label htmlFor="color-water" className="block text-gray-700 font-semibold mb-1">Warna Air / Laut</label>
               <div className="flex items-center gap-2">
                 <input
+                  id="color-water"
                   type="color"
                   value={colors.water}
                   onChange={(e) => setColors({ ...colors, water: e.target.value })}
-                  className="w-8 h-8 rounded-lg cursor-pointer border border-gray-300"
+                  className="w-9 h-9 rounded-lg cursor-pointer border border-gray-300"
                 />
-                <span className="font-mono text-gray-700">{colors.water}</span>
+                <span className="font-mono text-gray-800">{colors.water}</span>
               </div>
             </div>
 
             <div>
-              <label className="block text-gray-600 font-semibold mb-1">Warna Daratan (Lokal)</label>
+              <label htmlFor="color-land" className="block text-gray-700 font-semibold mb-1">Warna Daratan (Lokal)</label>
               <div className="flex items-center gap-2">
                 <input
+                  id="color-land"
                   type="color"
                   value={colors.land}
                   onChange={(e) => setColors({ ...colors, land: e.target.value })}
-                  className="w-8 h-8 rounded-lg cursor-pointer border border-gray-300"
+                  className="w-9 h-9 rounded-lg cursor-pointer border border-gray-300"
                 />
-                <span className="font-mono text-gray-700">{colors.land}</span>
+                <span className="font-mono text-gray-800">{colors.land}</span>
               </div>
             </div>
 
             <div>
-              <label className="block text-gray-600 font-semibold mb-1">Garis Batas PT (Kanan Bawah)</label>
+              <label htmlFor="color-pt-outline" className="block text-gray-700 font-semibold mb-1">Garis Batas PT (Kanan Bawah)</label>
               <div className="flex items-center gap-2">
                 <input
+                  id="color-pt-outline"
                   type="color"
                   value={colors.pt_outline}
                   onChange={(e) => setColors({ ...colors, pt_outline: e.target.value })}
-                  className="w-8 h-8 rounded-lg cursor-pointer border border-gray-300"
+                  className="w-9 h-9 rounded-lg cursor-pointer border border-gray-300"
                 />
-                <span className="font-mono text-gray-700">{colors.pt_outline}</span>
+                <span className="font-mono text-gray-800">{colors.pt_outline}</span>
               </div>
             </div>
 
             <div>
-              <label className="block text-gray-600 font-semibold mb-1">Kotak Penanda PT (Kanan Atas)</label>
+              <label htmlFor="color-pt-rect" className="block text-gray-700 font-semibold mb-1">Kotak Penanda PT (Kanan Atas)</label>
               <div className="flex items-center gap-2">
                 <input
+                  id="color-pt-rect"
                   type="color"
                   value={colors.pt_rect}
                   onChange={(e) => setColors({ ...colors, pt_rect: e.target.value })}
-                  className="w-8 h-8 rounded-lg cursor-pointer border border-gray-300"
+                  className="w-9 h-9 rounded-lg cursor-pointer border border-gray-300"
                 />
-                <span className="font-mono text-gray-700">{colors.pt_rect}</span>
+                <span className="font-mono text-gray-800">{colors.pt_rect}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Card 4: Custom Logo & Sizing */}
-        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/80 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
-            <ImageIcon size={16} className="text-blue-600" />
-            4. Logo Footer Bulletin
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wide">
+            <ImageIcon size={16} className="text-gray-700" aria-hidden="true" />
+            <span>4. Logo Footer Bulletin</span>
           </h3>
 
           <div className="space-y-3">
-            <p className="text-[11px] text-gray-500">
-              Ganti logo ECMWF bawaan dengan logo perusahaan Anda (format PNG/SVG transparan direkomendasikan).
+            <p className="text-xs text-gray-600">
+              Ganti logo ECMWF bawaan dengan logo perusahaan (format PNG/SVG transparan direkomendasikan).
             </p>
 
             <div className="flex items-center gap-4">
               <div className="w-24 h-16 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center p-2 overflow-hidden">
                 {logoData ? (
-                  <img src={logoData} alt="Preview" className="max-w-full max-h-full object-contain" />
+                  <img src={logoData} alt="Preview logo bulletin" className="max-w-full max-h-full object-contain" />
                 ) : (
-                  <span className="text-[10px] font-bold text-[#004f9f]">ECMWF</span>
+                  <span className="text-xs font-bold text-[#004f9f]">ECMWF</span>
                 )}
               </div>
 
               <div className="flex-1 space-y-2">
-                <label className="inline-block px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg cursor-pointer transition-colors">
+                <label className="min-h-10 inline-flex items-center px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-900 text-xs font-semibold rounded-xl cursor-pointer transition-colors">
                   Pilih File Logo
                   <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
                 </label>
                 {logoData && (
                   <button
+                    type="button"
                     onClick={() => setLogoData(null)}
-                    className="block text-[10px] text-red-600 hover:underline cursor-pointer"
+                    className="block text-xs font-semibold text-red-700 hover:underline"
                   >
                     Reset ke Logo ECMWF
                   </button>
@@ -420,17 +428,18 @@ export default function EcmwfSettingsTab({
             {/* Logo Width Slider */}
             <div className="space-y-1 pt-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="font-semibold text-gray-700">Lebar Logo:</span>
-                <span className="font-mono font-bold text-gray-600">{logoWidthPx} px</span>
+                <label htmlFor="ecmwf-logo-width" className="font-semibold text-gray-800">Lebar Logo:</label>
+                <span className="font-mono font-bold text-gray-800 tabular-nums">{logoWidthPx} px</span>
               </div>
               <input
+                id="ecmwf-logo-width"
                 type="range"
                 min="80"
                 max="220"
                 step="5"
                 value={logoWidthPx}
                 onChange={(e) => setLogoWidthPx(e.target.value)}
-                className="w-full accent-blue-600 cursor-pointer"
+                className="w-full accent-black cursor-pointer"
               />
             </div>
           </div>

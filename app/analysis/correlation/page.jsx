@@ -112,35 +112,36 @@ export default function CorrelationPage() {
     };
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 pb-20 animate-in fade-in duration-500">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-6">
+            <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
-                        <Activity className="text-blue-500" size={32} />
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
                         Analisis Korelasi
                     </h1>
-                    <p className="text-sm text-gray-500 mt-1">Studi hubungan antara intensitas curah hujan dengan fluktuasi level air tanah (TMAT).</p>
+                    <p className="text-sm text-gray-600 mt-1">Studi hubungan antara intensitas curah hujan dengan fluktuasi level air tanah (TMAT).</p>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
-                    <SearchableSelect 
+                <div className="flex items-center gap-2 flex-wrap bg-white p-2 rounded-2xl shadow-xs border border-gray-200">
+                    <SearchableSelect
                         options={companyList.map(c => ({ value: c, label: c }))}
                         value={company}
                         onChange={setCompany}
                         placeholder="Company"
-                        className="min-w-[120px]"
+                        className="min-w-[140px]"
                     />
-                    <SearchableSelect 
+                    <SearchableSelect
                         options={estateList.map(e => ({ value: e, label: e }))}
                         value={estate}
                         onChange={setEstate}
                         placeholder="Estate"
-                        className="min-w-[120px]"
+                        className="min-w-[140px]"
                     />
-                    <select 
+                    <label htmlFor="corr-days" className="sr-only">Rentang hari analisis</label>
+                    <select
+                        id="corr-days"
                         value={days}
                         onChange={e => setDays(e.target.value)}
-                        className="text-xs font-bold bg-gray-50 border-none rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20"
+                        className="min-h-11 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-xl px-3"
                     >
                         <option value="14">14 Hari Terakhir</option>
                         <option value="30">30 Hari Terakhir</option>
@@ -152,44 +153,40 @@ export default function CorrelationPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Insights Cards */}
-                <div className="lg:col-span-1 space-y-6">
-                    <div className="glass-card p-6 border-l-4 border-blue-500">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-                                <TrendingUp size={20} />
-                            </div>
-                            <h3 className="font-bold text-gray-800">Koefisien Korelasi</h3>
+                <div className="lg:col-span-1 space-y-4">
+                    <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
+                        <div className="flex items-center gap-2.5 mb-3">
+                            <TrendingUp size={18} className="text-gray-700" aria-hidden="true" />
+                            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Koefisien Korelasi</h2>
                         </div>
-                        <div className="text-4xl font-black text-gray-900">
+                        <div className="text-3xl font-bold text-gray-900 tabular-nums">
                             {loading ? '...' : (data?.correlation || 0)}
                         </div>
-                        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                            {data?.correlation > 0.7 ? 'Korelasi sangat kuat. Hujan sangat dominan mempengaruhi TMAT.' : 
+                        <p className="text-xs text-gray-600 mt-2 leading-relaxed">
+                            {data?.correlation > 0.7 ? 'Korelasi sangat kuat. Hujan sangat dominan mempengaruhi TMAT.' :
                              data?.correlation > 0.4 ? 'Korelasi moderat. Ada faktor lain selain hujan yang mempengaruhi TMAT.' :
                              'Korelasi lemah. Fluktuasi TMAT mungkin lebih dipengaruhi oleh manajemen pintu air atau drainase.'}
                         </p>
                     </div>
 
-                    <div className="glass-card p-6 border-l-4 border-emerald-500">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
-                                <Droplets size={20} />
-                            </div>
-                            <h3 className="font-bold text-gray-800">Efektivitas Resapan</h3>
+                    <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
+                        <div className="flex items-center gap-2.5 mb-3">
+                            <Droplets size={18} className="text-gray-700" aria-hidden="true" />
+                            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Efektivitas Resapan</h2>
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">
+                        <div className="text-2xl font-bold text-gray-900 tabular-nums">
                             {loading ? '...' : `10mm ➔ ${Math.abs(data?.slope * 10 || 0).toFixed(1)} cm`}
                         </div>
-                        <p className="text-[11px] text-gray-500 mt-2">
+                        <p className="text-xs text-gray-600 mt-2">
                             Estimasi kenaikan level air tanah untuk setiap 10mm curah hujan harian.
                         </p>
                     </div>
 
-                    <div className="glass-card p-6 bg-gray-50 border-dashed border-2 border-gray-200">
-                        <div className="flex items-start gap-3">
-                            <Info size={16} className="text-gray-400 mt-0.5 shrink-0" />
-                            <div className="text-[11px] text-gray-500 space-y-2">
-                                <p><b>Cara Membaca:</b> Sumbu X adalah jumlah hujan hari ini, Sumbu Y adalah seberapa banyak air tanah naik/turun dibanding kemarin.</p>
+                    <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
+                        <div className="flex items-start gap-2.5">
+                            <Info size={16} className="text-gray-600 mt-0.5 shrink-0" aria-hidden="true" />
+                            <div className="text-xs text-gray-600 space-y-2 leading-relaxed">
+                                <p><strong>Cara Membaca:</strong> Sumbu X adalah jumlah hujan hari ini, Sumbu Y adalah perubahan tinggi air tanah dibanding kemarin.</p>
                                 <p>Titik yang mengumpul di garis regresi menunjukkan konsistensi respon lahan terhadap hujan.</p>
                             </div>
                         </div>
@@ -197,23 +194,23 @@ export default function CorrelationPage() {
                 </div>
 
                 {/* Main Chart */}
-                <div className="lg:col-span-2 glass-card p-6 flex flex-col min-h-[450px]">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                            <CloudRain size={18} className="text-blue-500" />
-                            Scatter Plot: Hujan vs Perubahan TMAT
-                        </h3>
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-xs flex flex-col min-h-[450px]">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-bold text-gray-900 flex items-center gap-2 text-base">
+                            <CloudRain size={18} className="text-gray-700" aria-hidden="true" />
+                            <span>Scatter Plot: Hujan vs Perubahan TMAT</span>
+                        </h2>
                     </div>
-                    
+
                     <div className="flex-1 relative">
                         {loading ? (
-                            <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10">
-                                <Activity className="animate-spin text-blue-500" size={32} />
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+                                <Activity className="animate-spin text-gray-700" size={32} aria-hidden="true" />
                             </div>
                         ) : data?.data?.length > 0 ? (
                             <Scatter data={scatterData} options={chartOptions} />
                         ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-400 italic text-sm">
+                            <div className="h-full flex flex-col items-center justify-center text-gray-600 text-sm">
                                 Tidak ada data yang cukup untuk analisis korelasi pada periode ini.
                             </div>
                         )}
@@ -222,29 +219,29 @@ export default function CorrelationPage() {
             </div>
 
             {/* Detailed Table */}
-            <div className="glass-card overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                    <h3 className="text-sm font-bold text-gray-800">Data Observasi Harian</h3>
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+                <div className="p-5 border-b border-gray-200 bg-gray-50">
+                    <h2 className="text-sm font-bold text-gray-900">Data Observasi Harian</h2>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                         <thead>
-                            <tr className="bg-gray-50 text-gray-500 text-[10px] uppercase font-bold tracking-wider">
-                                <th className="px-6 py-3">Tanggal</th>
-                                <th className="px-6 py-3">Estate</th>
-                                <th className="px-6 py-3">Rainfall (mm)</th>
-                                <th className="px-6 py-3">Avg TMAT (cm)</th>
-                                <th className="px-6 py-3">Δ TMAT (cm)</th>
+                            <tr className="bg-gray-50 text-gray-700 text-xs uppercase font-semibold tracking-wider border-b border-gray-200">
+                                <th className="px-5 py-3">Tanggal</th>
+                                <th className="px-5 py-3">Estate</th>
+                                <th className="px-5 py-3">Rainfall (mm)</th>
+                                <th className="px-5 py-3">Avg TMAT (cm)</th>
+                                <th className="px-5 py-3">Δ TMAT (cm)</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-100 tabular-nums">
                             {data?.data?.slice(0, 15).map((row, i) => (
                                 <tr key={i} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 font-medium text-gray-900">{new Date(row.day_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                                    <td className="px-6 py-4 text-gray-600">{row.est_code}</td>
-                                    <td className="px-6 py-4 text-blue-600 font-bold">{row.rainfall_mm} mm</td>
-                                    <td className="px-6 py-4 text-gray-900 font-medium">{parseFloat(row.avg_tmat).toFixed(1)} cm</td>
-                                    <td className={`px-6 py-4 font-bold ${row.delta_tmat < 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                    <td className="px-5 py-3.5 font-medium text-gray-900">{new Date(row.day_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                    <td className="px-5 py-3.5 text-gray-700">{row.est_code}</td>
+                                    <td className="px-5 py-3.5 text-blue-800 font-semibold">{row.rainfall_mm} mm</td>
+                                    <td className="px-5 py-3.5 text-gray-900 font-medium">{parseFloat(row.avg_tmat).toFixed(1)} cm</td>
+                                    <td className={`px-5 py-3.5 font-bold ${row.delta_tmat < 0 ? 'text-emerald-800' : 'text-red-700'}`}>
                                         {row.delta_tmat > 0 ? '+' : ''}{parseFloat(row.delta_tmat).toFixed(1)} cm
                                     </td>
                                 </tr>
@@ -253,7 +250,7 @@ export default function CorrelationPage() {
                     </table>
                 </div>
                 {data?.data?.length > 15 && (
-                    <div className="p-4 text-center border-t border-gray-100 text-[10px] text-gray-400 font-medium">
+                    <div className="p-4 text-center border-t border-gray-200 text-xs text-gray-600 font-medium">
                         Menampilkan 15 data observasi terbaru dari total {data.data.length} data.
                     </div>
                 )}

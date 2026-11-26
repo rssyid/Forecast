@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { domToBlob } from 'modern-screenshot';
 import { X, Download, Copy, Check } from 'lucide-react';
 
@@ -152,6 +152,14 @@ export default function ReportModal({ data, currentWeek, prevWeek, onClose }) {
     const [copying, setCopying] = useState(false);
     const [copied, setCopied] = useState(false);
 
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onClose]);
+
     if (!data || data.length === 0) return null;
 
     // Sort by PT_ORDER
@@ -219,25 +227,45 @@ export default function ReportModal({ data, currentWeek, prevWeek, onClose }) {
 
             {/* ── Modal UI ── */}
             <div
-                style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.72)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+                style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
                 onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
             >
-                <div style={{ backgroundColor: '#fff', borderRadius: '28px', width: '100%', maxWidth: '1060px', maxHeight: '92vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 60px rgba(0,0,0,0.35)' }}>
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="report-modal-title"
+                    className="bg-white rounded-2xl border border-gray-200 w-full max-w-[1060px] max-h-[92vh] overflow-hidden flex flex-col shadow-xl"
+                >
 
                     {/* Toolbar */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid #E5E7EB', flexShrink: 0 }}>
-                        <span style={{ fontWeight: '900', fontSize: '18px', color: '#111827' }}>📊 Preview Report — {currentWeek}</span>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <button onClick={handleDownload} disabled={downloading} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', backgroundColor: '#2563EB', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '13px', cursor: downloading ? 'wait' : 'pointer', opacity: downloading ? 0.7 : 1 }}>
-                                <Download size={15} />
-                                {downloading ? 'Mengunduh…' : 'Download PNG'}
+                    <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-gray-200 bg-gray-50 shrink-0">
+                        <span id="report-modal-title" className="font-bold text-base text-gray-900">Preview Report · {currentWeek}</span>
+                        <div className="flex flex-wrap gap-2.5 items-center">
+                            <button
+                                type="button"
+                                onClick={handleDownload}
+                                disabled={downloading}
+                                className="min-h-11 inline-flex items-center gap-2 px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-xl font-semibold text-sm transition-colors disabled:opacity-60"
+                            >
+                                <Download size={15} aria-hidden="true" />
+                                <span>{downloading ? 'Mengunduh…' : 'Download PNG'}</span>
                             </button>
-                            <button onClick={handleCopy} disabled={copying} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', backgroundColor: '#059669', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '13px', cursor: copying ? 'wait' : 'pointer', opacity: copying ? 0.7 : 1 }}>
-                                {copied ? <Check size={15} /> : <Copy size={15} />}
-                                {copying ? 'Copying…' : copied ? 'Copied!' : 'Copy Image'}
+                            <button
+                                type="button"
+                                onClick={handleCopy}
+                                disabled={copying}
+                                className="min-h-11 inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 rounded-xl font-semibold text-sm transition-colors disabled:opacity-60"
+                            >
+                                {copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
+                                <span>{copying ? 'Copying…' : copied ? 'Copied!' : 'Copy Image'}</span>
                             </button>
-                            <button onClick={onClose} style={{ padding: '9px', backgroundColor: '#F3F4F6', border: 'none', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <X size={18} color="#374151" />
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                aria-label="Tutup preview report"
+                                className="min-h-11 min-w-11 inline-flex items-center justify-center bg-white hover:bg-gray-100 border border-gray-300 rounded-xl text-gray-800 transition-colors"
+                            >
+                                <X size={18} aria-hidden="true" />
                             </button>
                         </div>
                     </div>

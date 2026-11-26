@@ -78,24 +78,34 @@ function WednesdayCalendar({ selectedDate, onSelect, availableDates }) {
   }
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 p-5 shadow-sm">
+    <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
       {/* Month navigation */}
       <div className="flex items-center justify-between mb-4">
-        <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer">
-          <ChevronLeft size={18} />
+        <button
+          type="button"
+          onClick={prevMonth}
+          aria-label="Bulan sebelumnya"
+          className="min-h-10 min-w-10 inline-flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-700 transition-colors"
+        >
+          <ChevronLeft size={18} aria-hidden="true" />
         </button>
-        <span className="text-sm font-bold text-gray-800">
+        <span className="text-sm font-bold text-gray-900">
           {MONTH_NAMES[viewMonth]} {viewYear}
         </span>
-        <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer">
-          <ChevronRight size={18} />
+        <button
+          type="button"
+          onClick={nextMonth}
+          aria-label="Bulan berikutnya"
+          className="min-h-10 min-w-10 inline-flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-700 transition-colors"
+        >
+          <ChevronRight size={18} aria-hidden="true" />
         </button>
       </div>
 
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {DAY_NAMES.map(d => (
-          <div key={d} className={`text-center text-[10px] font-bold uppercase tracking-wider py-1 ${d === 'Rab' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <div key={d} className={`text-center text-[11px] font-bold uppercase tracking-wider py-1 ${d === 'Rab' ? 'text-gray-900' : 'text-gray-600'}`}>
             {d}
           </div>
         ))}
@@ -117,7 +127,7 @@ function WednesdayCalendar({ selectedDate, onSelect, availableDates }) {
           if (!isWed) {
             return (
               <div key={dateStr} className="h-9 flex items-center justify-center">
-                <span className="text-xs text-gray-300">{date.getDate()}</span>
+                <span className="text-xs text-gray-400">{date.getDate()}</span>
               </div>
             );
           }
@@ -125,22 +135,25 @@ function WednesdayCalendar({ selectedDate, onSelect, availableDates }) {
           return (
             <button
               key={dateStr}
+              type="button"
               onClick={() => !isFuture && onSelect(dateStr)}
               disabled={isFuture}
-              className={`h-9 flex items-center justify-center rounded-lg text-xs font-semibold transition-all relative cursor-pointer
+              aria-label={`Pilih tanggal ${dateStr}`}
+              aria-pressed={isSelected}
+              className={`h-9 flex items-center justify-center rounded-lg text-xs font-semibold transition-colors relative
                 ${isSelected
-                  ? 'bg-blue-600 text-white shadow-md scale-105'
+                  ? 'bg-black text-white'
                   : hasData
-                    ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
+                    ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300'
                     : isFuture
-                      ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
-                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
+                      ? 'bg-gray-50 text-gray-400'
+                      : 'bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-300'
                 }
               `}
             >
               {date.getDate()}
               {hasData && !isSelected && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-600 rounded-full" aria-hidden="true" />
               )}
             </button>
           );
@@ -148,19 +161,19 @@ function WednesdayCalendar({ selectedDate, onSelect, availableDates }) {
       </div>
 
       {/* Legend */}
-      <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-4 text-[10px] text-gray-500">
+      <div className="mt-4 pt-3 border-t border-gray-200 flex flex-wrap items-center gap-4 text-[11px] text-gray-600">
         <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-green-50 border border-green-200 inline-block relative">
-            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full" />
+          <span className="w-3 h-3 rounded bg-emerald-50 border border-emerald-300 inline-block relative">
+            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-600 rounded-full" />
           </span>
           Data ada
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-blue-50 border border-blue-200 inline-block" />
+          <span className="w-3 h-3 rounded bg-gray-100 border border-gray-300 inline-block" />
           Belum ada
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-blue-600 inline-block" />
+          <span className="w-3 h-3 rounded bg-black inline-block" />
           Dipilih
         </div>
       </div>
@@ -301,7 +314,7 @@ export default function EcmwfForecastClient() {
         throw new Error(result.error || 'Gagal trigger download');
       }
 
-      setDownloadStatus('⏳ Sedang memproses data di cloud... biasanya selesai dalam 1-2 menit');
+      setDownloadStatus('Sedang memproses data di cloud, biasanya selesai dalam 1-2 menit.');
 
       // Start polling every 10 seconds
       pollRef.current = setInterval(async () => {
@@ -356,56 +369,64 @@ export default function EcmwfForecastClient() {
   return (
     <div className="space-y-6">
       {/* Header & Mode Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <CloudRain className="text-blue-600" size={28} />
-            ECMWF AIFS — Prakiraan Curah Hujan
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+            ECMWF AIFS: Prakiraan Curah Hujan
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Model AIFS Single · Step 162 (≈7 hari) · Resolusi Tinggi
+          <p className="text-sm text-gray-600 mt-1">
+            Model AIFS Single · Step 162 (7 hari) · Resolusi Tinggi
           </p>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center p-1.5 bg-gray-200/70 backdrop-blur-sm rounded-2xl border border-gray-300/60 shadow-inner">
+        <div className="flex flex-wrap items-center p-1 bg-white rounded-2xl border border-gray-200 shadow-xs gap-1" role="tablist" aria-label="Mode tampilan ECMWF">
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'bulletin'}
             onClick={() => setActiveTab('bulletin')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`min-h-10 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
               activeTab === 'bulletin'
-                ? 'bg-white text-gray-900 shadow-md scale-[1.02]'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/40'
+                ? 'bg-black text-white'
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
-            <FileText size={15} />
-            Bulletin ECMWF
+            <FileText size={15} aria-hidden="true" />
+            <span>Bulletin ECMWF</span>
           </button>
 
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'interactive'}
             onClick={() => setActiveTab('interactive')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`min-h-10 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
               activeTab === 'interactive'
-                ? 'bg-white text-gray-900 shadow-md scale-[1.02]'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/40'
+                ? 'bg-black text-white'
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
-            <MapIcon size={15} />
-            Peta Interaktif
+            <MapIcon size={15} aria-hidden="true" />
+            <span>Peta Interaktif</span>
           </button>
 
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'settings'}
             onClick={() => setActiveTab('settings')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`min-h-10 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
               activeTab === 'settings'
-                ? 'bg-white text-gray-900 shadow-md scale-[1.02]'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/40'
+                ? 'bg-black text-white'
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
-            <SlidersHorizontal size={15} />
-            Pengaturan & GIS
+            <SlidersHorizontal size={15} aria-hidden="true" />
+            <span>Pengaturan &amp; GIS</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Main Content Layout */}
       {activeTab === 'settings' ? (
@@ -427,71 +448,74 @@ export default function EcmwfForecastClient() {
 
             {/* Action / Info Panel */}
             {selectedDate && (
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 p-5 shadow-sm">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+              <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
+                <div className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-3 tabular-nums">
                   {selectedDate}
                 </div>
 
                 {loading ? (
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Loader2 size={16} className="animate-spin" />
-                    Memuat data...
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                    <span>Memuat data...</span>
                   </div>
                 ) : geojsonData ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
-                      <Check size={16} />
-                      Data tersedia
+                    <div className="flex items-center gap-2 text-sm text-emerald-800 font-semibold">
+                      <Check size={16} aria-hidden="true" />
+                      <span>Data tersedia</span>
                     </div>
                     {dataInfo && (
-                      <div className="space-y-1.5 text-xs text-gray-500">
-                        <div>Fitur: <span className="font-semibold text-gray-700">{dataInfo.feature_count}</span></div>
-                        <div>Diunduh: <span className="font-semibold text-gray-700">
-                          {new Date(dataInfo.created_at).toLocaleDateString('id-ID', { 
-                            day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                      <div className="space-y-1.5 text-xs text-gray-600 tabular-nums">
+                        <div>Fitur: <span className="font-semibold text-gray-900">{dataInfo.feature_count}</span></div>
+                        <div>Diunduh: <span className="font-semibold text-gray-900">
+                          {new Date(dataInfo.created_at).toLocaleDateString('id-ID', {
+                            day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                           })}
                         </span></div>
                       </div>
                     )}
                     <button
+                      type="button"
                       onClick={() => loadData(selectedDate)}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                      className="w-full min-h-11 flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-gray-900 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl transition-colors"
                     >
-                      <RefreshCw size={13} /> Refresh Data
+                      <RefreshCw size={14} aria-hidden="true" />
+                      <span>Refresh Data</span>
                     </button>
                   </div>
                 ) : downloading ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-blue-700 font-medium">
-                      <Loader2 size={16} className="animate-spin" />
-                      Sedang memproses...
+                    <div className="flex items-center gap-2 text-sm text-gray-900 font-semibold">
+                      <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                      <span>Sedang memproses...</span>
                     </div>
-                    <p className="text-xs text-gray-500">{downloadStatus}</p>
-                    <div className="w-full bg-blue-100 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-blue-500 h-full rounded-full animate-pulse" style={{ width: '60%' }} />
+                    <p className="text-xs text-gray-600">{downloadStatus}</p>
+                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <div className="bg-black h-full rounded-full animate-pulse" style={{ width: '60%' }} />
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-amber-700 font-medium">
-                      <AlertTriangle size={16} />
-                      Data belum tersedia
+                    <div className="flex items-center gap-2 text-sm text-amber-800 font-semibold">
+                      <AlertTriangle size={16} aria-hidden="true" />
+                      <span>Data belum tersedia</span>
                     </div>
                     <button
+                      type="button"
                       onClick={handleDownload}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition-all hover:shadow-lg active:scale-[0.98] cursor-pointer"
+                      className="w-full min-h-11 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-black hover:bg-gray-800 rounded-xl transition-colors"
                     >
-                      <Download size={16} />
-                      Download & Proses Data
+                      <Download size={16} aria-hidden="true" />
+                      <span>Download &amp; Proses Data</span>
                     </button>
-                    <p className="text-[10px] text-gray-400 text-center">
-                      Proses download via cloud butuh ~1-2 menit
+                    <p className="text-xs text-gray-600 text-center">
+                      Proses download via cloud butuh sekitar 1-2 menit
                     </p>
                   </div>
                 )}
 
                 {error && (
-                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                  <div role="alert" className="mt-3 p-3 bg-red-50 border border-red-300 rounded-xl text-xs text-red-900 font-medium">
                     {error}
                   </div>
                 )}
@@ -500,11 +524,12 @@ export default function EcmwfForecastClient() {
 
             {/* Base layer toggle for interactive mode */}
             {activeTab === 'interactive' && geojsonData && (
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 p-4 shadow-sm">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Layers size={13} /> Base Map
+              <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs">
+                <div className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                  <Layers size={13} aria-hidden="true" />
+                  <span>Base Map</span>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1.5">
                   {[
                     { key: 'dark', label: 'Dark' },
                     { key: 'light', label: 'Light' },
@@ -512,11 +537,13 @@ export default function EcmwfForecastClient() {
                   ].map(l => (
                     <button
                       key={l.key}
+                      type="button"
                       onClick={() => setBaseLayer(l.key)}
-                      className={`flex-1 px-2 py-1.5 text-[10px] font-bold uppercase rounded-lg transition-all cursor-pointer
+                      aria-pressed={baseLayer === l.key}
+                      className={`flex-1 min-h-10 px-2 py-1.5 text-xs font-semibold rounded-xl transition-colors
                         ${baseLayer === l.key
-                          ? 'bg-black text-white shadow'
-                          : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                          ? 'bg-black text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                     >
                       {l.label}
@@ -530,7 +557,6 @@ export default function EcmwfForecastClient() {
           {/* Right Panel: Active Tab View */}
           <div className="lg:col-span-3 space-y-4">
             {activeTab === 'bulletin' ? (
-              /* BULLETIN VIEW (Option B: Exact Replica of ECMWF Poster) */
               geojsonData ? (
                 <EcmwfBulletinCanvas
                   forecastDate={selectedDate || '2026-09-16'}
@@ -542,39 +568,46 @@ export default function EcmwfForecastClient() {
                   settings={settings}
                 />
               ) : (
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 p-12 shadow-sm flex flex-col items-center justify-center min-h-[550px] text-gray-400">
-                  <CloudRain size={64} className="mb-4 opacity-20" />
-                  <p className="text-sm font-medium">
-                    {selectedDate 
-                      ? loading 
-                        ? 'Memuat data bulletin...' 
-                        : 'Pilih hari Rabu dengan data tersedia atau klik Download untuk membuat bulletin.' 
+                <div className="bg-white rounded-2xl border border-gray-200 p-12 shadow-xs flex flex-col items-center justify-center min-h-[550px] text-gray-600">
+                  <CloudRain size={48} className="mb-4 text-gray-400" aria-hidden="true" />
+                  <p className="text-sm font-medium text-center">
+                    {selectedDate
+                      ? loading
+                        ? 'Memuat data bulletin...'
+                        : 'Pilih hari Rabu dengan data tersedia atau klik Download untuk membuat bulletin.'
                       : 'Pilih tanggal Rabu pada kalender di sebelah kiri.'}
                   </p>
                 </div>
               )
             ) : (
               /* INTERACTIVE LEAFLET MAP VIEW */
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 shadow-sm overflow-hidden relative" style={{ minHeight: '550px' }}>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden relative" style={{ minHeight: '550px' }}>
                 {geojsonData ? (
                   <>
                     <EcmwfLeafletMap data={geojsonData} baseLayer={baseLayer} />
 
                     {showLegend && (
-                      <div className="absolute bottom-4 right-4 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/80 shadow-lg p-3 max-w-[180px]">
+                      <div className="absolute bottom-4 right-4 z-[1000] bg-white rounded-xl border border-gray-300 shadow-md p-3 max-w-[190px]">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Curah Hujan (mm)</span>
-                          <button onClick={() => setShowLegend(false)} className="text-gray-400 hover:text-gray-600 text-xs cursor-pointer">✕</button>
+                          <span className="text-[11px] font-bold text-gray-800 uppercase tracking-wider">Curah Hujan (mm)</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowLegend(false)}
+                            aria-label="Sembunyikan legenda"
+                            className="text-gray-600 hover:text-gray-900 text-xs px-1.5 py-0.5 rounded"
+                          >
+                            ✕
+                          </button>
                         </div>
                         <div className="space-y-0.5">
                           {CATEGORY_LEGEND.map(cat => (
                             <div key={cat.label} className="flex items-center gap-2">
                               <span
-                                className="w-4 h-3 rounded-sm border border-black/10 shrink-0"
+                                className="w-4 h-3 rounded-sm border border-black/15 shrink-0"
                                 style={{ backgroundColor: cat.color }}
                               />
-                              <span className="text-[10px] text-gray-600 font-medium">{cat.label}</span>
-                              <span className="text-[9px] text-gray-400 ml-auto">{cat.desc}</span>
+                              <span className="text-[11px] text-gray-800 font-medium">{cat.label}</span>
+                              <span className="text-[10px] text-gray-600 ml-auto">{cat.desc}</span>
                             </div>
                           ))}
                         </div>
@@ -583,17 +616,18 @@ export default function EcmwfForecastClient() {
 
                     {!showLegend && (
                       <button
+                        type="button"
                         onClick={() => setShowLegend(true)}
-                        className="absolute bottom-4 right-4 z-[1000] bg-white/95 px-3 py-1.5 rounded-lg shadow-md text-[10px] font-bold text-gray-600 hover:bg-gray-50 border border-gray-200 cursor-pointer"
+                        className="absolute bottom-4 right-4 z-[1000] min-h-10 bg-white px-3 py-2 rounded-xl shadow-md text-xs font-semibold text-gray-900 hover:bg-gray-50 border border-gray-300 inline-flex items-center gap-1.5"
                       >
-                        <Info size={12} className="inline mr-1" />
-                        Legend
+                        <Info size={14} aria-hidden="true" />
+                        <span>Legend</span>
                       </button>
                     )}
                   </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full min-h-[550px] text-gray-400">
-                    <CloudRain size={64} className="mb-4 opacity-20" />
+                  <div className="flex flex-col items-center justify-center h-full min-h-[550px] text-gray-600 p-6 text-center">
+                    <CloudRain size={48} className="mb-4 text-gray-400" aria-hidden="true" />
                     <p className="text-sm font-medium">
                       {selectedDate
                         ? loading

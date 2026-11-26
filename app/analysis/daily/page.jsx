@@ -94,107 +94,109 @@ export default function DailyReportPage() {
     }, [ptName, weekId]);
 
     return (
-        <div className="p-4 md:p-8 min-h-screen bg-white">
-            <div className="w-full space-y-8">
-                {/* Header Section */}
-                <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                            <FileText className="text-brand-orange" size={32} />
-                            Laporan Piezometer Harian
-                        </h1>
-                        <p className="text-gray-400 font-medium text-lg">
-                            Visualisasi Perbandingan Mingguan & Statistik TMAT
-                        </p>
-                    </div>
+        <div className="space-y-6">
+            {/* Header Section */}
+            <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                        Laporan Piezometer Harian
+                    </h1>
+                    <p className="text-sm text-gray-600 mt-1">
+                        Visualisasi perbandingan mingguan &amp; statistik TMAT per company.
+                    </p>
+                </div>
 
-                    <div className="flex flex-wrap items-center gap-4">
-                        <div className="w-64">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 mb-1.5 block">
-                                Pilih Company
-                            </label>
-                            <SearchableSelect 
-                                options={companyList}
-                                value={ptName}
-                                onChange={setPtName}
-                                placeholder="PT Name"
-                                icon={<Building2 size={14} />}
-                            />
-                        </div>
-                        <div className="w-64">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 mb-1.5 block">
-                                Pilih Periode
-                            </label>
-                            <SearchableSelect 
-                                options={weekNames}
-                                value={week}
-                                onChange={setWeek}
-                                placeholder="Pilih Minggu"
-                                icon={<CalendarDays size={14} />}
-                                autoSort={false}
-                            />
-                        </div>
-                        <div className="flex items-center gap-2 mt-5.5">
-                            <button 
-                                onClick={fetchReport}
-                                disabled={loading}
-                                className="p-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all text-gray-600 shadow-sm disabled:opacity-50"
-                                title="Refresh Data"
-                            >
-                                <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-                            </button>
-                            {data && (
-                                <button 
-                                    onClick={handleCopyAll}
-                                    disabled={copying}
-                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all border ${
-                                        copied 
-                                        ? 'bg-green-50 text-green-700 border-green-200' 
-                                        : 'bg-black text-white border-black hover:bg-gray-800 shadow-lg'
-                                    }`}
-                                >
-                                    {copying ? <RefreshCw size={18} className="animate-spin" /> : (copied ? <Check size={18} /> : <ImageIcon size={18} />)}
-                                    {copied ? 'Dashboard Copied!' : 'Copy Dashboard Image'}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </header>
-
-                {error && (
-                    <div className="p-6 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-4 text-red-700 max-w-[1400px] mx-auto">
-                        <AlertCircle size={24} />
-                        <p className="font-bold">{error}</p>
-                    </div>
+                {data && (
+                    <button
+                        type="button"
+                        onClick={handleCopyAll}
+                        disabled={copying}
+                        className={`min-h-11 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors shrink-0 ${
+                            copied
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                            : 'bg-black text-white border-black hover:bg-gray-800'
+                        }`}
+                    >
+                        {copying ? <RefreshCw size={16} className="animate-spin" aria-hidden="true" /> : (copied ? <Check size={16} aria-hidden="true" /> : <ImageIcon size={16} aria-hidden="true" />)}
+                        <span>{copied ? 'Dashboard Copied!' : 'Copy Dashboard Image'}</span>
+                    </button>
                 )}
+            </header>
 
-                {loading ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                        <SkeletonColumn />
-                        <SkeletonColumn />
+            {/* Filter Bar */}
+            <section aria-label="Filter laporan harian piezometer" className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs">
+                <div className="flex flex-wrap items-end gap-3">
+                    <div className="w-full sm:w-64">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Pilih Company
+                        </label>
+                        <SearchableSelect
+                            options={companyList}
+                            value={ptName}
+                            onChange={setPtName}
+                            placeholder="PT Name"
+                            icon={<Building2 size={14} />}
+                        />
                     </div>
-                ) : data ? (
-                    <div className="space-y-8">
-                        <ReportSummary data={data} ptName={ptName} />
-                        
-                        <div className="overflow-x-auto pb-8">
-                            <div ref={dashboardRef} className="bg-white p-8 min-w-[1600px]">
-                                <div className="grid grid-cols-2 gap-16">
-                                    <ReportColumn data={data.w1} />
-                                    <ReportColumn data={data.w2} />
-                                </div>
+                    <div className="w-full sm:w-64">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Pilih Periode
+                        </label>
+                        <SearchableSelect
+                            options={weekNames}
+                            value={week}
+                            onChange={setWeek}
+                            placeholder="Pilih Minggu"
+                            icon={<CalendarDays size={14} />}
+                            autoSort={false}
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={fetchReport}
+                        disabled={loading}
+                        aria-label="Muat ulang laporan harian"
+                        title="Refresh Data"
+                        className="min-h-11 min-w-11 inline-flex items-center justify-center bg-white hover:bg-gray-50 border border-gray-300 rounded-xl transition-colors text-gray-900 disabled:opacity-50"
+                    >
+                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} aria-hidden="true" />
+                    </button>
+                </div>
+            </section>
+
+            {error && (
+                <div role="alert" className="p-4 bg-red-50 border border-red-300 rounded-2xl flex items-center gap-3 text-red-900 text-sm font-medium">
+                    <AlertCircle size={18} className="shrink-0 text-red-700" aria-hidden="true" />
+                    <p>{error}</p>
+                </div>
+            )}
+
+            {loading ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <SkeletonColumn />
+                    <SkeletonColumn />
+                </div>
+            ) : data ? (
+                <div className="space-y-6">
+                    <ReportSummary data={data} ptName={ptName} />
+
+                    <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs overflow-x-auto">
+                        <div ref={dashboardRef} className="bg-white p-6 min-w-[1600px]">
+                            <div className="grid grid-cols-2 gap-16">
+                                <ReportColumn data={data.w1} />
+                                <ReportColumn data={data.w2} />
                             </div>
                         </div>
                     </div>
-                ) : (
-                    <div className="py-32 text-center">
-                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
-                            <ImageIcon size={40} />
-                        </div>
-                        <p className="text-gray-400 font-bold text-xl">Pilih Company dan Minggu untuk melihat laporan.</p>
+                </div>
+            ) : (
+                <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-xs">
+                    <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3 text-gray-600">
+                        <ImageIcon size={28} aria-hidden="true" />
                     </div>
-                )}
-            </div>
+                    <p className="text-gray-700 font-semibold text-base">Pilih Company dan Minggu untuk melihat laporan.</p>
+                </div>
+            )}
         </div>
     );
 }
@@ -252,21 +254,22 @@ function ReportSummary({ data, ptName }) {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto bg-gray-50 border border-gray-200 rounded-2xl p-6 relative group animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex justify-between items-start gap-4">
-                <p className="text-gray-700 font-medium leading-relaxed whitespace-pre-wrap">
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <p className="text-sm text-gray-800 font-medium leading-relaxed whitespace-pre-wrap">
                     {summaryText}
                 </p>
-                <button 
+                <button
+                    type="button"
                     onClick={handleCopyText}
-                    className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                        copied 
-                        ? 'bg-green-100 text-green-700 border-green-200' 
-                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 shadow-sm'
+                    className={`min-h-11 shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-colors border ${
+                        copied
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                        : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
                     }`}
                 >
-                    {copied ? <Check size={14} /> : <Copy size={14} />}
-                    {copied ? 'Teks Tersalin!' : 'Copy Teks'}
+                    {copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+                    <span>{copied ? 'Teks Tersalin!' : 'Copy Teks'}</span>
                 </button>
             </div>
         </div>

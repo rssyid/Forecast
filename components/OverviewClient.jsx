@@ -9,8 +9,6 @@ import {
 } from 'chart.js';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
 import { processData } from '../lib/forecastEngine';
-import Topbar from './Topbar';
-import Sidebar from './Sidebar';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement, Filler);
 
@@ -184,245 +182,232 @@ export default function OverviewClient() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        <Topbar />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 scroll-smooth">
-          
-          {/* Header & Filter */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Command Center</h1>
-              <p className="text-sm text-slate-500 mt-1">
-                Ikhtisar Hidrologi & Prediksi TMAT ({currentWeek ? currentWeek.week : 'Memuat...'})
-              </p>
+    <div className="space-y-6">
+      {/* Header & Filter */}
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Command Center</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Ikhtisar Hidrologi &amp; Prediksi TMAT ({currentWeek ? currentWeek.week : 'Memuat...'})
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="overview-company" className="text-xs font-semibold text-gray-700">
+            Company
+          </label>
+          <select
+            id="overview-company"
+            className="h-11 py-2 px-3 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-900"
+            value={selectedCompany}
+            onChange={(e) => setSelectedCompany(e.target.value)}
+          >
+            <option value="Semua">Seluruh Company</option>
+            {companies.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+          </select>
+        </div>
+      </header>
+
+      {loading ? (
+        <div aria-live="polite" className="space-y-6">
+          <p className="text-sm font-medium text-gray-700">Memuat data Command Center...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-32 bg-white rounded-2xl border border-gray-200 animate-pulse" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="h-80 bg-white rounded-2xl border border-gray-200 animate-pulse lg:col-span-2" />
+            <div className="h-80 bg-white rounded-2xl border border-gray-200 animate-pulse" />
+          </div>
+        </div>
+      ) : error ? (
+        <div role="alert" className="bg-red-50 text-red-900 p-4 rounded-2xl border border-red-300 flex items-center gap-2 text-sm font-medium">
+          <AlertCircle className="w-5 h-5 shrink-0 text-red-700" aria-hidden="true" />
+          <span>{error}</span>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* TMAT KPI */}
+            <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Rata-rata TMAT</span>
+                {tmatDiff !== 0 && (
+                  <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-md border tabular-nums ${isTmatWorse ? 'bg-red-50 text-red-800 border-red-200' : isTmatBetter ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                    {isTmatWorse ? <ArrowDownRight className="w-3 h-3 mr-1" aria-hidden="true" /> : isTmatBetter ? <ArrowUpRight className="w-3 h-3 mr-1" aria-hidden="true" /> : null}
+                    {Math.abs(tmatDiff)} cm
+                  </span>
+                )}
+              </div>
+              <div className="mt-3">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold text-gray-900 tabular-nums tracking-tight">{currentWeek?.avg_tmat || 0}</span>
+                  <span className="text-sm font-medium text-gray-600">cm</span>
+                </div>
+                <p className="text-xs text-gray-600 mt-1">Minggu {currentWeek?.week || '-'}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-slate-100">
-              <Map className="w-4 h-4 text-slate-400 ml-2" />
-              <select 
-                className="bg-transparent border-none text-sm font-medium focus:ring-0 cursor-pointer pr-8"
-                value={selectedCompany}
-                onChange={(e) => setSelectedCompany(e.target.value)}
-              >
-                <option value="Semua">Seluruh Company</option>
-                {companies.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
-              </select>
+
+            {/* Rainfall KPI */}
+            <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Curah Hujan (Total)</span>
+                <CloudRain className="w-4 h-4 text-gray-500 shrink-0" aria-hidden="true" />
+              </div>
+              <div className="mt-3">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold text-gray-900 tabular-nums tracking-tight">{currentRain.toFixed(1)}</span>
+                  <span className="text-sm font-medium text-gray-600">mm</span>
+                </div>
+                <p className="text-xs text-gray-600 mt-1">Akumulasi seluruh estate</p>
+              </div>
+            </div>
+
+            {/* Status KPI */}
+            <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Status Dominan</span>
+                <span className="text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200 px-2 py-0.5 rounded-md tabular-nums">
+                  {totalBlocks} Blok
+                </span>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold text-gray-900 truncate tracking-tight">{dominantStatus}</div>
+                <p className="text-xs text-gray-600 mt-1">Distribusi kelas TMAT terkini</p>
+              </div>
+            </div>
+
+            {/* Forecast KPI */}
+            <div className="bg-white rounded-2xl p-5 border border-gray-300 shadow-xs flex flex-col justify-between">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Prediksi Minggu Depan</span>
+                <span className="text-xs font-semibold bg-gray-900 text-white px-2 py-0.5 rounded-md">
+                  Skenario 0mm
+                </span>
+              </div>
+              <div className="mt-3">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold text-gray-900 tabular-nums tracking-tight">{forecastAvgTmat.toFixed(1)}</span>
+                  <span className="text-sm font-medium text-gray-600">cm</span>
+                </div>
+                <div className="mt-1 text-xs text-gray-600 flex items-center gap-1 tabular-nums">
+                  <ArrowRight className="w-3 h-3 shrink-0" aria-hidden="true" />
+                  <span>Perubahan {(forecastDelta > 0 ? '+' : '')}{forecastDelta.toFixed(1)} cm</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {loading ? (
-            <div className="flex h-64 items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
-          ) : error ? (
-            <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 flex items-center">
-              <AlertCircle className="w-5 h-5 mr-2" /> {error}
-            </div>
-          ) : (
-            <div className="space-y-6">
-              
-              {/* KPI Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                
-                {/* TMAT KPI */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex justify-between items-start">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                      <Waves className="w-5 h-5" />
-                    </div>
-                    {tmatDiff !== 0 && (
-                      <span className={`flex items-center text-xs font-semibold px-2 py-1 rounded-full ${isTmatWorse ? 'bg-red-100 text-red-700' : isTmatBetter ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                        {isTmatWorse ? <ArrowDownRight className="w-3 h-3 mr-1" /> : isTmatBetter ? <ArrowUpRight className="w-3 h-3 mr-1" /> : null}
-                        {Math.abs(tmatDiff)} cm
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-4">
-                    <h3 className="text-slate-500 text-xs font-medium uppercase tracking-wider">Rata-rata TMAT</h3>
-                    <div className="flex items-baseline mt-1">
-                      <span className="text-3xl font-bold text-slate-900">{currentWeek?.avg_tmat || 0}</span>
-                      <span className="text-sm font-medium text-slate-500 ml-1">cm</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Rainfall KPI */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex justify-between items-start">
-                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                      <CloudRain className="w-5 h-5" />
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <h3 className="text-slate-500 text-xs font-medium uppercase tracking-wider">Curah Hujan (Total Semua)</h3>
-                    <div className="flex items-baseline mt-1">
-                      <span className="text-3xl font-bold text-slate-900">{currentRain.toFixed(1)}</span>
-                      <span className="text-sm font-medium text-slate-500 ml-1">mm</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status KPI */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex justify-between items-start">
-                    <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-                      <Activity className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-medium bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                      {totalBlocks} Blok
-                    </span>
-                  </div>
-                  <div className="mt-4">
-                    <h3 className="text-slate-500 text-xs font-medium uppercase tracking-wider">Status Dominan</h3>
-                    <div className="flex items-baseline mt-1">
-                      <span className="text-xl font-bold text-slate-900 truncate">{dominantStatus}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Forecast KPI */}
-                <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 shadow-lg border border-slate-700 text-white relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:scale-110 transition-transform duration-500">
-                    <TrendingUp className="w-16 h-16" />
-                  </div>
-                  <div className="flex justify-between items-start relative z-10">
-                    <div className="p-2 bg-white/10 rounded-lg">
-                      <Activity className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">
-                      Skenario 0mm
-                    </span>
-                  </div>
-                  <div className="mt-4 relative z-10">
-                    <h3 className="text-slate-400 text-xs font-medium uppercase tracking-wider">Prediksi Minggu Depan</h3>
-                    <div className="flex items-baseline mt-1">
-                      <span className="text-3xl font-bold text-white">{forecastAvgTmat.toFixed(1)}</span>
-                      <span className="text-sm font-medium text-slate-400 ml-1">cm</span>
-                    </div>
-                    <div className="mt-1 text-xs text-slate-300 flex items-center">
-                      <ArrowRight className="w-3 h-3 mr-1" />
-                      Berubah {(forecastDelta > 0 ? '+' : '')}{forecastDelta.toFixed(1)} cm
-                    </div>
-                  </div>
-                </div>
-
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Trend Line Chart */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-5 lg:col-span-2 flex flex-col">
+              <div className="mb-4">
+                <h2 className="text-base font-bold text-gray-900">Tren Curah Hujan &amp; TMAT (8 Minggu)</h2>
+                <p className="text-xs text-gray-600 mt-0.5">Perbandingan rata-rata TMAT terhadap total curah hujan mingguan</p>
               </div>
-
-              {/* Charts Row */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Trend Line Chart */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 lg:col-span-2 flex flex-col">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-base font-bold text-slate-900">Tren Curah Hujan & TMAT (8 Minggu)</h2>
-                  </div>
-                  <div className="flex-1 min-h-[300px]">
-                    <Bar data={trendData} options={chartOptions} />
-                  </div>
-                </div>
-
-                {/* Donut Chart */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col justify-between">
-                  <div className="mb-4">
-                    <h2 className="text-base font-bold text-slate-900">Distribusi Status (Minggu Ini)</h2>
-                  </div>
-                  <div className="flex-1 flex justify-center items-center min-h-[200px] relative">
-                     <Doughnut data={donutData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '70%' }} />
-                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                       <span className="text-3xl font-bold text-slate-900">{pKering}%</span>
-                       <span className="text-xs font-medium text-red-500">Kering</span>
-                     </div>
-                  </div>
-                  <div className="mt-6 flex flex-col gap-2 text-sm">
-                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: '#000000'}}></span>Banjir</div><span className="font-semibold">{pBanjir}%</span></div>
-                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: '#4170B0'}}></span>Tergenang</div><span className="font-semibold">{pTergenang}%</span></div>
-                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: '#1CB8E0'}}></span>A Tergenang</div><span className="font-semibold">{pATergenang}%</span></div>
-                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: '#5A732A'}}></span>Normal</div><span className="font-semibold">{pNormal}%</span></div>
-                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: '#FFFB00'}}></span>A Kering</div><span className="font-semibold">{pAKering}%</span></div>
-                    <div className="flex justify-between items-center"><div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: '#FF0D0D'}}></span>Kering</div><span className="font-semibold">{pKering}%</span></div>
-                  </div>
-                </div>
-
+              <div className="flex-1 min-h-[300px]">
+                <Bar data={trendData} options={chartOptions} />
               </div>
-
-              {/* Tables Row */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
-                
-                {/* Last Rain Table */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-                  <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <h2 className="text-base font-bold text-slate-900 flex items-center">
-                      <AlertCircle className="w-4 h-4 mr-2 text-amber-500" />
-                      Peringatan Kekeringan (Hari Sejak Hujan Terakhir)
-                    </h2>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                        <tr>
-                          <th className="px-5 py-3">Estate</th>
-                          <th className="px-5 py-3">Tgl Hujan Terakhir</th>
-                          <th className="px-5 py-3 text-right">Durasi (Hari)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {data?.lastRainData?.slice(0, 10).map((r, i) => (
-                          <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-5 py-3 font-medium text-slate-900">{r.est_code}</td>
-                            <td className="px-5 py-3 text-slate-600">
-                                {new Date(r.last_rain_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                            </td>
-                            <td className="px-5 py-3 text-right">
-                              <span className={`font-bold ${r.days_since_rain > 7 ? 'text-red-600' : r.days_since_rain > 3 ? 'text-amber-500' : 'text-emerald-600'}`}>
-                                {r.days_since_rain} Hari
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Estate Breakdown Table */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-                  <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <h2 className="text-base font-bold text-slate-900 flex items-center">
-                      <Map className="w-4 h-4 mr-2 text-blue-500" />
-                      Breakdown TMAT Estate (Top 10 Terkering)
-                    </h2>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                        <tr>
-                          <th className="px-5 py-3">Estate</th>
-                          <th className="px-5 py-3">Avg TMAT</th>
-                          <th className="px-5 py-3 text-right">Blok Kering</th>
-                          <th className="px-5 py-3 text-right">Blok Banjir</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {data?.estateBreakdown?.slice(0, 10).map((r, i) => (
-                          <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-5 py-3 font-medium text-slate-900">{r.estate}</td>
-                            <td className="px-5 py-3 font-semibold text-slate-700">{r.avg_tmat} cm</td>
-                            <td className="px-5 py-3 text-right text-red-600 font-medium">{r.cnt_kering}</td>
-                            <td className="px-5 py-3 text-right text-blue-600 font-medium">{r.cnt_banjir}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-              </div>
-
             </div>
-          )}
-        </main>
-      </div>
+
+            {/* Donut Chart */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-5 flex flex-col justify-between">
+              <div className="mb-4">
+                <h2 className="text-base font-bold text-gray-900">Distribusi Status (Minggu Ini)</h2>
+                <p className="text-xs text-gray-600 mt-0.5">Proporsi blok menurut kategori kedalaman TMAT</p>
+              </div>
+              <div className="flex-1 flex justify-center items-center min-h-[200px] relative">
+                <Doughnut data={donutData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '70%' }} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-3xl font-bold text-gray-900 tabular-nums">{pKering}%</span>
+                  <span className="text-xs font-semibold text-red-700">Kering</span>
+                </div>
+              </div>
+              <div className="mt-6 flex flex-col gap-2 text-sm">
+                <div className="flex justify-between items-center"><div className="flex items-center text-gray-700"><span className="w-3 h-3 rounded-sm mr-2" style={{backgroundColor: '#000000'}}></span>Banjir</div><span className="font-semibold text-gray-900 tabular-nums">{pBanjir}%</span></div>
+                <div className="flex justify-between items-center"><div className="flex items-center text-gray-700"><span className="w-3 h-3 rounded-sm mr-2" style={{backgroundColor: '#4170B0'}}></span>Tergenang</div><span className="font-semibold text-gray-900 tabular-nums">{pTergenang}%</span></div>
+                <div className="flex justify-between items-center"><div className="flex items-center text-gray-700"><span className="w-3 h-3 rounded-sm mr-2" style={{backgroundColor: '#1CB8E0'}}></span>A Tergenang</div><span className="font-semibold text-gray-900 tabular-nums">{pATergenang}%</span></div>
+                <div className="flex justify-between items-center"><div className="flex items-center text-gray-700"><span className="w-3 h-3 rounded-sm mr-2" style={{backgroundColor: '#5A732A'}}></span>Normal</div><span className="font-semibold text-gray-900 tabular-nums">{pNormal}%</span></div>
+                <div className="flex justify-between items-center"><div className="flex items-center text-gray-700"><span className="w-3 h-3 rounded-sm mr-2 border border-gray-300" style={{backgroundColor: '#FFFB00'}}></span>A Kering</div><span className="font-semibold text-gray-900 tabular-nums">{pAKering}%</span></div>
+                <div className="flex justify-between items-center"><div className="flex items-center text-gray-700"><span className="w-3 h-3 rounded-sm mr-2" style={{backgroundColor: '#FF0D0D'}}></span>Kering</div><span className="font-semibold text-gray-900 tabular-nums">{pKering}%</span></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tables Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4">
+            {/* Last Rain Table */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+              <div className="p-5 border-b border-gray-200 flex justify-between items-center">
+                <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" aria-hidden="true" />
+                  <span>Peringatan Kekeringan (Hari Sejak Hujan Terakhir)</span>
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-50 text-gray-600 text-xs font-semibold uppercase tracking-wider border-b border-gray-200">
+                    <tr>
+                      <th className="px-5 py-3">Estate</th>
+                      <th className="px-5 py-3">Tgl Hujan Terakhir</th>
+                      <th className="px-5 py-3 text-right">Durasi (Hari)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {data?.lastRainData?.slice(0, 10).map((r, i) => (
+                      <tr key={i} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-5 py-3 font-medium text-gray-900">{r.est_code}</td>
+                        <td className="px-5 py-3 text-gray-600">
+                          {new Date(r.last_rain_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                        </td>
+                        <td className="px-5 py-3 text-right tabular-nums">
+                          <span className={`font-bold ${r.days_since_rain > 7 ? 'text-red-700' : r.days_since_rain > 3 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                            {r.days_since_rain} Hari
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Estate Breakdown Table */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+              <div className="p-5 border-b border-gray-200 flex justify-between items-center">
+                <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <Map className="w-4 h-4 text-gray-700 shrink-0" aria-hidden="true" />
+                  <span>Breakdown TMAT Estate (Top 10 Terkering)</span>
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-50 text-gray-600 text-xs font-semibold uppercase tracking-wider border-b border-gray-200">
+                    <tr>
+                      <th className="px-5 py-3">Estate</th>
+                      <th className="px-5 py-3">Avg TMAT</th>
+                      <th className="px-5 py-3 text-right">Blok Kering</th>
+                      <th className="px-5 py-3 text-right">Blok Banjir</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {data?.estateBreakdown?.slice(0, 10).map((r, i) => (
+                      <tr key={i} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-5 py-3 font-medium text-gray-900">{r.estate}</td>
+                        <td className="px-5 py-3 font-semibold text-gray-800 tabular-nums">{r.avg_tmat} cm</td>
+                        <td className="px-5 py-3 text-right text-red-700 font-semibold tabular-nums">{r.cnt_kering}</td>
+                        <td className="px-5 py-3 text-right text-blue-700 font-semibold tabular-nums">{r.cnt_banjir}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -16,21 +16,21 @@ function getRainCategory(totalMm) {
     return { label: 'Sangat Tinggi', color: '#7F1D1D', bg: '#FEE2E2' };
 }
 
-function MetricCard({ title, value, sub, icon, color = '#2563EB', loading }) {
+function MetricCard({ title, value, sub, icon, color = '#111827', loading }) {
     return (
-        <div className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{title}</span>
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${color}15`, color }}>
-                    {icon}
+        <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-xs flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{title}</span>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}15`, color }}>
+                    <span aria-hidden="true">{icon}</span>
                 </div>
             </div>
             {loading ? (
                 <div className="h-7 w-28 bg-gray-100 animate-pulse rounded-lg mt-1" />
             ) : (
                 <div>
-                    <div className="text-2xl font-black text-gray-900 tracking-tight">{value ?? '–'}</div>
-                    {sub && <div className="text-xs text-gray-500 font-medium mt-0.5">{sub}</div>}
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight tabular-nums">{value ?? '–'}</div>
+                    {sub && <div className="text-xs text-gray-600 font-medium mt-0.5">{sub}</div>}
                 </div>
             )}
         </div>
@@ -221,79 +221,77 @@ export default function RainfallWeeklySummary() {
     };
 
     return (
-        <div className="bg-white border border-gray-100 rounded-3xl p-6 lg:p-8 shadow-sm space-y-8">
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-6">
             {/* Header Title & Controls */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-gray-100">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-gray-200">
                 <div>
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
-                            <CloudRain size={22} />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-black text-gray-900 tracking-tight">
-                                Summary Curah Hujan Mingguan per PT
-                            </h2>
-                            <p className="text-xs text-gray-400 font-medium mt-0.5">
-                                Agregasi rata-rata harian dan jumlah hari hujan berdasarkan periode <span className="font-bold text-gray-600">calendar_weeks</span>.
-                            </p>
-                        </div>
-                    </div>
+                    <h2 className="text-lg font-bold text-gray-900 tracking-tight">
+                        Summary Curah Hujan Mingguan per PT
+                    </h2>
+                    <p className="text-xs text-gray-600 mt-0.5">
+                        Agregasi rata-rata harian dan jumlah hari hujan berdasarkan periode <span className="font-semibold text-gray-800">calendar_weeks</span>.
+                    </p>
                 </div>
 
                 {/* View Mode Toggle & Actions */}
-                <div className="flex flex-wrap items-center gap-3">
-                    {/* Mode Toggle */}
-                    <div className="flex items-center p-1 bg-gray-100 rounded-2xl border border-gray-200/60">
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
+                    <div className="flex items-center p-1 bg-gray-100 rounded-xl border border-gray-200" role="tablist" aria-label="Mode summary mingguan">
                         <button
+                            type="button"
+                            role="tab"
+                            aria-selected={mode === 'single'}
                             onClick={() => setMode('single')}
-                            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            className={`min-h-10 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                                 mode === 'single'
-                                    ? 'bg-white text-gray-900 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-900'
+                                    ? 'bg-black text-white'
+                                    : 'text-gray-700 hover:text-gray-900'
                             }`}
                         >
-                            <Table size={14} />
+                            <Table size={14} aria-hidden="true" />
                             <span>Detail 1 Minggu</span>
                         </button>
                         <button
+                            type="button"
+                            role="tab"
+                            aria-selected={mode === 'matrix'}
                             onClick={() => setMode('matrix')}
-                            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            className={`min-h-10 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                                 mode === 'matrix'
-                                    ? 'bg-white text-gray-900 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-900'
+                                    ? 'bg-black text-white'
+                                    : 'text-gray-700 hover:text-gray-900'
                             }`}
                         >
-                            <LayoutGrid size={14} />
+                            <LayoutGrid size={14} aria-hidden="true" />
                             <span>Matriks Multi-Minggu</span>
                         </button>
                     </div>
 
                     <button
+                        type="button"
                         onClick={fetchSummary}
                         disabled={loading}
-                        className="p-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 rounded-xl transition-all cursor-pointer"
+                        aria-label="Muat ulang ringkasan curah hujan mingguan"
                         title="Segarkan data"
+                        className="min-h-11 min-w-11 inline-flex items-center justify-center bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 rounded-xl transition-colors"
                     >
-                        <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} aria-hidden="true" />
                     </button>
                 </div>
             </div>
 
             {error && (
-                <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-700 text-xs font-bold flex items-center gap-3">
-                    <AlertCircle size={18} />
+                <div role="alert" className="p-4 bg-red-50 border border-red-300 rounded-2xl text-red-900 text-xs font-semibold flex items-center gap-3">
+                    <AlertCircle size={18} className="shrink-0 text-red-700" aria-hidden="true" />
                     <span>{error}</span>
                 </div>
             )}
 
-            {/* ---------------------------------------------------- */}
             {/* VIEW MODE 1: DETAIL 1 MINGGU */}
-            {/* ---------------------------------------------------- */}
             {mode === 'single' && (
                 <div className="space-y-6">
                     {/* Control Row: Select Week & Search */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
                             <div className="w-64">
                                 <SearchableSelect
                                     options={weekOptions}
@@ -305,33 +303,35 @@ export default function RainfallWeeklySummary() {
                                 />
                             </div>
                             {data?.week && (
-                                <span className="text-xs font-bold text-gray-500 hidden sm:inline">
-                                    📅 {formatDateRange(data.week.start_date, data.week.end_date)}
+                                <span className="text-xs font-semibold text-gray-600 tabular-nums">
+                                    {formatDateRange(data.week.start_date, data.week.end_date)}
                                 </span>
                             )}
                         </div>
 
                         {/* Search Input */}
                         <div className="relative w-full sm:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={15} aria-hidden="true" />
+                            <label htmlFor="weekly-single-search" className="sr-only">Cari PT</label>
                             <input
+                                id="weekly-single-search"
                                 type="text"
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                                 placeholder="Cari PT..."
-                                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-blue-400 focus:bg-white transition-all"
+                                className="w-full min-h-11 pl-9 pr-4 bg-white border border-gray-300 rounded-xl text-sm font-medium text-gray-900 placeholder:text-gray-500"
                             />
                         </div>
                     </div>
 
                     {/* Metrics Banner */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <MetricCard
                             title="Rata-rata CH Semua PT"
                             value={data?.metrics ? `${data.metrics.avgCHAllPT} mm` : '–'}
                             sub="Akumulasi rata-rata per minggu"
                             icon={<CloudRain size={16} />}
-                            color="#2563EB"
+                            color="#1D4ED8"
                             loading={loading}
                         />
                         <MetricCard
@@ -339,7 +339,7 @@ export default function RainfallWeeklySummary() {
                             value={data?.metrics ? `${data.metrics.avgDailyAllPT} mm/hari` : '–'}
                             sub="Intensitas harian rata-rata"
                             icon={<TrendingUp size={16} />}
-                            color="#10B981"
+                            color="#047857"
                             loading={loading}
                         />
                         <MetricCard
@@ -347,7 +347,7 @@ export default function RainfallWeeklySummary() {
                             value={data?.metrics ? `${data.metrics.avgHHAllPT} Hari` : '–'}
                             sub="Dari 7 hari dalam minggu"
                             icon={<CalendarDays size={16} />}
-                            color="#8B5CF6"
+                            color="#111827"
                             loading={loading}
                         />
                         <MetricCard
@@ -355,19 +355,19 @@ export default function RainfallWeeklySummary() {
                             value={data?.metrics?.wettestPT ? data.metrics.wettestPT.code : '–'}
                             sub={data?.metrics?.wettestPT ? `${data.metrics.wettestPT.total_mm} mm · ${data.metrics.wettestPT.hh} HH` : 'Tidak ada hujan'}
                             icon={<Building2 size={16} />}
-                            color="#F59E0B"
+                            color="#B45309"
                             loading={loading}
                         />
                     </div>
 
                     {/* Single Week Table */}
-                    <div className="overflow-x-auto border border-gray-100 rounded-2xl shadow-sm">
+                    <div className="overflow-x-auto border border-gray-200 rounded-2xl">
                         <table className="w-full text-left text-xs border-collapse">
                             <thead>
-                                <tr className="bg-gray-50/80 border-b border-gray-100 text-gray-500 uppercase text-[10px] font-black tracking-wider">
-                                    <th className="py-4 px-4 text-center w-12">No</th>
-                                    <th 
-                                        className="py-4 px-4 cursor-pointer hover:text-gray-900 select-none"
+                                <tr className="bg-gray-50 border-b border-gray-200 text-gray-700 uppercase text-[11px] font-semibold tracking-wider">
+                                    <th className="py-3.5 px-4 text-center w-12">No</th>
+                                    <th
+                                        className="py-3.5 px-4 cursor-pointer hover:text-gray-900 select-none"
                                         onClick={() => handleSort('company_code')}
                                     >
                                         <div className="flex items-center gap-1.5">
@@ -375,8 +375,8 @@ export default function RainfallWeeklySummary() {
                                             {sortConfig.key === 'company_code' && (sortConfig.direction === 'asc' ? '▲' : '▼')}
                                         </div>
                                     </th>
-                                    <th 
-                                        className="py-4 px-4 text-right cursor-pointer hover:text-gray-900 select-none"
+                                    <th
+                                        className="py-3.5 px-4 text-right cursor-pointer hover:text-gray-900 select-none"
                                         onClick={() => handleSort('total_ch_mm')}
                                     >
                                         <div className="flex items-center justify-end gap-1.5">
@@ -384,8 +384,8 @@ export default function RainfallWeeklySummary() {
                                             {sortConfig.key === 'total_ch_mm' && (sortConfig.direction === 'asc' ? '▲' : '▼')}
                                         </div>
                                     </th>
-                                    <th 
-                                        className="py-4 px-4 text-right cursor-pointer hover:text-gray-900 select-none"
+                                    <th
+                                        className="py-3.5 px-4 text-right cursor-pointer hover:text-gray-900 select-none"
                                         onClick={() => handleSort('avg_daily_mm')}
                                     >
                                         <div className="flex items-center justify-end gap-1.5">
@@ -393,8 +393,8 @@ export default function RainfallWeeklySummary() {
                                             {sortConfig.key === 'avg_daily_mm' && (sortConfig.direction === 'asc' ? '▲' : '▼')}
                                         </div>
                                     </th>
-                                    <th 
-                                        className="py-4 px-4 text-center cursor-pointer hover:text-gray-900 select-none"
+                                    <th
+                                        className="py-3.5 px-4 text-center cursor-pointer hover:text-gray-900 select-none"
                                         onClick={() => handleSort('hari_hujan')}
                                     >
                                         <div className="flex items-center justify-center gap-1.5">
@@ -402,22 +402,22 @@ export default function RainfallWeeklySummary() {
                                             {sortConfig.key === 'hari_hujan' && (sortConfig.direction === 'asc' ? '▲' : '▼')}
                                         </div>
                                     </th>
-                                    <th className="py-4 px-4 text-center">Status / Kategori</th>
-                                    <th className="py-4 px-4 text-right">Tren vs W-1</th>
+                                    <th className="py-3.5 px-4 text-center">Status / Kategori</th>
+                                    <th className="py-3.5 px-4 text-right">Tren vs W-1</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
+                            <tbody className="divide-y divide-gray-100 font-medium text-gray-800 tabular-nums">
                                 {loading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={i} className="animate-pulse">
-                                            <td colSpan={7} className="py-4 px-4 text-center text-gray-300">
+                                            <td colSpan={7} className="py-4 px-4 text-center text-gray-500">
                                                 Memuat data...
                                             </td>
                                         </tr>
                                     ))
                                 ) : filteredSingleData.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="py-8 text-center text-gray-400 italic">
+                                        <td colSpan={7} className="py-8 text-center text-gray-600">
                                             Tidak ada data untuk periode ini.
                                         </td>
                                     </tr>
@@ -425,34 +425,34 @@ export default function RainfallWeeklySummary() {
                                     filteredSingleData.map((row, idx) => {
                                         const delta = row.delta_ch_mm;
                                         return (
-                                            <tr key={row.company_code} className="hover:bg-blue-50/40 transition-colors">
-                                                <td className="py-3.5 px-4 text-center text-gray-400 font-bold">{idx + 1}</td>
+                                            <tr key={row.company_code} className="hover:bg-gray-50 transition-colors">
+                                                <td className="py-3.5 px-4 text-center text-gray-600 font-semibold">{idx + 1}</td>
                                                 <td className="py-3.5 px-4">
                                                     <div className="flex flex-col">
                                                         <span className="font-bold text-gray-900 text-sm">{row.company_code}</span>
-                                                        <span className="text-[10px] text-gray-400 truncate max-w-[200px]">{row.company_name}</span>
+                                                        <span className="text-[11px] text-gray-600 truncate max-w-[200px]">{row.company_name}</span>
                                                     </div>
                                                 </td>
                                                 <td className="py-3.5 px-4 text-right">
-                                                    <span className="text-sm font-black text-gray-900">{row.total_ch_mm}</span>
-                                                    <span className="text-[10px] text-gray-400 ml-1">mm</span>
+                                                    <span className="text-sm font-bold text-gray-900">{row.total_ch_mm}</span>
+                                                    <span className="text-xs text-gray-600 ml-1">mm</span>
                                                 </td>
                                                 <td className="py-3.5 px-4 text-right">
-                                                    <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-lg">
+                                                    <span className="text-xs font-semibold text-blue-800 bg-blue-50 border border-blue-200 px-2 py-1 rounded-md">
                                                         {row.avg_daily_mm} mm/hari
                                                     </span>
                                                 </td>
                                                 <td className="py-3.5 px-4 text-center">
-                                                    <span className="text-xs font-bold text-gray-800">
-                                                        {row.hari_hujan} <span className="text-gray-400 font-normal">/ 7 Hari</span>
+                                                    <span className="text-xs font-bold text-gray-900">
+                                                        {row.hari_hujan} <span className="text-gray-600 font-normal">/ 7 Hari</span>
                                                     </span>
                                                 </td>
                                                 <td className="py-3.5 px-4 text-center">
-                                                    <span 
-                                                        className="inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
-                                                        style={{ 
-                                                            backgroundColor: row.category?.bg || '#F3F4F6', 
-                                                            color: row.category?.color || '#374151' 
+                                                    <span
+                                                        className="inline-block px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wide"
+                                                        style={{
+                                                            backgroundColor: row.category?.bg || '#F3F4F6',
+                                                            color: row.category?.color === '#9CA3AF' ? '#374151' : (row.category?.color || '#374151')
                                                         }}
                                                     >
                                                         {row.category?.label || '–'}
@@ -460,16 +460,16 @@ export default function RainfallWeeklySummary() {
                                                 </td>
                                                 <td className="py-3.5 px-4 text-right">
                                                     {delta > 0 ? (
-                                                        <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
-                                                            <TrendingUp size={13} /> +{delta} mm
+                                                        <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800">
+                                                            <TrendingUp size={13} aria-hidden="true" /> +{delta} mm
                                                         </span>
                                                     ) : delta < 0 ? (
-                                                        <span className="inline-flex items-center gap-1 text-xs font-bold text-red-500">
-                                                            <TrendingDown size={13} /> {delta} mm
+                                                        <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700">
+                                                            <TrendingDown size={13} aria-hidden="true" /> {delta} mm
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-400">
-                                                            <Minus size={13} /> 0.0 mm
+                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600">
+                                                            <Minus size={13} aria-hidden="true" /> 0.0 mm
                                                         </span>
                                                     )}
                                                 </td>
@@ -479,56 +479,56 @@ export default function RainfallWeeklySummary() {
                                 )}
                             </tbody>
                             {singleAverages && !loading && filteredSingleData.length > 0 && (
-                                <tfoot className="bg-gray-100/90 border-t-2 border-gray-200 font-black text-xs text-gray-900">
+                                <tfoot className="bg-gray-50 border-t-2 border-gray-200 font-bold text-xs text-gray-900 tabular-nums">
                                     <tr>
-                                        <td className="py-4 px-4 text-center text-gray-400 font-bold">#</td>
-                                        <td className="py-4 px-4">
+                                        <td className="py-3.5 px-4 text-center text-gray-600">#</td>
+                                        <td className="py-3.5 px-4">
                                             <div className="flex flex-col">
-                                                <span className="text-xs font-black text-blue-900 uppercase tracking-wider">
+                                                <span className="text-xs font-bold text-gray-900 uppercase tracking-wider">
                                                     RATA-RATA SEMUA PT
                                                 </span>
-                                                <span className="text-[10px] text-gray-500 font-normal">
+                                                <span className="text-[11px] text-gray-600 font-normal">
                                                     Rata-rata seluruh perusahaan
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="py-4 px-4 text-right">
-                                            <span className="text-sm font-black text-blue-900">{singleAverages.avgWeekly}</span>
-                                            <span className="text-[10px] text-gray-500 ml-1">mm</span>
+                                        <td className="py-3.5 px-4 text-right">
+                                            <span className="text-sm font-bold text-gray-900">{singleAverages.avgWeekly}</span>
+                                            <span className="text-xs text-gray-600 ml-1">mm</span>
                                         </td>
-                                        <td className="py-4 px-4 text-right">
-                                            <span className="text-xs font-black text-blue-800 bg-blue-100/80 px-2 py-1 rounded-lg">
+                                        <td className="py-3.5 px-4 text-right">
+                                            <span className="text-xs font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2 py-1 rounded-md">
                                                 {singleAverages.avgDaily} mm/hari
                                             </span>
                                         </td>
-                                        <td className="py-4 px-4 text-center">
-                                            <span className="text-xs font-black text-purple-900">
-                                                {singleAverages.avgHH} <span className="text-gray-500 font-normal">/ 7 Hari</span>
+                                        <td className="py-3.5 px-4 text-center">
+                                            <span className="text-xs font-bold text-gray-900">
+                                                {singleAverages.avgHH} <span className="text-gray-600 font-normal">/ 7 Hari</span>
                                             </span>
                                         </td>
-                                        <td className="py-4 px-4 text-center">
-                                            <span 
-                                                className="inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
-                                                style={{ 
-                                                    backgroundColor: singleAverages.category?.bg || '#F3F4F6', 
-                                                    color: singleAverages.category?.color || '#374151' 
+                                        <td className="py-3.5 px-4 text-center">
+                                            <span
+                                                className="inline-block px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wide"
+                                                style={{
+                                                    backgroundColor: singleAverages.category?.bg || '#F3F4F6',
+                                                    color: singleAverages.category?.color === '#9CA3AF' ? '#374151' : (singleAverages.category?.color || '#374151')
                                                 }}
                                             >
                                                 {singleAverages.category?.label || '–'}
                                             </span>
                                         </td>
-                                        <td className="py-4 px-4 text-right">
+                                        <td className="py-3.5 px-4 text-right">
                                             {singleAverages.delta > 0 ? (
-                                                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
-                                                    <TrendingUp size={13} /> +{singleAverages.delta} mm
+                                                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800">
+                                                    <TrendingUp size={13} aria-hidden="true" /> +{singleAverages.delta} mm
                                                 </span>
                                             ) : singleAverages.delta < 0 ? (
-                                                <span className="inline-flex items-center gap-1 text-xs font-bold text-red-500">
-                                                    <TrendingDown size={13} /> {singleAverages.delta} mm
+                                                <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700">
+                                                    <TrendingDown size={13} aria-hidden="true" /> {singleAverages.delta} mm
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-400">
-                                                    <Minus size={13} /> 0.0 mm
+                                                <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600">
+                                                    <Minus size={13} aria-hidden="true" /> 0.0 mm
                                                 </span>
                                             )}
                                         </td>
@@ -540,24 +540,23 @@ export default function RainfallWeeklySummary() {
                 </div>
             )}
 
-            {/* ---------------------------------------------------- */}
             {/* VIEW MODE 2: MATRIKS MULTI-MINGGU */}
-            {/* ---------------------------------------------------- */}
             {mode === 'matrix' && (
                 <div className="space-y-6">
                     {/* Matrix Controls */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-gray-500">Tampilkan:</span>
-                            <div className="flex items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                            <span className="text-xs font-semibold text-gray-700">Tampilkan:</span>
+                            <div className="flex flex-wrap items-center gap-1.5">
                                 {[4, 6, 8, 12].map(n => (
                                     <button
                                         key={n}
+                                        type="button"
                                         onClick={() => setMatrixLimit(n)}
-                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                        className={`min-h-10 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                                             matrixLimit === n
-                                                ? 'bg-blue-600 text-white shadow-sm'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                ? 'bg-black text-white'
+                                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                                         }`}
                                     >
                                         {n} Minggu
@@ -568,58 +567,59 @@ export default function RainfallWeeklySummary() {
 
                         {/* Search Input */}
                         <div className="relative w-full sm:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={15} aria-hidden="true" />
+                            <label htmlFor="weekly-matrix-search" className="sr-only">Cari PT pada matriks</label>
                             <input
+                                id="weekly-matrix-search"
                                 type="text"
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                                 placeholder="Cari PT..."
-                                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-blue-400 focus:bg-white transition-all"
+                                className="w-full min-h-11 pl-9 pr-4 bg-white border border-gray-300 rounded-xl text-sm font-medium text-gray-900 placeholder:text-gray-500"
                             />
                         </div>
                     </div>
 
                     {/* Matrix Table */}
-                    <div className="overflow-x-auto border border-gray-100 rounded-2xl shadow-sm">
+                    <div className="overflow-x-auto border border-gray-200 rounded-2xl">
                         <table className="w-full text-left text-xs border-collapse">
                             <thead>
-                                <tr className="bg-gray-50/90 border-b border-gray-100 text-gray-500 uppercase text-[10px] font-black tracking-wider">
-                                    <th className="py-4 px-4 sticky left-0 bg-gray-50 z-10 w-36 shadow-[1px_0_0_#f1f5f9]">
+                                <tr className="bg-gray-50 border-b border-gray-200 text-gray-700 uppercase text-[11px] font-semibold tracking-wider">
+                                    <th className="py-3.5 px-4 sticky left-0 bg-gray-50 z-10 w-36 shadow-[1px_0_0_#e5e7eb]">
                                         Perusahaan (PT)
                                     </th>
                                     {data?.weeks?.map(w => (
-                                        <th key={w.id} className="py-4 px-3 text-center min-w-[130px] border-l border-gray-100">
+                                        <th key={w.id} className="py-3.5 px-3 text-center min-w-[130px] border-l border-gray-200">
                                             <div className="flex flex-col items-center">
-                                                <span className="text-gray-900 font-black">{w.formatted_name}</span>
-                                                <span className="text-[9px] text-gray-400 font-medium lowercase">
+                                                <span className="text-gray-900 font-bold">{w.formatted_name}</span>
+                                                <span className="text-[10px] text-gray-600 font-medium lowercase">
                                                     {formatDateRange(w.start_date, w.end_date)}
                                                 </span>
                                             </div>
                                         </th>
                                     ))}
-                                    {/* Summary Column for Row Averages */}
-                                    <th className="py-4 px-3 text-center min-w-[140px] border-l-2 border-blue-200 bg-blue-50/80 text-blue-900 font-black">
+                                    <th className="py-3.5 px-3 text-center min-w-[140px] border-l-2 border-gray-300 bg-gray-100 text-gray-900 font-bold">
                                         <div className="flex flex-col items-center">
                                             <span>Rata-rata Mingguan</span>
-                                            <span className="text-[9px] text-blue-600 font-medium">
+                                            <span className="text-[10px] text-gray-600 font-medium">
                                                 ({data?.weeks?.length || 0} Minggu Terpilih)
                                             </span>
                                         </div>
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
+                            <tbody className="divide-y divide-gray-100 font-medium text-gray-800 tabular-nums">
                                 {loading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={i} className="animate-pulse">
-                                            <td colSpan={(data?.weeks?.length || 8) + 2} className="py-4 px-4 text-center text-gray-300">
+                                            <td colSpan={(data?.weeks?.length || 8) + 2} className="py-4 px-4 text-center text-gray-500">
                                                 Memuat matriks mingguan...
                                             </td>
                                         </tr>
                                     ))
                                 ) : filteredMatrixCompanies.length === 0 ? (
                                     <tr>
-                                        <td colSpan={(data?.weeks?.length || 8) + 2} className="py-8 text-center text-gray-400 italic">
+                                        <td colSpan={(data?.weeks?.length || 8) + 2} className="py-8 text-center text-gray-600">
                                             Tidak ada data.
                                         </td>
                                     </tr>
@@ -627,8 +627,8 @@ export default function RainfallWeeklySummary() {
                                     filteredMatrixCompanies.map(comp => {
                                         const compAvg = matrixAverages?.companyAverages?.[comp.code];
                                         return (
-                                            <tr key={comp.code} className="hover:bg-blue-50/30 transition-colors">
-                                                <td className="py-3.5 px-4 sticky left-0 bg-white z-10 font-bold text-gray-900 shadow-[1px_0_0_#f1f5f9]">
+                                            <tr key={comp.code} className="hover:bg-gray-50 transition-colors">
+                                                <td className="py-3.5 px-4 sticky left-0 bg-white z-10 font-bold text-gray-900 shadow-[1px_0_0_#e5e7eb]">
                                                     {comp.code}
                                                 </td>
                                                 {data?.weeks?.map(w => {
@@ -641,30 +641,29 @@ export default function RainfallWeeklySummary() {
                                                         <td key={w.id} className="py-3 px-3 text-center border-l border-gray-100">
                                                             <div className="flex flex-col items-center gap-0.5">
                                                                 <div className="flex items-center gap-1">
-                                                                    <span className="text-xs font-black text-gray-900">
+                                                                    <span className="text-xs font-bold text-gray-900">
                                                                         {total}
                                                                     </span>
-                                                                    <span className="text-[9px] text-gray-400">mm</span>
+                                                                    <span className="text-[10px] text-gray-600">mm</span>
                                                                 </div>
-                                                                <div className="flex items-center gap-1 text-[10px] text-gray-500 font-semibold">
-                                                                    <span className="text-blue-600 font-bold">{avg} mm/hr</span>
+                                                                <div className="flex items-center gap-1 text-[11px] text-gray-600 font-medium">
+                                                                    <span className="text-blue-800 font-semibold">{avg} mm/hr</span>
                                                                     <span>·</span>
-                                                                    <span className="text-purple-700 font-bold">{hh} HH</span>
+                                                                    <span className="text-gray-800 font-semibold">{hh} HH</span>
                                                                 </div>
                                                             </div>
                                                         </td>
                                                     );
                                                 })}
-                                                {/* Per-Company Average across all selected weeks */}
-                                                <td className="py-3 px-3 text-center border-l-2 border-blue-200 bg-blue-50/40">
+                                                <td className="py-3 px-3 text-center border-l-2 border-gray-300 bg-gray-50">
                                                     <div className="flex flex-col items-center gap-0.5">
                                                         <div className="flex items-center gap-1">
-                                                            <span className="text-xs font-black text-blue-900">
+                                                            <span className="text-xs font-bold text-gray-900">
                                                                 {compAvg?.avgWeekly ?? 0}
                                                             </span>
-                                                            <span className="text-[9px] text-blue-600 font-bold">mm/mgg</span>
+                                                            <span className="text-[10px] text-gray-700 font-semibold">mm/mgg</span>
                                                         </div>
-                                                        <div className="flex items-center gap-1 text-[10px] text-blue-800 font-semibold">
+                                                        <div className="flex items-center gap-1 text-[11px] text-gray-700 font-medium">
                                                             <span>{compAvg?.avgDaily ?? 0} mm/hr</span>
                                                             <span>·</span>
                                                             <span>{compAvg?.avgHH ?? 0} HH</span>
@@ -677,9 +676,9 @@ export default function RainfallWeeklySummary() {
                                 )}
                             </tbody>
                             {matrixAverages && !loading && filteredMatrixCompanies.length > 0 && (
-                                <tfoot className="bg-gray-100/90 border-t-2 border-gray-200 text-xs font-black">
+                                <tfoot className="bg-gray-100 border-t-2 border-gray-200 text-xs font-bold tabular-nums">
                                     <tr>
-                                        <td className="py-3.5 px-4 sticky left-0 bg-gray-100 z-10 font-black text-blue-900 uppercase tracking-wider shadow-[1px_0_0_#e2e8f0]">
+                                        <td className="py-3.5 px-4 sticky left-0 bg-gray-100 z-10 font-bold text-gray-900 uppercase tracking-wider shadow-[1px_0_0_#e5e7eb]">
                                             RATA-RATA SEMUA PT
                                         </td>
                                         {data?.weeks?.map(w => {
@@ -688,30 +687,29 @@ export default function RainfallWeeklySummary() {
                                                 <td key={w.id} className="py-3 px-3 text-center border-l border-gray-200">
                                                     <div className="flex flex-col items-center gap-0.5">
                                                         <div className="flex items-center gap-1">
-                                                            <span className="text-xs font-black text-blue-900">
+                                                            <span className="text-xs font-bold text-gray-900">
                                                                 {wAvg?.avgWeekly ?? 0}
                                                             </span>
-                                                            <span className="text-[9px] text-gray-500">mm</span>
+                                                            <span className="text-[10px] text-gray-600">mm</span>
                                                         </div>
-                                                        <div className="flex items-center gap-1 text-[10px] text-gray-600 font-bold">
-                                                            <span className="text-blue-700">{wAvg?.avgDaily ?? 0} mm/hr</span>
+                                                        <div className="flex items-center gap-1 text-[11px] text-gray-700 font-semibold">
+                                                            <span className="text-blue-800">{wAvg?.avgDaily ?? 0} mm/hr</span>
                                                             <span>·</span>
-                                                            <span className="text-purple-800">{wAvg?.avgHH ?? 0} HH</span>
+                                                            <span className="text-gray-800">{wAvg?.avgHH ?? 0} HH</span>
                                                         </div>
                                                     </div>
                                                 </td>
                                             );
                                         })}
-                                        {/* Grand Overall Average */}
-                                        <td className="py-3 px-3 text-center border-l-2 border-blue-200 bg-blue-100/80">
+                                        <td className="py-3 px-3 text-center border-l-2 border-gray-300 bg-gray-200">
                                             <div className="flex flex-col items-center gap-0.5">
                                                 <div className="flex items-center gap-1">
-                                                    <span className="text-xs font-black text-blue-950">
+                                                    <span className="text-xs font-bold text-gray-900">
                                                         {matrixAverages.overall?.avgWeekly ?? 0}
                                                     </span>
-                                                    <span className="text-[9px] text-blue-800 font-bold">mm/mgg</span>
+                                                    <span className="text-[10px] text-gray-700 font-semibold">mm/mgg</span>
                                                 </div>
-                                                <div className="flex items-center gap-1 text-[10px] text-blue-900 font-black">
+                                                <div className="flex items-center gap-1 text-[11px] text-gray-800 font-semibold">
                                                     <span>{matrixAverages.overall?.avgDaily ?? 0} mm/hr</span>
                                                     <span>·</span>
                                                     <span>{matrixAverages.overall?.avgHH ?? 0} HH</span>
@@ -724,15 +722,13 @@ export default function RainfallWeeklySummary() {
                         </table>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 text-[10px] text-gray-400 font-bold pt-1">
-                        <span>💡 Keterangan sel matriks:</span>
-                        <span className="text-gray-700 font-black">Total Curah Hujan (mm)</span>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 font-medium pt-1">
+                        <span className="font-semibold text-gray-900">Keterangan sel matriks:</span>
+                        <span>Total Curah Hujan (mm)</span>
                         <span>·</span>
-                        <span className="text-blue-600 font-bold">Rata-rata per Hari (mm/hr)</span>
+                        <span className="text-blue-800 font-semibold">Rata-rata per Hari (mm/hr)</span>
                         <span>·</span>
-                        <span className="text-purple-700 font-bold">Hari Hujan (HH)</span>
-                        <span>·</span>
-                        <span className="text-blue-900 font-black bg-blue-50 px-2 py-0.5 rounded">Kolom/Baris Biru: Rata-rata Mingguan</span>
+                        <span className="text-gray-800 font-semibold">Hari Hujan (HH)</span>
                     </div>
                 </div>
             )}

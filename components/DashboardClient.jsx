@@ -33,21 +33,21 @@ const CLASS_COLORS = {
     'Normal': '#22C55E', 'A Kering': '#F59E0B', 'Kering': '#EF4444'
 };
 
-function StatCard({ label, value, sub, icon, color = 'black', loading }) {
+function StatCard({ label, value, sub, icon, color = '#111827', loading }) {
     return (
-        <div className="glass-card p-5 flex flex-col gap-3">
-            <div className="flex items-start justify-between">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</span>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center`} style={{ background: `${color}15` }}>
-                    <span style={{ color }}>{icon}</span>
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col gap-3 shadow-xs">
+            <div className="flex items-start justify-between gap-2">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{label}</span>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}15` }}>
+                    <span style={{ color }} aria-hidden="true">{icon}</span>
                 </div>
             </div>
             {loading ? (
                 <div className="h-8 w-24 bg-gray-100 animate-pulse rounded-lg" />
             ) : (
                 <div>
-                    <div className="text-3xl font-bold text-gray-900 tracking-tight">{value ?? '–'}</div>
-                    {sub && <div className="text-xs text-gray-500 mt-0.5">{sub}</div>}
+                    <div className="text-2xl sm:text-[26px] font-bold text-gray-900 tracking-tight tabular-nums leading-snug">{value ?? '–'}</div>
+                    {sub && <div className="text-xs text-gray-600 mt-0.5">{sub}</div>}
                 </div>
             )}
         </div>
@@ -61,12 +61,12 @@ function TrendArrow({ delta }) {
     if (delta === null || delta === undefined) return null;
     const isGood = parseFloat(delta) < 0;
     const isNeutral = parseFloat(delta) === 0;
-    if (isNeutral) return <span className="text-gray-400 text-xs">→ {delta} cm dari minggu lalu</span>;
+    if (isNeutral) return <span className="text-gray-600 text-xs tabular-nums">→ {delta} cm dari minggu lalu</span>;
     return (
-        <span className={`flex items-center gap-0.5 text-xs font-medium ${ isGood ? 'text-green-600' : 'text-red-500' }`}>
+        <span className={`flex items-center gap-0.5 text-xs font-semibold tabular-nums ${ isGood ? 'text-emerald-700' : 'text-red-700' }`}>
             {isGood
-                ? <svg width="10" height="10" viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="currentColor"/></svg>
-                : <svg width="10" height="10" viewBox="0 0 10 10"><polygon points="0,0 10,0 5,10" fill="currentColor"/></svg>
+                ? <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><polygon points="5,0 10,10 0,10" fill="currentColor"/></svg>
+                : <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><polygon points="0,0 10,0 5,10" fill="currentColor"/></svg>
             }
             {delta > 0 ? '+' : ''}{delta} cm dari minggu lalu
         </span>
@@ -198,24 +198,24 @@ export default function DashboardClient() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-baseline gap-3 flex-wrap">
-                        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
                         {cw && (
-                            <span className="text-sm font-normal text-gray-400">
+                            <span className="text-sm font-medium text-gray-600">
                                 ({cw.week})&nbsp;
                                 {cw.week_start && cw.week_end
-                                    ? `${fmtDate(cw.week_start)} – ${fmtDate(cw.week_end)}`
+                                    ? `${fmtDate(cw.week_start)} - ${fmtDate(cw.week_end)}`
                                     : ''}
                             </span>
                         )}
                     </div>
-                    <div className="flex items-center gap-4 mt-1">
-                        <p className="text-sm text-gray-500">Monitoring kondisi piezometer &amp; curah hujan secara real-time.</p>
+                    <div className="flex flex-wrap items-center gap-3 mt-1">
+                        <p className="text-sm text-gray-600">Monitoring kondisi piezometer &amp; curah hujan secara real-time.</p>
                         {data?.syncInfo?.last_sync && (
-                            <span className="flex items-center gap-1.5 text-[10px] font-medium bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100">
-                                <RefreshCw size={10} className={loading ? 'animate-spin' : ''} />
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white text-gray-800 px-2.5 py-1 rounded-lg border border-gray-300">
+                                <RefreshCw size={12} className={loading ? 'animate-spin' : ''} aria-hidden="true" />
                                 Update: {fmtDateTime(data.syncInfo.last_sync)}
                             </span>
                         )}
@@ -242,18 +242,22 @@ export default function DashboardClient() {
                         className="min-w-[150px]"
                     />
                     <button
+                        type="button"
                         onClick={() => fetchData(company, week)}
                         disabled={loading}
-                        className="p-2 rounded-xl border border-gray-200 bg-white/70 hover:bg-white transition-colors disabled:opacity-50"
+                        aria-label="Muat ulang data dashboard"
+                        title="Muat ulang data"
+                        className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 transition-colors disabled:opacity-50"
                     >
-                        <RefreshCw size={16} className={loading ? 'animate-spin text-gray-400' : 'text-gray-600'} />
+                        <RefreshCw size={16} className={loading ? 'animate-spin text-gray-500' : 'text-gray-800'} aria-hidden="true" />
                     </button>
                 </div>
-            </div>
+            </header>
 
             {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
-                    <AlertTriangle size={16} /> {error}
+                <div role="alert" className="bg-red-50 border border-red-300 text-red-900 text-sm px-4 py-3 rounded-2xl flex items-center gap-2 font-medium">
+                    <AlertTriangle size={16} className="shrink-0 text-red-700" aria-hidden="true" />
+                    <span>{error}</span>
                 </div>
             )}
 
@@ -296,13 +300,13 @@ export default function DashboardClient() {
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Trend Chart - spans 2 cols */}
-                <div className="glass-card p-5 lg:col-span-2 flex flex-col">
-                    <h3 className="text-sm font-bold text-gray-800 mb-1">Trend Rata-rata TMAT & Volume Data</h3>
-                    <p className="text-xs text-gray-400 mb-4">8 Minggu terakhir</p>
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-5 lg:col-span-2 flex flex-col">
+                    <h2 className="text-base font-bold text-gray-900 mb-0.5">Trend Rata-rata TMAT &amp; Volume Data</h2>
+                    <p className="text-xs text-gray-600 mb-4">8 Minggu terakhir</p>
                     <div className="flex-1 relative" style={{ minHeight: '240px' }}>
                         {loading ? (
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <RefreshCw size={24} className="animate-spin text-gray-300" />
+                                <RefreshCw size={24} className="animate-spin text-gray-400" aria-hidden="true" />
                             </div>
                         ) : trendChartData ? (
                             <Bar data={trendChartData} options={{
@@ -315,18 +319,18 @@ export default function DashboardClient() {
                                 }
                             }} />
                         ) : (
-                            <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400">Tidak ada data</div>
+                            <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-600">Tidak ada data</div>
                         )}
                     </div>
                 </div>
 
                 {/* Donut Distribution */}
-                <div className="glass-card p-5 flex flex-col">
-                    <h3 className="text-sm font-bold text-gray-800 mb-1">Distribusi TMAT</h3>
-                    <p className="text-xs text-gray-400 mb-4">{cw?.week ?? 'Minggu terkini'}</p>
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-5 flex flex-col">
+                    <h2 className="text-base font-bold text-gray-900 mb-0.5">Distribusi TMAT</h2>
+                    <p className="text-xs text-gray-600 mb-4">{cw?.week ?? 'Minggu terkini'}</p>
                     <div className="flex-1 relative flex items-center justify-center" style={{ minHeight: '240px' }}>
                         {loading ? (
-                            <RefreshCw size={24} className="animate-spin text-gray-300" />
+                            <RefreshCw size={24} className="animate-spin text-gray-400" aria-hidden="true" />
                         ) : distChartData ? (
                             <Doughnut data={distChartData} options={{
                                 responsive: true, maintainAspectRatio: false, cutout: '65%',
@@ -335,7 +339,7 @@ export default function DashboardClient() {
                                 }
                             }} />
                         ) : (
-                            <span className="text-sm text-gray-400">Tidak ada data</span>
+                            <span className="text-sm text-gray-600">Tidak ada data</span>
                         )}
                     </div>
                 </div>
@@ -344,10 +348,10 @@ export default function DashboardClient() {
             {/* Bottom Row: Estate Tables */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Top Estate by Kering */}
-                <div className="glass-card overflow-hidden flex flex-col">
-                    <div className="p-5 border-b border-gray-100">
-                        <h3 className="text-sm font-bold text-gray-800">Estate Paling Kering</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Persentase Piezometer Kering &gt; 65cm</p>
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+                    <div className="p-5 border-b border-gray-200">
+                        <h2 className="text-sm font-bold text-gray-900">Estate Paling Kering</h2>
+                        <p className="text-xs text-gray-600 mt-0.5">Persentase Piezometer Kering &gt; 65cm</p>
                     </div>
                     <div className="overflow-auto flex-1 max-h-80">
                         {loading ? (
@@ -356,7 +360,7 @@ export default function DashboardClient() {
                             </div>
                         ) : (data?.estateBreakdown?.length > 0) ? (
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-50/50 text-xs text-gray-500 uppercase tracking-wider sticky top-0 z-10">
+                                <thead className="bg-gray-50 text-xs text-gray-600 uppercase tracking-wider sticky top-0 z-10 border-b border-gray-200">
                                     <tr>
                                         <th className="px-4 py-3 text-left">Estate</th>
                                         <th className="px-4 py-3 text-right">Avg TMAT</th>
@@ -375,22 +379,22 @@ export default function DashboardClient() {
                                             const pct = e.total_block > 0 ? ((e.cnt_kering / e.total_block) * 100).toFixed(0) : 0;
                                             const st = classifyStatus(e.avg_tmat);
                                             return (
-                                                <tr key={i} className="hover:bg-white/60 transition-colors">
+                                                <tr key={i} className="hover:bg-gray-50 transition-colors">
                                                     <td className="px-4 py-3">
-                                                        <div className="font-semibold text-gray-800 text-[11px]">{e.estate}</div>
-                                                        <div className="text-[9px] text-gray-400 uppercase tracking-tighter">{e.company}</div>
+                                                        <div className="font-semibold text-gray-900 text-xs">{e.estate}</div>
+                                                        <div className="text-[11px] text-gray-600 uppercase">{e.company}</div>
                                                     </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: `${st.color}20`, color: st.color }}>
+                                                <td className="px-4 py-3 text-right tabular-nums">
+                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md border border-gray-200 bg-gray-50 text-gray-900">
                                                         {e.avg_tmat} cm
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <div className="flex items-center justify-end gap-1">
-                                                        <div className="w-8 bg-gray-100 rounded-full h-1">
-                                                            <div className="h-1 rounded-full bg-red-400" style={{ width: `${Math.min(pct, 100)}%` }} />
+                                                <td className="px-4 py-3 text-right tabular-nums">
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        <div className="w-8 bg-gray-100 rounded-full h-1.5">
+                                                            <div className="h-1.5 rounded-full bg-red-600" style={{ width: `${Math.min(pct, 100)}%` }} />
                                                         </div>
-                                                        <span className="text-[11px] font-bold text-gray-600">{pct}%</span>
+                                                        <span className="text-xs font-bold text-gray-800">{pct}%</span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -399,16 +403,16 @@ export default function DashboardClient() {
                                 </tbody>
                             </table>
                         ) : (
-                            <p className="text-sm text-gray-400 p-6 text-center">Tidak ada data.</p>
+                            <p className="text-sm text-gray-600 p-6 text-center">Tidak ada data.</p>
                         )}
                     </div>
                 </div>
 
                 {/* Rainfall Summary */}
-                <div className="glass-card overflow-hidden flex flex-col">
-                    <div className="p-5 border-b border-gray-100">
-                        <h3 className="text-sm font-bold text-gray-800">Curah Hujan Tertinggi</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Akumulasi CH Periode Minggu Ini</p>
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+                    <div className="p-5 border-b border-gray-200">
+                        <h2 className="text-sm font-bold text-gray-900">Curah Hujan Tertinggi</h2>
+                        <p className="text-xs text-gray-600 mt-0.5">Akumulasi CH Periode Minggu Ini</p>
                     </div>
                     <div className="overflow-auto flex-1 max-h-80">
                         {loading ? (
@@ -417,7 +421,7 @@ export default function DashboardClient() {
                             </div>
                         ) : (data?.rainfallData?.length > 0) ? (
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-50/50 text-xs text-gray-500 uppercase tracking-wider sticky top-0 z-10">
+                                <thead className="bg-gray-50 text-xs text-gray-600 uppercase tracking-wider sticky top-0 z-10 border-b border-gray-200">
                                     <tr>
                                         <th className="px-4 py-3 text-left">Estate</th>
                                         <th className="px-4 py-3 text-right">Total CH</th>
@@ -434,21 +438,21 @@ export default function DashboardClient() {
                                         const maxRain = Math.max(...data.rainfallData.map(d => d.total_mm));
                                         const pct = maxRain > 0 ? (r.total_mm / maxRain * 100) : 0;
                                         return (
-                                            <tr key={i} className="hover:bg-white/60 transition-colors">
+                                            <tr key={i} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-4 py-3">
-                                                    <div className="font-semibold text-gray-800 text-[11px]">{r.est_code || '–'}</div>
-                                                    <div className="text-[9px] text-gray-400 uppercase tracking-tighter">{r.company_code}</div>
+                                                    <div className="font-semibold text-gray-900 text-xs">{r.est_code || '–'}</div>
+                                                    <div className="text-[11px] text-gray-600 uppercase">{r.company_code}</div>
                                                 </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <div className="flex items-center justify-end gap-1">
-                                                        <div className="w-8 bg-gray-100 rounded-full h-1">
-                                                            <div className="h-1 rounded-full bg-blue-400" style={{ width: `${pct}%` }} />
+                                                <td className="px-4 py-3 text-right tabular-nums">
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        <div className="w-8 bg-gray-100 rounded-full h-1.5">
+                                                            <div className="h-1.5 rounded-full bg-blue-600" style={{ width: `${pct}%` }} />
                                                         </div>
-                                                        <span className="text-[11px] font-bold text-gray-700">{r.total_mm} mm</span>
+                                                        <span className="text-xs font-bold text-gray-800">{r.total_mm} mm</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <span className="text-[11px] font-bold text-blue-700">{r.hari_hujan}<span className="text-gray-300 font-normal">/7</span></span>
+                                                <td className="px-4 py-3 text-right tabular-nums">
+                                                    <span className="text-xs font-bold text-blue-800">{r.hari_hujan}<span className="text-gray-500 font-normal">/7</span></span>
                                                 </td>
                                             </tr>
                                         );
@@ -457,18 +461,18 @@ export default function DashboardClient() {
                             </table>
                         ) : (
                             <div className="p-6 text-center">
-                                <CloudRain size={32} className="mx-auto text-gray-200 mb-2" />
-                                <p className="text-xs text-gray-400">Belum ada data CH.</p>
+                                <CloudRain size={32} className="mx-auto text-gray-400 mb-2" aria-hidden="true" />
+                                <p className="text-xs text-gray-600">Belum ada data CH.</p>
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* Estate Tanpa Hujan Terlama */}
-                <div className="glass-card overflow-hidden flex flex-col">
-                    <div className="p-5 border-b border-gray-100">
-                        <h3 className="text-sm font-bold text-gray-800">Tanpa Hujan Terlama</h3>
-                        <p className="text-xs text-blue-500 font-semibold mt-0.5">Hari sejak hujan terakhir (Kondisi Terkini)</p>
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+                    <div className="p-5 border-b border-gray-200">
+                        <h2 className="text-sm font-bold text-gray-900">Tanpa Hujan Terlama</h2>
+                        <p className="text-xs text-gray-600 mt-0.5">Hari sejak hujan terakhir (Kondisi Terkini)</p>
                     </div>
                     <div className="overflow-auto flex-1 max-h-80">
                         {loading ? (
@@ -477,7 +481,7 @@ export default function DashboardClient() {
                             </div>
                         ) : (data?.lastRainData?.length > 0) ? (
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-50/50 text-xs text-gray-500 uppercase tracking-wider sticky top-0 z-10">
+                                <thead className="bg-gray-50 text-xs text-gray-600 uppercase tracking-wider sticky top-0 z-10 border-b border-gray-200">
                                     <tr>
                                         <th className="px-4 py-3 text-left">Estate</th>
                                         <th className="px-4 py-3 text-right">Hujan Terakhir</th>
@@ -492,20 +496,20 @@ export default function DashboardClient() {
                                         })
                                         .map((r, i) => {
                                             const days = r.days_since_rain;
-                                            const color = days > 14 ? 'text-red-600' : days > 7 ? 'text-orange-500' : 'text-gray-600';
+                                            const color = days > 14 ? 'text-red-700' : days > 7 ? 'text-amber-700' : 'text-gray-700';
                                             return (
-                                                <tr key={i} className="hover:bg-white/60 transition-colors">
+                                                <tr key={i} className="hover:bg-gray-50 transition-colors">
                                                     <td className="px-4 py-3">
-                                                        <div className="font-semibold text-gray-800 text-[11px]">{r.est_code || '–'}</div>
-                                                        <div className="text-[9px] text-gray-400 uppercase tracking-tighter">{r.company_code}</div>
+                                                        <div className="font-semibold text-gray-900 text-xs">{r.est_code || '–'}</div>
+                                                        <div className="text-[11px] text-gray-600 uppercase">{r.company_code}</div>
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
-                                                        <div className="text-[10px] font-medium text-gray-500">{fmtDate(r.last_rain_date)}</div>
+                                                        <div className="text-xs font-medium text-gray-600">{fmtDate(r.last_rain_date)}</div>
                                                     </td>
-                                                    <td className="px-4 py-3 text-right">
+                                                    <td className="px-4 py-3 text-right tabular-nums">
                                                         <div className="flex items-center justify-end gap-2">
-                                                            <div className={`text-xs font-black ${color}`}>{days} <span className="text-[9px] font-normal opacity-60">hari</span></div>
-                                                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: days > 14 ? '#EF4444' : days > 7 ? '#F59E0B' : '#22C55E' }} />
+                                                            <div className={`text-xs font-bold ${color}`}>{days} <span className="text-[11px] font-normal text-gray-600">hari</span></div>
+                                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: days > 14 ? '#DC2626' : days > 7 ? '#D97706' : '#16A34A' }} aria-hidden="true" />
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -515,8 +519,8 @@ export default function DashboardClient() {
                             </table>
                         ) : (
                             <div className="p-6 text-center">
-                                <AlertTriangle size={32} className="mx-auto text-gray-200 mb-2" />
-                                <p className="text-xs text-gray-400">Data analisis kekeringan tidak tersedia.</p>
+                                <AlertTriangle size={32} className="mx-auto text-gray-400 mb-2" aria-hidden="true" />
+                                <p className="text-xs text-gray-600">Data analisis kekeringan tidak tersedia.</p>
                             </div>
                         )}
                     </div>
@@ -525,13 +529,13 @@ export default function DashboardClient() {
 
             {/* DB Sync Status Footer */}
             {data?.syncInfo && (
-                <div className="flex items-center gap-3 px-4 py-3 bg-white/50 rounded-xl border border-gray-100 text-xs text-gray-500">
-                    <Database size={14} className="text-gray-400" />
-                    <span>Total di DB: <strong className="text-gray-700">{data.syncInfo.total_records?.toLocaleString('id-ID')}</strong> record</span>
-                    <span>·</span>
-                    <span><strong className="text-gray-700">{data.syncInfo.total_companies}</strong> Company</span>
-                    <span>·</span>
-                    <span><strong className="text-gray-700">{data.syncInfo.total_estates}</strong> Estate</span>
+                <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gray-200 shadow-xs text-xs text-gray-600 tabular-nums">
+                    <Database size={14} className="text-gray-500" aria-hidden="true" />
+                    <span>Total di DB: <strong className="text-gray-900">{data.syncInfo.total_records?.toLocaleString('id-ID')}</strong> record</span>
+                    <span aria-hidden="true">·</span>
+                    <span><strong className="text-gray-900">{data.syncInfo.total_companies}</strong> Company</span>
+                    <span aria-hidden="true">·</span>
+                    <span><strong className="text-gray-900">{data.syncInfo.total_estates}</strong> Estate</span>
                 </div>
             )}
         </div>
