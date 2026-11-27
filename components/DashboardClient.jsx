@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, Droplets, Activity, Building2, CloudRain, AlertTriangle, CheckCircle, Database, CalendarDays } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
+import { rankEstatesByDryness, rankEstatesByWetness } from '../lib/estateRanking';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, LineController, BarController, DoughnutController } from 'chart.js';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
 
@@ -161,6 +162,40 @@ export default function DashboardClient() {
 
     const tmatDelta = (cw && pw) ? (cw.avg_tmat - pw.avg_tmat).toFixed(1) : null;
     const status = classifyStatus(cw?.avg_tmat);
+
+    const dryEstates = useMemo(
+        () => rankEstatesByDryness(data?.estateBreakdown),
+        [data?.estateBreakdown]
+    );
+    const wetEstates = useMemo(
+        () => rankEstatesByWetness(data?.estateBreakdown),
+        [data?.estateBreakdown]
+    );
+    const { sortedRainfall, maxRain } = useMemo(() => {
+        if (!Array.isArray(data?.rainfallData) || data.rainfallData.length === 0) {
+            return { sortedRainfall: [], maxRain: 0 };
+        }
+        const sorted = [...data.rainfallData].sort((a, b) => {
+            if (b.total_mm !== a.total_mm) return b.total_mm - a.total_mm;
+            return String(a.est_code || '').localeCompare(String(b.est_code || ''), undefined, {
+                numeric: true,
+                sensitivity: 'base',
+            });
+        });
+        const max = Math.max(...sorted.map((d) => Number(d.total_mm) || 0));
+        return { sortedRainfall: sorted, maxRain: max };
+    }, [data?.rainfallData]);
+
+    const sortedLastRain = useMemo(() => {
+        if (!Array.isArray(data?.lastRainData) || data.lastRainData.length === 0) return [];
+        return [...data.lastRainData].sort((a, b) => {
+            if (b.days_since_rain !== a.days_since_rain) return b.days_since_rain - a.days_since_rain;
+            return String(a.est_code || '').localeCompare(String(b.est_code || ''), undefined, {
+                numeric: true,
+                sensitivity: 'base',
+            });
+        });
+    }, [data?.lastRainData]);
 
     const trendChartData = data?.weeklyData ? {
         labels: data.weeklyData.map(w => w.week),
@@ -345,8 +380,8 @@ export default function DashboardClient() {
                 </div>
             </div>
 
-            {/* Bottom Row: Estate Tables */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Bottom Row: Estate Tables (2x2 Grid) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Estate by Kering */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-gray-200">
@@ -355,29 +390,23 @@ export default function DashboardClient() {
                     </div>
                     <div className="overflow-auto flex-1 max-h-80">
                         {loading ? (
-                            <div className="p-6 space-y-3">
+                            <div aria-live="polite" className="p-6 space-y-3">
+                                <span className="sr-only">Memuat data estate paling kering...</span>
                                 {[1,2,3].map(i => <div key={i} className="h-8 bg-gray-100 animate-pulse rounded-lg" />)}
                             </div>
-                        ) : (data?.estateBreakdown?.length > 0) ? (
+                        ) : (dryEstates.length > 0) ? (
                             <table className="w-full text-sm">
+                                <caption className="sr-only">Peringkat estate berdasarkan persentase blok kering (&gt; 65 cm)</caption>
                                 <thead className="bg-gray-50 text-xs text-gray-600 uppercase tracking-wider sticky top-0 z-10 border-b border-gray-200">
                                     <tr>
-                                        <th className="px-4 py-3 text-left">Estate</th>
-                                        <th className="px-4 py-3 text-right">Avg TMAT</th>
-                                        <th className="px-4 py-3 text-right">Kering</th>
+                                        <th scope="col" className="px-4 py-3 text-left">Estate</th>
+                                        <th scope="col" className="px-4 py-3 text-right">Avg TMAT</th>
+                                        <th scope="col" className="px-4 py-3 text-right">Kering</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {data.estateBreakdown
-                                        .sort((a, b) => {
-                                            const pctA = a.total_block > 0 ? (a.cnt_kering / a.total_block) : 0;
-                                            const pctB = b.total_block > 0 ? (b.cnt_kering / b.total_block) : 0;
-                                            if (pctB !== pctA) return pctB - pctA;
-                                            return a.estate.localeCompare(b.estate, undefined, { numeric: true, sensitivity: 'base' });
-                                        })
-                                        .map((e, i) => {
-                                            const pct = e.total_block > 0 ? ((e.cnt_kering / e.total_block) * 100).toFixed(0) : 0;
-                                            const st = classifyStatus(e.avg_tmat);
+                                    {dryEstates.map((e, i) => {
+                                            const pct = Math.round(e.keringPct);
                                             return (
                                                 <tr key={i} className="hover:bg-gray-50 transition-colors">
                                                     <td className="px-4 py-3">
@@ -386,7 +415,7 @@ export default function DashboardClient() {
                                                     </td>
                                                 <td className="px-4 py-3 text-right tabular-nums">
                                                     <span className="text-xs font-semibold px-2 py-0.5 rounded-md border border-gray-200 bg-gray-50 text-gray-900">
-                                                        {e.avg_tmat} cm
+                                                        {e.avg_tmat != null ? `${e.avg_tmat} cm` : '-'}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-right tabular-nums">
@@ -403,7 +432,93 @@ export default function DashboardClient() {
                                 </tbody>
                             </table>
                         ) : (
-                            <p className="text-sm text-gray-600 p-6 text-center">Tidak ada data.</p>
+                            <p className="text-sm text-gray-600 p-6 text-center">Belum ada data estate kering untuk minggu dan company yang dipilih.</p>
+                        )}
+                    </div>
+                </div>
+
+                {/* Top Estate by Tergenang & Banjir */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+                    <div className="p-5 border-b border-gray-200 flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                            <h2 className="text-sm font-bold text-gray-900">Estate Paling Tergenang &amp; Banjir</h2>
+                            <p className="text-xs text-gray-600 mt-0.5">Persentase Blok TMAT 0-40 cm &amp; &lt;0 cm</p>
+                        </div>
+                        <div className="flex items-center gap-3 pt-0.5 text-xs text-gray-700 font-medium">
+                            <span className="inline-flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-xs bg-zinc-700 shrink-0" aria-hidden="true" />
+                                <span>Banjir (&lt;0)</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-xs bg-blue-700 shrink-0" aria-hidden="true" />
+                                <span>Tergenang (0-40)</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div className="overflow-auto flex-1 max-h-80">
+                        {loading ? (
+                            <div aria-live="polite" className="p-6 space-y-3">
+                                <span className="sr-only">Memuat data estate tergenang dan banjir...</span>
+                                {[1,2,3].map(i => <div key={i} className="h-8 bg-gray-100 animate-pulse rounded-lg" />)}
+                            </div>
+                        ) : (wetEstates.length > 0) ? (
+                            <table className="w-full text-sm">
+                                <caption className="sr-only">Peringkat estate berdasarkan persentase blok tergenang (0-40 cm) dan banjir (&lt;0 cm)</caption>
+                                <thead className="bg-gray-50 text-xs text-gray-600 uppercase tracking-wider sticky top-0 z-10 border-b border-gray-200">
+                                    <tr>
+                                        <th scope="col" className="px-4 py-3 text-left">Estate</th>
+                                        <th scope="col" className="px-4 py-3 text-right">Avg TMAT</th>
+                                        <th scope="col" className="px-4 py-3 text-right">Rincian Blok</th>
+                                        <th scope="col" className="px-4 py-3 text-right">Total (&le;40)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {wetEstates.map((e, i) => {
+                                        const pct = Math.round(e.combinedPct);
+                                        const titleText = `${e.cntCombined}/${e.totalBlock} blok terdampak (Tergenang 0-40: ${e.cntTergenang}, Banjir <0: ${e.cntBanjir})`;
+                                        return (
+                                            <tr key={i} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-3">
+                                                    <div className="font-semibold text-gray-900 text-xs">{e.estate}</div>
+                                                    <div className="text-[11px] text-gray-600 uppercase">{e.company}</div>
+                                                </td>
+                                                <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
+                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md border border-gray-200 bg-gray-50 text-gray-900">
+                                                        {e.avg_tmat != null ? `${e.avg_tmat} cm` : '-'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
+                                                    <div className="inline-flex items-center justify-end gap-1.5">
+                                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-800">
+                                                            0-40: {e.cntTergenang}
+                                                        </span>
+                                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700">
+                                                            &lt;0: {e.cntBanjir}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap" title={titleText}>
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        <div className="w-12 bg-gray-100 rounded-full h-1.5 overflow-hidden flex shrink-0">
+                                                            <div
+                                                                className="h-1.5 bg-zinc-700"
+                                                                style={{ width: `${e.banjirBarPct}%` }}
+                                                            />
+                                                            <div
+                                                                className="h-1.5 bg-blue-700"
+                                                                style={{ width: `${e.tergenangBarPct}%` }}
+                                                            />
+                                                        </div>
+                                                        <span className="text-xs font-bold text-gray-900 w-9 text-right">{pct}%</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p className="text-sm text-gray-600 p-6 text-center">Belum ada data blok tergenang atau banjir untuk minggu dan company yang dipilih.</p>
                         )}
                     </div>
                 </div>
@@ -416,27 +531,23 @@ export default function DashboardClient() {
                     </div>
                     <div className="overflow-auto flex-1 max-h-80">
                         {loading ? (
-                            <div className="p-6 space-y-3">
+                            <div aria-live="polite" className="p-6 space-y-3">
+                                <span className="sr-only">Memuat data curah hujan tertinggi...</span>
                                 {[1,2,3].map(i => <div key={i} className="h-8 bg-gray-100 animate-pulse rounded-lg" />)}
                             </div>
-                        ) : (data?.rainfallData?.length > 0) ? (
+                        ) : (sortedRainfall.length > 0) ? (
                             <table className="w-full text-sm">
+                                <caption className="sr-only">Peringkat estate berdasarkan curah hujan tertinggi minggu ini</caption>
                                 <thead className="bg-gray-50 text-xs text-gray-600 uppercase tracking-wider sticky top-0 z-10 border-b border-gray-200">
                                     <tr>
-                                        <th className="px-4 py-3 text-left">Estate</th>
-                                        <th className="px-4 py-3 text-right">Total CH</th>
-                                        <th className="px-4 py-3 text-right">HH</th>
+                                        <th scope="col" className="px-4 py-3 text-left">Estate</th>
+                                        <th scope="col" className="px-4 py-3 text-right">Total CH</th>
+                                        <th scope="col" className="px-4 py-3 text-right">HH</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {data.rainfallData
-                                        .sort((a, b) => {
-                                            if (b.total_mm !== a.total_mm) return b.total_mm - a.total_mm;
-                                            return a.est_code.localeCompare(b.est_code, undefined, { numeric: true, sensitivity: 'base' });
-                                        })
-                                        .map((r, i) => {
-                                        const maxRain = Math.max(...data.rainfallData.map(d => d.total_mm));
-                                        const pct = maxRain > 0 ? (r.total_mm / maxRain * 100) : 0;
+                                    {sortedRainfall.map((r, i) => {
+                                        const pct = maxRain > 0 ? ((Number(r.total_mm) || 0) / maxRain * 100) : 0;
                                         return (
                                             <tr key={i} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-4 py-3">
@@ -476,25 +587,22 @@ export default function DashboardClient() {
                     </div>
                     <div className="overflow-auto flex-1 max-h-80">
                         {loading ? (
-                            <div className="p-6 space-y-3">
+                            <div aria-live="polite" className="p-6 space-y-3">
+                                <span className="sr-only">Memuat data tanpa hujan terlama...</span>
                                 {[1,2,3].map(i => <div key={i} className="h-8 bg-gray-100 animate-pulse rounded-lg" />)}
                             </div>
-                        ) : (data?.lastRainData?.length > 0) ? (
+                        ) : (sortedLastRain.length > 0) ? (
                             <table className="w-full text-sm">
+                                <caption className="sr-only">Peringkat estate berdasarkan durasi hari tanpa hujan terlama</caption>
                                 <thead className="bg-gray-50 text-xs text-gray-600 uppercase tracking-wider sticky top-0 z-10 border-b border-gray-200">
                                     <tr>
-                                        <th className="px-4 py-3 text-left">Estate</th>
-                                        <th className="px-4 py-3 text-right">Hujan Terakhir</th>
-                                        <th className="px-4 py-3 text-right">Lama (Hari)</th>
+                                        <th scope="col" className="px-4 py-3 text-left">Estate</th>
+                                        <th scope="col" className="px-4 py-3 text-right">Hujan Terakhir</th>
+                                        <th scope="col" className="px-4 py-3 text-right">Lama (Hari)</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {data.lastRainData
-                                        .sort((a, b) => {
-                                            if (b.days_since_rain !== a.days_since_rain) return b.days_since_rain - a.days_since_rain;
-                                            return a.est_code.localeCompare(b.est_code, undefined, { numeric: true, sensitivity: 'base' });
-                                        })
-                                        .map((r, i) => {
+                                    {sortedLastRain.map((r, i) => {
                                             const days = r.days_since_rain;
                                             const color = days > 14 ? 'text-red-700' : days > 7 ? 'text-amber-700' : 'text-gray-700';
                                             return (
