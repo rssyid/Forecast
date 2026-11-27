@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { CalendarDays, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, CloudRain, Database, FileImage } from 'lucide-react';
+import Link from 'next/link';
+import { CalendarDays, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, CloudRain, Database, FileImage, FileText } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 import CompanyComparisonCard from './CompanyComparisonCard';
 import ReportModal from './ReportModal';
@@ -223,6 +224,15 @@ export default function ComparisonGridClient() {
                             <FileImage size={16} aria-hidden="true" />
                             <span>Report</span>
                         </button>
+
+                        <Link
+                            href={week ? `/analysis/weekly-report?week=${encodeURIComponent(week)}` : '/analysis/weekly-report'}
+                            className="min-h-11 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-900 font-semibold text-sm rounded-xl transition-colors whitespace-nowrap"
+                            title="Buka narasi laporan mingguan week-by-week"
+                        >
+                            <FileText size={16} aria-hidden="true" />
+                            <span>Laporan Mingguan</span>
+                        </Link>
                     </div>
                 </div>
 

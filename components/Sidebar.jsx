@@ -74,6 +74,7 @@ export default function Sidebar({
           items: [
             { href: '/piezometer', label: 'Overview' },
             { href: '/analysis/comparison', label: 'Executive Dashboard' },
+            { href: '/analysis/weekly-report', label: 'Laporan Mingguan' },
             { href: '/analysis/daily', label: 'Laporan Harian (PZO)' },
             { href: '/piezometer/comparison', label: 'Laporan Tabel' },
             { href: '/analysis/correlation', label: 'Analisis Korelasi' },

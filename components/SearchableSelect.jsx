@@ -14,7 +14,7 @@ import { ChevronDown, Search, X } from 'lucide-react';
  *   className: string
  *   disabled: boolean
  */
-export default function SearchableSelect({ options = [], value, onChange, placeholder = "Pilih...", icon, className = '', disabled = false, autoSort = true }) {
+export default function SearchableSelect({ options = [], value, onChange, placeholder = "Pilih...", icon, className = '', disabled = false, autoSort = true, id }) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const containerRef = useRef(null);
@@ -80,6 +80,7 @@ export default function SearchableSelect({ options = [], value, onChange, placeh
         <div ref={containerRef} className={`relative ${className}`}>
             {/* Trigger */}
             <button
+                id={id}
                 type="button"
                 disabled={disabled}
                 aria-expanded={open}
